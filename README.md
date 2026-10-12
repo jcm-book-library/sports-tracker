@@ -35,3 +35,16 @@ Planned shapes: `team-match` (football, rugby league, AFL, NFL…), `race` (F1 a
 ## Testing
 
 `node tests/run.js` loads the app with a stubbed `window.claude` and an in-memory sheet, pastes a round of fixtures, saves results, and checks the writes, ladder, tabs and phone layout. Needs Playwright (Chromium at `/opt/pw-browsers/chromium`). Screenshots and the generated page land in `tests/` and are git-ignored.
+
+## Race shape (Formula E first, then F1 and other motorsport)
+
+Sheet: the Formula E tracker. The original season tabs (`14/15` … `27`) and `Records` are left as they are; the app only reads them.
+
+- `Races`: `id | season | round | date | country | flag | city | circuit | name | heat | status | notes`. `id` like `2627-R01`. `heat` is 1 or 2 for double-headers. `status` is blank, `Postponed` or `Cancelled`.
+- `Results`: one row per driver per race. `id | season | raceId | driver | team | qualiPos | grid | finish | status | pole | fastestLap | pointsAdj | notes | updatedAt`. `id` is `raceId-driver` (e.g. `2627-R01-ROW`). `finish` is the classified position; `status` is blank, `DNF`, `DNS`, `DSQ` or `NC`. `pole` and `fastestLap` are `Y`. `pointsAdj` is only for stewards' deductions or half points. Points are worked out by the app from the `Points` tab and the bonuses in `App Settings`; they are never typed.
+- `Drivers`: `code | name | flag | nationality | active | notes`. Codes are permanent (three letters, as on timing screens).
+- `Teams`: `team | short | powertrain | colour1 | colour2 | active | notes`. `powertrain` feeds the manufacturers' table.
+- `Lineups`: who drove for whom each season: `season | driver | team | number | fromRound | toRound | notes`. A mid-season swap is a second row with `fromRound`.
+- `Circuits`: `circuit | city | country | flag | type | notes`, reused across seasons for circuit records.
+- `Points`: `system | position | points | notes`.
+- `App Settings`: competition, season, points system, pole and fastest-lap bonuses, team and manufacturer rules.
