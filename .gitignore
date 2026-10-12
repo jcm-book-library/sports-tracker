@@ -1,0 +1,3 @@
+tests/*.png
+tests/page.html
+node_modules/
