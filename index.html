@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16141f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sports">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<!-- Built from apps/team-match/index.html by tools/build_pages.py. Edit the source, not this file. -->
+<title>Sports Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Figtree:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* Layout: phone-first single column; laptop gets two columns on Matchday (fixtures | mini ladder).
+   Proton Seasons (dark only, sister to Jackets & Manuscripts): month accent with drift + tint,
+   lime only for the season average line. Result colours (green W / blue D / red L) are fixed and
+   never take the accent or a club colour. */
+:root{
+  --bg:#16141f; --surface:#1e1b2b; --raise:#2a2640; --line:#353050;
+  --fg:#f1effa; --muted:#a49fbf; --accent:#43ad8f; --accent-next:#7bae6a; --accent-ink:#ffffff; --accent-2:#c4f04a;
+  --danger:#ff7a7a;
+  --win:#3fae6a; --draw:#4f8fe0; --loss:#e05f5f;
+  --display:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 40px}
+h1,h2,h3,.num{font-family:var(--display)}
+h1{font-size:clamp(26px,4vw,34px);font-weight:700;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h3{font-size:15px;font-weight:700;margin:0}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.tnum{font-variant-numeric:tabular-nums}
+#dateLine{color:var(--accent)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand .comp{font-size:14px;color:var(--muted);font-weight:600}
+.status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.status[data-state="live"] .dot{background:var(--accent)}
+.status[data-state="error"] .dot{background:var(--danger)}
+.status[data-state="loading"] .dot{background:var(--accent);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.status[data-state="loading"] .dot{animation:none}}
+
+.btn{border:1px solid var(--line);background:var(--raise);color:var(--fg);border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px}
+.btn:hover{border-color:var(--muted)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn-primary:hover{filter:brightness(1.08);border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-ghost{background:transparent}
+.link{background:none;border:0;color:color-mix(in srgb,var(--accent) 70%,#fff);padding:0;font-weight:600;font-size:13px}
+.notice{background:var(--raise);border:1px solid var(--line);border-left:3px solid var(--accent);padding:10px 14px;border-radius:8px;margin-bottom:18px;font-size:14px}
+.notice[data-kind="error"]{border-left-color:var(--danger)}
+.notice[data-kind="example"]{border-left-color:var(--accent-2)}
+
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:20px;width:max-content;max-width:100%;overflow-x:auto}
+.tab{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:7px 16px;font-weight:600;font-size:14px;white-space:nowrap}
+.tab[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 24%,var(--surface));color:var(--fg);box-shadow:inset 0 -2px 0 var(--accent)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel + .panel{margin-top:20px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+/* round navigator */
+.roundnav{display:flex;align-items:center;gap:6px}
+.roundnav select{font:inherit;font-weight:700;font-family:var(--display);font-size:16px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.roundnav .btn{padding:6px 11px;font-size:15px}
+
+/* fixture cards */
+.fixtures{display:flex;flex-direction:column;gap:12px}
+.fx{border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--raise) 45%,var(--surface));padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.fx[data-dirty]{border-color:color-mix(in srgb,var(--accent) 60%,var(--line))}
+.fx-meta{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.fx-main{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.side{display:flex;align-items:center;gap:8px;min-width:0;font-weight:600}
+.side.away{justify-content:flex-end;text-align:right}
+.side .nm{line-height:1.2;min-width:0}
+.crest{width:14px;height:14px;border-radius:50%;flex:none;border:1px solid color-mix(in srgb,var(--fg) 25%,transparent)}
+.score{display:flex;align-items:center;gap:6px}
+.score input{width:52px;height:46px;text-align:center;font:700 22px/1 var(--display);font-variant-numeric:tabular-nums;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:0}
+.score input:focus{border-color:var(--accent);outline:none}
+.score .dash{color:var(--muted);font-weight:700}
+.fx-extra{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;font-size:13px}
+.fx-extra label{display:flex;flex-direction:column;gap:4px;color:var(--muted)}
+.fx-extra input,.fx-extra select{font:inherit;font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:100%;font-variant-numeric:tabular-nums}
+.fx-extra input:focus{border-color:var(--accent);outline:none}
+.pair{display:flex;gap:6px}
+.pair input{width:50%}
+.fx-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.fx-msg{font-size:12.5px;color:var(--muted)}
+.held{border:1px dashed color-mix(in srgb,var(--accent-2) 45%,var(--line));border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+.held .row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap}
+.fx[data-post] .side{opacity:.75}
+.pp{font-family:var(--display);font-weight:700;color:var(--muted);letter-spacing:.06em}
+.moved{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-2);border:1px solid color-mix(in srgb,var(--accent-2) 45%,var(--line));border-radius:999px;padding:2px 9px}
+.res{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;letter-spacing:.02em}
+.res[data-r="W"]{background:var(--win)} .res[data-r="D"]{background:var(--draw)} .res[data-r="L"]{background:var(--loss)}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:10px;align-items:center}
+
+/* tables */
+.table-wrap{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+.t th{text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding:8px 8px;white-space:nowrap;border-bottom:1px solid var(--line)}
+.t td{padding:8px 8px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.t th.l,.t td.l{text-align:left}
+.t tr:first-child td{border-top:0}
+.t td.club{font-weight:600}
+.t td.club .in{display:flex;align-items:center;gap:8px}
+.t td.pts{font-family:var(--display);font-weight:700;font-size:15px}
+.t tbody tr.click{cursor:pointer}
+.t tbody tr.click:hover td{background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.t tr.cut td{border-bottom:2px dashed color-mix(in srgb,var(--accent) 55%,var(--line))}
+.pos{color:var(--muted);width:28px}
+.form{display:inline-flex;gap:3px}
+.form i{width:18px;height:18px;border-radius:4px;display:inline-grid;place-items:center;font-style:normal;font-size:10px;font-weight:700;color:#fff}
+.form i[data-r="W"]{background:var(--win)} .form i[data-r="D"]{background:var(--draw)} .form i[data-r="L"]{background:var(--loss)}
+.gd-pos{color:color-mix(in srgb,var(--win) 70%,#fff)} .gd-neg{color:color-mix(in srgb,var(--loss) 70%,#fff)}
+@media (max-width:560px){.t .hide-sm{display:none}}
+
+/* finals picture */
+.finals{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tie{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.tie .row{display:flex;justify-content:space-between;gap:8px}
+.tie .seed{color:var(--muted);font-size:12px;margin-right:6px}
+
+/* results */
+.rd + .rd{margin-top:18px}
+.rd h3{margin-bottom:6px}
+.line{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.line:first-of-type{border-top:0}
+.line .h{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line .a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line .sc{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+.line .sub{grid-column:1 / -1;font-size:12px;color:var(--muted);text-align:center;margin-top:-4px}
+.win{font-weight:700}
+
+/* stats */
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:20px}
+@media (max-width:900px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .num{font-size:clamp(24px,3.4vw,32px);font-weight:700;line-height:1.1;letter-spacing:-.02em}
+.stat .sub{font-size:12.5px;color:var(--muted)}
+.chart-box{position:relative;height:230px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.list{list-style:none;margin:0;padding:0;font-size:14px}
+.list li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.list .v{font-weight:700;font-family:var(--display);font-variant-numeric:tabular-nums;flex:none}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+@media (max-width:900px){.grid3{grid-template-columns:minmax(0,1fr)}}
+
+/* dialogs */
+dialog{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 48px)}
+dialog::backdrop{background:rgba(8,6,14,.66)}
+.dlg-head,.dlg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px}
+.dlg-head{border-bottom:1px solid var(--line)}
+.dlg-foot{border-top:1px solid var(--line);flex-wrap:wrap}
+.dlg-body{padding:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;overflow-y:auto}
+.dlg-body.one{grid-template-columns:minmax(0,1fr)}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.field.full{grid-column:1 / -1}
+.field input,.field select,.field textarea{font:inherit;font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%}
+.field textarea{min-height:140px;font-variant-numeric:tabular-nums;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);outline:none}
+.preview{grid-column:1 / -1;font-size:13px}
+.preview .bad{color:var(--danger)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-variant-numeric:tabular-nums}
+.copybox{width:100%;min-height:120px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+/* phone: scoreboard rows (home over away), each with its own score box */
+@media (max-width:520px){
+  .fx-main{grid-template-columns:minmax(0,1fr) auto;row-gap:8px}
+  .score{display:contents}
+  .score .dash{display:none}
+  .pp{display:none}
+  .fx-main > .side:first-child{grid-row:1;grid-column:1}
+  .score input:first-of-type{grid-row:1;grid-column:2}
+  .fx-main > .side.away{grid-row:2;grid-column:1;justify-content:flex-end;text-align:left;flex-direction:row-reverse}
+  .score input:last-of-type{grid-row:2;grid-column:2}
+  .score input{width:52px;height:42px;font-size:20px}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="eyebrow" id="dateLine">&nbsp;</div>
+      <h1>Sports Tracker</h1>
+      <div class="comp" id="compLine">A-League Men · 2026/27</div>
+    </div>
+    <div class="status" id="status" data-state="loading">
+      <span class="dot"></span><span id="statusText">Connecting to your sheet…</span>
+      <button class="btn" id="refreshBtn" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-matchday" aria-selected="true" data-tab="matchday">Matchday</button>
+    <button class="tab" role="tab" id="tab-ladder" aria-selected="false" data-tab="ladder">Ladder</button>
+    <button class="tab" role="tab" id="tab-results" aria-selected="false" data-tab="results">Results</button>
+    <button class="tab" role="tab" id="tab-stats" aria-selected="false" data-tab="stats">Stats</button>
+    <button class="tab" role="tab" id="tab-history" aria-selected="false" data-tab="history">History</button>
+  </nav>
+
+  <!-- MATCHDAY -->
+  <section id="view-matchday" role="tabpanel" aria-labelledby="tab-matchday">
+    <div class="grid2">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="roundnav">
+            <button class="btn" type="button" id="prevRound" aria-label="Previous round">‹</button>
+            <select id="roundSel" aria-label="Round"></select>
+            <button class="btn" type="button" id="nextRound" aria-label="Next round">›</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" type="button" id="pasteBtn">Paste fixtures</button>
+            <button class="btn btn-primary" type="button" id="addBtn">Add fixture</button>
+          </div>
+        </div>
+        <div class="held" id="held" hidden></div>
+        <div class="fixtures" id="fixtures"></div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-head"><h2>Ladder</h2><button class="link" type="button" data-goto="ladder">Full ladder</button></div>
+          <div class="table-wrap"><table class="t" id="miniLadder"></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LADDER -->
+  <section id="view-ladder" role="tabpanel" aria-labelledby="tab-ladder" hidden>
+    <div class="panel">
+      <div class="panel-head"><h2>Ladder</h2><span class="muted" style="font-size:13px" id="ladderNote"></span></div>
+      <div class="table-wrap"><table class="t" id="ladder"></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2 id="finalsTitle">Finals picture</h2><span class="muted" style="font-size:13px" id="finalsNote"></span></div>
+      <div class="finals" id="finals"></div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="view-results" role="tabpanel" aria-labelledby="tab-results" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Results</h2>
+        <div class="field" style="flex-direction:row;align-items:center;gap:8px"><label for="resTeam">Club</label>
+          <select id="resTeam"><option value="">All clubs</option></select></div>
+      </div>
+      <div id="results"></div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="view-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+    <div class="tiles" id="tiles"></div>
+    <div class="panel">
+      <div class="panel-head"><h2>Goals by round</h2>
+        <div class="legend"><span><i class="sw" id="lgBar"></i>Goals in the round</span><span><i class="sw" style="background:var(--accent-2)"></i>Goals per game</span></div></div>
+      <div class="chart-box"><canvas id="goalsChart" aria-label="Goals per round chart"></canvas></div>
+    </div>
+    <div class="grid3" style="margin-top:20px">
+      <div class="panel"><div class="panel-head"><h2>Home crowds</h2><span class="muted" style="font-size:12px">average</span></div><ul class="list" id="crowds"></ul></div>
+      <div class="panel"><div class="panel-head"><h2>Biggest wins</h2></div><ul class="list" id="bigWins"></ul></div>
+      <div class="panel"><div class="panel-head"><h2>Red cards</h2></div><ul class="list" id="reds"></ul></div>
+    </div>
+    <div class="grid3" style="margin-top:20px">
+      <div class="panel"><div class="panel-head"><h2>Home and away</h2><span class="muted" style="font-size:12px">points</span></div><ul class="list" id="homeAway"></ul></div>
+      <div class="panel"><div class="panel-head"><h2>Highest scoring</h2></div><ul class="list" id="highScoring"></ul></div>
+      <div class="panel"><div class="panel-head"><h2>Venues</h2><span class="muted" style="font-size:12px">average crowd</span></div><ul class="list" id="venues"></ul></div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Past seasons</h2>
+        <select id="histSel" aria-label="Season" class="btn"></select>
+      </div>
+      <div class="table-wrap"><table class="t" id="histTable"></table></div>
+      <p class="muted" style="font-size:13px;margin:12px 0 0" id="histNote">Read-only, straight from your season tabs.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Season summary</h2><button class="btn" type="button" id="summaryBtn">Copy this season's summary</button></div>
+      <p class="muted" style="font-size:14px;margin:0">Builds a block in the same layout as your season tabs (position, club, PTS, +/-, P, W, L, D, F, A, then the margin for every round and final). Paste it into the season's tab once the season is done.</p>
+      <textarea class="copybox" id="summaryBox" hidden readonly aria-label="Season summary"></textarea>
+    </div>
+  </section>
+</div>
+
+<!-- fixture dialog -->
+<dialog id="fxDlg" aria-labelledby="fxTitle">
+  <form id="fxForm" method="dialog">
+    <div class="dlg-head"><h2 id="fxTitle">Add fixture</h2><button class="btn" type="button" id="fxClose">Close</button></div>
+    <div class="dlg-body">
+      <label class="field">Stage<select id="fStage"><option>Regular</option><option value="EF">Elimination final</option><option value="SF1">Semi-final leg 1</option><option value="SF2">Semi-final leg 2</option><option value="GF">Grand final</option></select></label>
+      <label class="field">Round<input id="fRound" type="number" min="1" inputmode="numeric"></label>
+      <label class="field">Date<input id="fDate" type="date" required></label>
+      <label class="field">Kick-off<input id="fKick" type="time"></label>
+      <label class="field">Home<select id="fHome" required></select></label>
+      <label class="field">Away<select id="fAway" required></select></label>
+      <label class="field full">Venue<input id="fVenue" list="venueList" autocomplete="off"></label>
+      <label class="field full">Played with round (only if the game was moved)<input id="fPlayed" type="number" min="1" inputmode="numeric" placeholder="Leave blank if it's played in its own round"></label>
+    </div>
+    <div class="dlg-foot"><span class="fx-msg" id="fxMsg"></span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="fxPost" hidden>Postpone</button><button class="btn" type="button" id="fxAnother">Save and add another</button><button class="btn btn-primary" type="submit" id="fxSave">Save fixture</button></div></div>
+  </form>
+</dialog>
+<datalist id="venueList"></datalist>
+
+<!-- paste dialog -->
+<dialog id="pasteDlg" aria-labelledby="pasteTitle">
+  <form id="pasteForm" method="dialog">
+    <div class="dlg-head"><h2 id="pasteTitle">Paste fixtures</h2><button class="btn" type="button" id="pasteClose">Close</button></div>
+    <div class="dlg-body">
+      <label class="field">Round<input id="pRound" type="number" min="1" inputmode="numeric"></label>
+      <label class="field">Stage<select id="pStage"><option>Regular</option><option value="EF">Elimination final</option><option value="SF1">Semi-final leg 1</option><option value="SF2">Semi-final leg 2</option><option value="GF">Grand final</option></select></label>
+      <label class="field full">One match per line: date, kick-off, home, away, venue (venue optional)
+        <textarea id="pText" placeholder="2026-10-16, 19:35, SYD, WSW&#10;17/10/2026, 17:00, MCY, MVC, AAMI Park"></textarea></label>
+      <div class="preview" id="pPreview"></div>
+    </div>
+    <div class="dlg-foot"><span class="fx-msg" id="pMsg">Clubs can be codes (SYD), short names or full names.</span><button class="btn btn-primary" type="submit" id="pSave" disabled>Add fixtures</button></div>
+  </form>
+</dialog>
+
+<!-- team dialog -->
+<dialog id="teamDlg" aria-labelledby="teamTitle">
+  <div class="dlg-head"><h2 id="teamTitle">Club</h2><button class="btn" type="button" id="teamClose">Close</button></div>
+  <div class="dlg-body one" id="teamBody"></div>
+</dialog>
+
+<!-- Google sign-in (only when hosted outside claude.ai) -->
+<dialog id="gDlg" aria-labelledby="gTitle">
+  <form id="gForm" method="dialog">
+    <div class="dlg-head"><h2 id="gTitle">Connect Google Sheets</h2><button class="btn" type="button" id="gClose">Close</button></div>
+    <div class="dlg-body one">
+      <p style="margin:0;font-size:14px">Paste the OAuth Client ID from your Google Cloud project (the same one your book tracker uses works, once this site's address is added to it).</p>
+      <label class="field">Client ID<input id="gClient" autocomplete="off"></label>
+    </div>
+    <div class="dlg-foot"><span class="fx-msg" id="gMsg"></span><button class="btn btn-primary" type="submit">Connect</button></div>
+  </form>
+</dialog>
+
+<script>
+const SHEET_ID = '1YNszytKR0DjU0VPEs5lCq260qwOuOuRgrqTt2erI8Uo';
+const SERVER = 'Google Sheets';
+const MATCH_COLS = ['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status'];
+const NUM_FIELDS = ['round','playedRound','homeGoals','awayGoals','homeReds','awayReds','attendance','homePens','awayPens'];
+const STAGES = { Regular: 'Regular season', EF: 'Elimination finals', SF1: 'Semi-finals · leg 1', SF2: 'Semi-finals · leg 2', GF: 'Grand final' };
+const FINAL_STAGES = ['EF','SF1','SF2','GF'];
+
+/* Shown only when the page can't reach the sheet (preview, or outside Claude). Clubs are the real
+   list from the Teams tab; the matches are clearly marked examples, never your results. */
+const EXAMPLE = {
+  settings: { competition: 'A-League Men', season: '2026/27', pointsWin: 3, pointsDraw: 1, pointsLoss: 0, regularRounds: 28, tiebreakers: 'goalDiff,goalsFor,wins,h2hPoints,h2hGoalDiff', finalsTeams: 6 },
+  teams: [
+    ['ADE','Adelaide United','Adelaide','#D71920','#1B2A4A','Coopers Stadium'],['AUC','Auckland FC','Auckland','#1E3A8A','#FFFFFF','Go Media Stadium'],
+    ['BRI','Brisbane Roar','Brisbane','#F26522','#1A1A1A','Suncorp Stadium'],['CCM','Central Coast Mariners','Central Coast','#FFD100','#002B5C','Industree Group Stadium'],
+    ['MAC','Macarthur FC','Macarthur','#1A1A1A','#C5A253','Campbelltown Stadium'],['MCY','Melbourne City','Melbourne City','#6CABDD','#1C2C5B','AAMI Park'],
+    ['MVC','Melbourne Victory','Melbourne Victory','#002A5C','#FFFFFF','AAMI Park'],['NEW','Newcastle Jets','Newcastle','#F2A900','#003A70','McDonald Jones Stadium'],
+    ['PER','Perth Glory','Perth','#4B2A7B','#F37021','HBF Park'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium'],
+    ['WEL','Wellington Phoenix','Wellington','#FFD700','#1A1A1A','Sky Stadium'],['WSW','Western Sydney Wanderers','Western Sydney','#C8102E','#1A1A1A','CommBank Stadium']
+  ].map(([code,name,short,colour1,colour2,homeVenue]) => ({ code, name, short, colour1, colour2, homeVenue })),
+  matches: [
+    ['EX1',1,'2026-10-16','19:35','SYD','WSW',2,1,0,0,'Allianz Stadium',28000],
+    ['EX2',1,'2026-10-17','17:00','MCY','MVC',1,1,0,1,'AAMI Park',21000],
+    ['EX3',1,'2026-10-17','19:35','AUC','WEL',3,0,0,0,'Go Media Stadium',24000],
+    ['EX4',1,'2026-10-18','15:00','CCM','NEW',0,2,1,0,'Industree Group Stadium',9000],
+    ['EX5',1,'2026-10-18','17:30','ADE','PER',null,null,null,null,'Coopers Stadium',null],
+    ['EX6',1,'2026-10-18','19:45','BRI','MAC',null,null,null,null,'Suncorp Stadium',null]
+  ].map(([id,round,date,kickoff,home,away,hg,ag,hr,ar,venue,att]) => ({ id, season:'2026/27', round, stage:'Regular', date, kickoff, home, away, homeGoals:hg, awayGoals:ag, homeReds:hr, awayReds:ar, venue, attendance:att, extraTime:'', homePens:null, awayPens:null, notes:'example' }))
+};
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => iso(new Date());
+const toNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+const toDate = v => {
+  const s = String(v ?? '').trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if (m) return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${pad(+m[2])}-${pad(+m[1])}`;
+  return null;
+};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const fmt = n => n == null ? '–' : Number(n).toLocaleString('en-AU');
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const niceDate = s => { if (!s) return 'Date TBC'; const [y,m,d] = s.split('-').map(Number); const dt = new Date(y, m - 1, d); return `${DAYS[dt.getDay()]} ${d} ${MONTHS[m - 1]}`; };
+const niceTime = s => { const m = String(s || '').match(/^(\d{1,2}):(\d{2})/); if (!m) return ''; const h = +m[1]; return `${h % 12 || 12}:${m[2]}${h < 12 ? 'am' : 'pm'}`; };
+const colLetter = i => { let s = ''; i++; while (i) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; };
+const played = m => m.homeGoals != null && m.awayGoals != null;
+const isFinal = m => FINAL_STAGES.includes(m.stage);
+const signed = n => n > 0 ? '+' + n : String(n);
+
+/* ---------- Proton Seasons theme ---------- */
+const MC = ['#e8935a','#e07a7a','#d9738f','#c573b4','#a674e0','#7f6cf5','#6a7ff0','#5591e0','#3fa4b8','#43ad8f','#7bae6a','#d6a345'];
+const BASE = { bg:'#16141f', surface:'#1e1b2b', raise:'#2a2640', line:'#353050' };
+const LIME = '#c4f04a';
+const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => '#' + hexRgb(a).map((v, i) => Math.round(v + (hexRgb(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
+function dayColour(isoDate) {
+  const y = +isoDate.slice(0, 4), m = +isoDate.slice(5, 7) - 1, d = +isoDate.slice(8, 10);
+  const len = new Date(y, m + 1, 0).getDate();
+  return mix(MC[m], MC[(m + 1) % 12], ((d - 1) / (len - 1)) * 0.6);
+}
+function applyTheme() {
+  const t = today(), m = +t.slice(5, 7) - 1, c = dayColour(t), r = document.documentElement.style;
+  r.setProperty('--accent', c);
+  r.setProperty('--accent-next', MC[(m + 1) % 12]);
+  r.setProperty('--bg', mix(BASE.bg, c, 0.05));
+  r.setProperty('--surface', mix(BASE.surface, c, 0.05));
+  r.setProperty('--raise', mix(BASE.raise, c, 0.06));
+  r.setProperty('--line', mix(BASE.line, c, 0.08));
+  const [y, mo, d] = t.split('-').map(Number);
+  $('dateLine').textContent = `${DAYS[new Date(y, mo - 1, d).getDay()]} ${d} ${FULL_MONTHS[mo - 1]} ${y}`;
+}
+
+/* ---------- state ---------- */
+const state = {
+  mcp: null, live: false, busy: false, google: false,
+  settings: { ...EXAMPLE.settings },
+  teams: EXAMPLE.teams.map(t => ({ ...t })),
+  venues: [...new Set(EXAMPLE.teams.map(t => t.homeVenue))],
+  matches: EXAMPLE.matches.map(m => ({ ...m })),
+  round: null, tab: 'matchday', drafts: {}, history: { tabs: [], cache: {} }, chart: null
+};
+const team = code => state.teams.find(t => t.code === code) || { code, name: code || '?', short: code || '?', colour1: '#888888', colour2: '#444444' };
+const crest = code => { const t = team(code); return `<span class="crest" style="background:linear-gradient(135deg,${esc(t.colour1)} 50%,${esc(t.colour2)} 50%)" aria-hidden="true"></span>`; };
+const seasonMatches = () => state.matches.filter(m => m.season === state.settings.season);
+
+/* ---------- ladder engine (team-match shape) ---------- */
+function tableFor(matches, codes) {
+  const S = state.settings, rows = {};
+  codes.forEach(c => rows[c] = { code: c, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0, form: [], homePts: 0, awayPts: 0, homeP: 0, awayP: 0 });
+  const sorted = [...matches].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.round - b.round));
+  for (const m of sorted) {
+    if (!played(m) || !rows[m.home] || !rows[m.away]) continue;
+    const h = rows[m.home], a = rows[m.away], hg = m.homeGoals, ag = m.awayGoals;
+    const rh = hg > ag ? 'W' : hg < ag ? 'L' : 'D', ra = rh === 'W' ? 'L' : rh === 'L' ? 'W' : 'D';
+    const pts = r => r === 'W' ? S.pointsWin : r === 'D' ? S.pointsDraw : S.pointsLoss;
+    for (const [t, gf, ga, r, home] of [[h, hg, ag, rh, true], [a, ag, hg, ra, false]]) {
+      t.P++; t[r]++; t.GF += gf; t.GA += ga; t.Pts += pts(r); t.form.push(r);
+      if (home) { t.homePts += pts(r); t.homeP++; } else { t.awayPts += pts(r); t.awayP++; }
+    }
+  }
+  Object.values(rows).forEach(r => r.GD = r.GF - r.GA);
+  return rows;
+}
+// Points first, then each tiebreaker in the order set in App Settings. Head-to-head criteria are worked out
+// only among the clubs still level at that step, the way competition rules apply them.
+function rankLadder(matches, codes) {
+  const rows = tableFor(matches, codes);
+  const crit = ['points', ...String(state.settings.tiebreakers || '').split(',').map(s => s.trim()).filter(Boolean)];
+  const value = (c, group) => {
+    if (c.startsWith('h2h')) {
+      const mini = tableFor(matches.filter(m => group.includes(m.home) && group.includes(m.away)), group);
+      return code => ({ h2hPoints: mini[code].Pts, h2hGoalDiff: mini[code].GD, h2hGoalsFor: mini[code].GF })[c] ?? 0;
+    }
+    return code => { const r = rows[code]; return ({ points: r.Pts, goalDiff: r.GD, goalsFor: r.GF, wins: r.W, goalsAgainst: -r.GA })[c] ?? 0; };
+  };
+  const order = (group, ci) => {
+    if (group.length < 2 || ci >= crit.length) return [...group].sort((a, b) => team(a).name.localeCompare(team(b).name));
+    const f = value(crit[ci], group);
+    const byVal = new Map();
+    group.forEach(c => { const v = f(c); if (!byVal.has(v)) byVal.set(v, []); byVal.get(v).push(c); });
+    return [...byVal.keys()].sort((a, b) => b - a).flatMap(v => order(byVal.get(v), ci + 1));
+  };
+  return order(codes, 0).map(c => rows[c]);
+}
+const currentLadder = () => rankLadder(seasonMatches().filter(m => !isFinal(m)), state.teams.map(t => t.code));
+
+/* ---------- rendering ---------- */
+function renderAll() {
+  $('compLine').textContent = `${state.settings.competition} · ${state.settings.season}`;
+  renderRoundSel(); renderFixtures(); renderMiniLadder();
+  if (state.tab === 'ladder') renderLadder();
+  if (state.tab === 'results') renderResults();
+  if (state.tab === 'stats') renderStats();
+  if (state.tab === 'history') renderHistory();
+}
+
+function roundKeys() {
+  const n = +state.settings.regularRounds || 26;
+  const keys = Array.from({ length: n }, (_, i) => String(i + 1));
+  return [...keys, ...FINAL_STAGES];
+}
+const roundLabel = k => FINAL_STAGES.includes(k) ? STAGES[k] : 'Round ' + k;
+const inRound = (m, k) => FINAL_STAGES.includes(k) ? m.stage === k : (!isFinal(m) && String(m.round) === k);
+// A rescheduled game keeps its matchday (round) and also shows in the round it's played with (playedRound).
+const playRound = m => m.playedRound || m.round;
+const moved = m => !isFinal(m) && m.playedRound && String(m.playedRound) !== String(m.round);
+const isPost = m => m.status === 'Postponed';
+const onMatchday = (m, k) => inRound(m, k) || (!FINAL_STAGES.includes(k) && moved(m) && String(m.playedRound) === k);
+function defaultRound() {
+  const ms = seasonMatches();
+  // The round holding the earliest unplayed game (a game moved to a later date doesn't hold its round open).
+  const next = ms.filter(m => !played(m) && !isPost(m)).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'))[0];
+  const open = next && (isFinal(next) ? next.stage : String(playRound(next)));
+  if (open) return open;
+  const withGames = roundKeys().filter(k => ms.some(m => inRound(m, k)));
+  if (!withGames.length) return '1';
+  const keys = roundKeys(), last = keys.indexOf(withGames[withGames.length - 1]);
+  return keys[Math.min(last + 1, keys.length - 1)];
+}
+function renderRoundSel() {
+  const keys = roundKeys();
+  if (!state.round || !keys.includes(state.round)) state.round = defaultRound();
+  const ms = seasonMatches();
+  $('roundSel').innerHTML = keys.map(k => {
+    const games = ms.filter(m => onMatchday(m, k)), done = games.filter(played).length;
+    const tag = games.length ? (done === games.length ? ' ✓' : ` · ${done}/${games.length}`) : '';
+    return `<option value="${k}"${k === state.round ? ' selected' : ''}>${roundLabel(k)}${tag}</option>`;
+  }).join('');
+  const i = keys.indexOf(state.round);
+  $('prevRound').disabled = i <= 0; $('nextRound').disabled = i >= keys.length - 1;
+}
+
+function draftOf(m) {
+  return state.drafts[m.id] || (state.drafts[m.id] = {
+    homeGoals: m.homeGoals, awayGoals: m.awayGoals, homeReds: m.homeReds, awayReds: m.awayReds,
+    attendance: m.attendance, extraTime: m.extraTime || '', homePens: m.homePens, awayPens: m.awayPens
+  });
+}
+const DRAFT_FIELDS = ['homeGoals','awayGoals','homeReds','awayReds','attendance','extraTime','homePens','awayPens'];
+const changedFields = m => { const d = draftOf(m); return DRAFT_FIELDS.filter(f => (d[f] ?? '') !== (m[f] ?? '')); };
+
+function renderHeld() {
+  const list = seasonMatches().filter(isPost).sort((a, b) => (a.round || 0) - (b.round || 0));
+  const box = $('held'); box.hidden = !list.length;
+  box.innerHTML = list.length ? `<span class="eyebrow" style="color:var(--accent-2)">Waiting for a new date · ${list.length}</span>` + list.map(m =>
+    `<div class="row" data-id="${esc(m.id)}"><span>${crest(m.home)} ${esc(team(m.home).short)} v ${esc(team(m.away).short)} ${crest(m.away)} <span class="muted">· matchday ${esc(m.round)} · was ${niceDate(m.date)}</span></span><button class="btn" type="button" data-act="edit">Set new date</button></div>`).join('') : '';
+}
+function renderFixtures() {
+  renderHeld();
+  const ms = seasonMatches().filter(m => onMatchday(m, state.round))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.kickoff).localeCompare(String(b.kickoff)));
+  const box = $('fixtures');
+  if (!ms.length) {
+    box.innerHTML = `<div class="empty"><strong style="color:var(--fg)">No fixtures in ${esc(roundLabel(state.round))} yet</strong>
+      Add the round's games one at a time, or paste the whole round from the draw.
+      <div style="display:flex;gap:8px"><button class="btn" type="button" data-act="paste">Paste fixtures</button><button class="btn btn-primary" type="button" data-act="add">Add fixture</button></div></div>`;
+    return;
+  }
+  box.innerHTML = ms.map(m => {
+    if (isPost(m)) return `<article class="fx" data-id="${esc(m.id)}" data-post>
+      <div class="moved">Postponed · waiting for a new date</div>
+      <div class="fx-meta"><span>Was ${niceDate(m.date)}${m.venue ? ' · ' + esc(m.venue) : ''}</span></div>
+      <div class="fx-main"><div class="side">${crest(m.home)}<span class="nm">${esc(team(m.home).short)}</span></div><span class="pp">P – P</span><div class="side away"><span class="nm">${esc(team(m.away).short)}</span>${crest(m.away)}</div></div>
+      <div class="fx-foot"><span class="fx-msg">Stays on matchday ${esc(m.round)} until it's rescheduled</span><button class="btn btn-primary" type="button" data-act="edit">Set new date</button></div>
+    </article>`;
+    const d = draftOf(m), dirty = changedFields(m).length > 0, fin = isFinal(m);
+    const res = played(m) ? (m.homeGoals > m.awayGoals ? `${esc(team(m.home).short)} win` : m.homeGoals < m.awayGoals ? `${esc(team(m.away).short)} win` : 'Draw') : '';
+    const v = x => x == null ? '' : x;
+    return `<article class="fx" data-id="${esc(m.id)}"${dirty ? ' data-dirty' : ''}>
+      ${moved(m) ? `<div class="moved">${String(m.round) === state.round ? `Moved to ${niceDate(m.date)} · played with Round ${esc(m.playedRound)}` : `Matchday ${esc(m.round)} game, rescheduled`}</div>` : ''}
+      <div class="fx-meta"><span>${niceDate(m.date)}${m.kickoff ? ' · ' + niceTime(m.kickoff) : ''}${m.venue ? ' · ' + esc(m.venue) : ''}</span>
+        <button class="link" type="button" data-act="edit">Edit fixture</button></div>
+      <div class="fx-main">
+        <div class="side">${crest(m.home)}<span class="nm">${esc(team(m.home).short)}</span></div>
+        <div class="score">
+          <input id="hg-${esc(m.id)}" data-f="homeGoals" type="number" min="0" inputmode="numeric" value="${v(d.homeGoals)}" aria-label="${esc(team(m.home).short)} goals">
+          <span class="dash">–</span>
+          <input id="ag-${esc(m.id)}" data-f="awayGoals" type="number" min="0" inputmode="numeric" value="${v(d.awayGoals)}" aria-label="${esc(team(m.away).short)} goals">
+        </div>
+        <div class="side away"><span class="nm">${esc(team(m.away).short)}</span>${crest(m.away)}</div>
+      </div>
+      <div class="fx-extra">
+        <label>Red cards<span class="pair"><input id="hr-${esc(m.id)}" data-f="homeReds" type="number" min="0" inputmode="numeric" value="${v(d.homeReds)}" aria-label="${esc(team(m.home).short)} red cards" placeholder="0"><input id="ar-${esc(m.id)}" data-f="awayReds" type="number" min="0" inputmode="numeric" value="${v(d.awayReds)}" aria-label="${esc(team(m.away).short)} red cards" placeholder="0"></span></label>
+        <label>Attendance<input id="at-${esc(m.id)}" data-f="attendance" type="number" min="0" inputmode="numeric" value="${v(d.attendance)}"></label>
+        ${fin ? `<label>Extra time<select id="et-${esc(m.id)}" data-f="extraTime"><option value="">No</option><option value="Y"${d.extraTime === 'Y' ? ' selected' : ''}>Yes</option></select></label>
+        <label>Penalties<span class="pair"><input id="hp-${esc(m.id)}" data-f="homePens" type="number" min="0" inputmode="numeric" value="${v(d.homePens)}" aria-label="${esc(team(m.home).short)} penalties"><input id="ap-${esc(m.id)}" data-f="awayPens" type="number" min="0" inputmode="numeric" value="${v(d.awayPens)}" aria-label="${esc(team(m.away).short)} penalties"></span></label>` : ''}
+      </div>
+      <div class="fx-foot"><span class="fx-msg">${dirty ? 'Unsaved changes' : res ? `<span class="res" data-r="${m.homeGoals === m.awayGoals ? 'D' : 'W'}">${res}</span>` : 'Not played yet'}</span>
+        <button class="btn btn-primary" type="button" data-act="save"${dirty ? '' : ' disabled'}>Save result</button></div>
+    </article>`;
+  }).join('');
+}
+
+function ladderRows(rows, mini) {
+  const cut = +state.settings.finalsTeams || 0;
+  const head = mini
+    ? `<thead><tr><th class="l">#</th><th class="l">Club</th><th>P</th><th>GD</th><th>Pts</th><th class="l hide-sm">Form</th></tr></thead>`
+    : `<thead><tr><th class="l">#</th><th class="l">Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th class="hide-sm">GF</th><th class="hide-sm">GA</th><th>GD</th><th>Pts</th><th class="l hide-sm">Form</th></tr></thead>`;
+  const body = rows.map((r, i) => {
+    const gd = `<span class="${r.GD > 0 ? 'gd-pos' : r.GD < 0 ? 'gd-neg' : ''}">${signed(r.GD)}</span>`;
+    const form = `<span class="form">${r.form.slice(-5).map(x => `<i data-r="${x}">${x}</i>`).join('')}</span>`;
+    const club = `<td class="l club"><span class="in">${crest(r.code)}${esc(mini ? team(r.code).short : team(r.code).name)}</span></td>`;
+    const cls = `class="click${i + 1 === cut ? ' cut' : ''}" data-team="${esc(r.code)}"`;
+    return mini
+      ? `<tr ${cls}><td class="l pos">${i + 1}</td>${club}<td>${r.P}</td><td>${gd}</td><td class="pts">${r.Pts}</td><td class="l hide-sm">${form}</td></tr>`
+      : `<tr ${cls}><td class="l pos">${i + 1}</td>${club}<td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td><td class="hide-sm">${r.GF}</td><td class="hide-sm">${r.GA}</td><td>${gd}</td><td class="pts">${r.Pts}</td><td class="l hide-sm">${form}</td></tr>`;
+  }).join('');
+  return head + `<tbody>${body}</tbody>`;
+}
+function renderMiniLadder() { $('miniLadder').innerHTML = ladderRows(currentLadder(), true); }
+
+function renderLadder() {
+  const rows = currentLadder();
+  $('ladder').innerHTML = ladderRows(rows, false);
+  const names = { goalDiff: 'goal difference', goalsFor: 'goals scored', h2hPoints: 'head-to-head points', h2hGoalDiff: 'head-to-head goal difference', h2hGoalsFor: 'head-to-head goals', wins: 'wins', h2hGoalsFor: 'head-to-head goals' };
+  $('ladderNote').textContent = 'Level on points: ' + String(state.settings.tiebreakers || '').split(',').map(s => names[s.trim()] || s.trim()).filter(Boolean).join(', then ');
+  renderFinals(rows);
+}
+
+// A-League finals: EF 3v6 and 4v5 (higher seed hosts); two-legged semis, 1st plays the lower-ranked EF winner;
+// grand final hosted by the higher seed. Uses entered finals where they exist, otherwise "if the season ended today".
+function renderFinals(rows) {
+  const seeds = rows.slice(0, +state.settings.finalsTeams || 6).map(r => r.code);
+  const ms = seasonMatches();
+  const seedOf = c => seeds.indexOf(c) + 1;
+  const regularDone = ms.filter(m => !isFinal(m)).length > 0 && ms.filter(m => !isFinal(m)).every(played);
+  $('finalsNote').textContent = regularDone ? 'Final ladder positions' : 'If the season ended today';
+  if (seeds.length < 6) { $('finals').innerHTML = '<div class="empty">The finals picture needs six clubs on the ladder.</div>'; return; }
+  const tie = (title, a, b, m, extra = '') => {
+    const score = m && played(m) ? `${m.homeGoals}–${m.awayGoals}${m.extraTime === 'Y' ? ' aet' : ''}${m.homePens != null && m.awayPens != null ? ` (${m.homePens}–${m.awayPens} pens)` : ''}` : (m ? niceDate(m.date) : 'TBC');
+    return `<div class="tie"><span class="eyebrow">${title}</span>
+      <div class="row"><span>${a ? `<span class="seed">${seedOf(a) || ''}</span>${esc(team(a).short)}` : 'TBC'}</span></div>
+      <div class="row"><span>${b ? `<span class="seed">${seedOf(b) || ''}</span>${esc(team(b).short)}` : 'TBC'}</span></div>
+      <span class="muted" style="font-size:13px">${score}${extra}</span></div>`;
+  };
+  const find = (stage, a, b) => ms.find(m => m.stage === stage && ((m.home === a && m.away === b) || (m.home === b && m.away === a)));
+  const winnerOf = m => { if (!m || !played(m)) return null; if (m.homeGoals !== m.awayGoals) return m.homeGoals > m.awayGoals ? m.home : m.away; if (m.homePens != null && m.awayPens != null && m.homePens !== m.awayPens) return m.homePens > m.awayPens ? m.home : m.away; return null; };
+  const [s1, s2, s3, s4, s5, s6] = seeds;
+  const ef1 = find('EF', s3, s6), ef2 = find('EF', s4, s5);
+  const w1 = winnerOf(ef1), w2 = winnerOf(ef2);
+  let sfA = null, sfB = null;
+  if (w1 && w2) { const lower = seedOf(w1) > seedOf(w2) ? w1 : w2, other = lower === w1 ? w2 : w1; sfA = [s1, lower]; sfB = [s2, other]; }
+  const agg = pair => {
+    if (!pair) return { html: '', winner: null };
+    const [hi, lo] = pair, l1 = find('SF1', hi, lo), l2 = find('SF2', hi, lo);
+    const goals = (m, c) => m && played(m) ? (m.home === c ? m.homeGoals : m.awayGoals) : 0;
+    const gHi = goals(l1, hi) + goals(l2, hi), gLo = goals(l1, lo) + goals(l2, lo);
+    let winner = null;
+    if (l2 && played(l2)) winner = gHi !== gLo ? (gHi > gLo ? hi : lo) : winnerOf(l2);
+    const html = (l1 && played(l1)) ? ` · aggregate ${esc(team(hi).short)} ${gHi}–${gLo}` : '';
+    return { html, winner, l1, l2 };
+  };
+  const a = agg(sfA), b = agg(sfB);
+  const gfm = a.winner && b.winner ? find('GF', a.winner, b.winner) : ms.find(m => m.stage === 'GF');
+  const gfHome = a.winner && b.winner ? (seedOf(a.winner) < seedOf(b.winner) ? [a.winner, b.winner] : [b.winner, a.winner]) : [null, null];
+  $('finals').innerHTML = [
+    tie('Elimination final', s3, s6, ef1), tie('Elimination final', s4, s5, ef2),
+    tie('Semi-final', sfA ? sfA[0] : s1, sfA ? sfA[1] : null, a.l2 || a.l1, a.html),
+    tie('Semi-final', sfB ? sfB[0] : s2, sfB ? sfB[1] : null, b.l2 || b.l1, b.html),
+    tie('Grand final', gfHome[0], gfHome[1], gfm)
+  ].join('');
+}
+
+function renderResults() {
+  const sel = $('resTeam'), cur = sel.value;
+  sel.innerHTML = '<option value="">All clubs</option>' + state.teams.map(t => `<option value="${esc(t.code)}"${t.code === cur ? ' selected' : ''}>${esc(t.name)}</option>`).join('');
+  const ms = seasonMatches().filter(played).filter(m => !cur || m.home === cur || m.away === cur);
+  if (!ms.length) { $('results').innerHTML = '<div class="empty">No results yet. Scores you save on Matchday appear here.</div>'; return; }
+  const groups = roundKeys().map(k => [k, ms.filter(m => inRound(m, k))]).filter(([, g]) => g.length).reverse();
+  $('results').innerHTML = groups.map(([k, g]) => `<div class="rd"><h3>${esc(roundLabel(k))}</h3>${g.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(m => {
+    const hw = m.homeGoals > m.awayGoals, aw = m.awayGoals > m.homeGoals;
+    const bits = [niceDate(m.date), m.venue, m.attendance ? fmt(m.attendance) + ' crowd' : '', (m.homeReds || m.awayReds) ? `${(m.homeReds || 0) + (m.awayReds || 0)} red` : '', m.extraTime === 'Y' ? 'after extra time' : '', m.homePens != null && m.awayPens != null ? `${m.homePens}–${m.awayPens} on penalties` : ''].filter(Boolean);
+    return `<div class="line"><span class="h${hw ? ' win' : ''}">${esc(team(m.home).short)}</span><span class="sc">${m.homeGoals}–${m.awayGoals}</span><span class="a${aw ? ' win' : ''}">${esc(team(m.away).short)}</span><span class="sub">${esc(bits.join(' · '))}</span></div>`;
+  }).join('')}</div>`).join('');
+}
+
+function renderStats() {
+  const ms = seasonMatches().filter(played);
+  const goals = ms.reduce((s, m) => s + m.homeGoals + m.awayGoals, 0);
+  const crowds = ms.filter(m => m.attendance);
+  const reds = ms.reduce((s, m) => s + (m.homeReds || 0) + (m.awayReds || 0), 0);
+  const draws = ms.filter(m => m.homeGoals === m.awayGoals).length;
+  const homeWins = ms.filter(m => m.homeGoals > m.awayGoals).length;
+  const tile = (label, num, sub) => `<div class="stat"><span class="eyebrow">${label}</span><span class="num">${num}</span><span class="sub">${sub}</span></div>`;
+  const avgCrowd = crowds.length ? Math.round(crowds.reduce((s, m) => s + m.attendance, 0) / crowds.length) : null;
+  $('tiles').innerHTML = [
+    tile('Matches', ms.length, `of ${seasonMatches().filter(m => !isFinal(m)).length || '–'} scheduled`),
+    tile('Goals', goals, ms.length ? `${(goals / ms.length).toFixed(2)} per game` : 'none yet'),
+    tile('Avg crowd', avgCrowd ? fmt(avgCrowd) : '–', crowds.length ? `${crowds.length} games logged` : 'add attendances'),
+    tile('Home wins', ms.length ? Math.round(homeWins / ms.length * 100) + '%' : '–', `${homeWins} of ${ms.length}`),
+    tile('Draws', ms.length ? Math.round(draws / ms.length * 100) + '%' : '–', `${draws} drawn`),
+    tile('Red cards', reds, ms.length ? `${(reds / ms.length).toFixed(2)} per game` : 'none yet')
+  ].join('');
+
+  // goals by round
+  const keys = roundKeys().filter(k => ms.some(m => inRound(m, k)));
+  const per = keys.map(k => { const g = ms.filter(m => inRound(m, k)); return { k, goals: g.reduce((s, m) => s + m.homeGoals + m.awayGoals, 0), n: g.length, date: g[0].date || today() }; });
+  let run = 0, runN = 0; const avg = per.map(p => { run += p.goals; runN += p.n; return +(run / runN).toFixed(2); });
+  drawChart(per, avg);
+
+  const li = (l, v) => `<li><span>${l}</span><span class="v">${v}</span></li>`;
+  const empty = t => `<li class="muted">${t}</li>`;
+  const byHome = state.teams.map(t => { const g = crowds.filter(m => m.home === t.code); return { t, avg: g.length ? g.reduce((s, m) => s + m.attendance, 0) / g.length : null, n: g.length }; }).filter(x => x.avg).sort((a, b) => b.avg - a.avg);
+  $('crowds').innerHTML = byHome.length ? byHome.map(x => li(`${esc(x.t.short)} <span class="muted">(${x.n})</span>`, fmt(Math.round(x.avg)))).join('') : empty('Add attendances on Matchday.');
+  const margin = m => Math.abs(m.homeGoals - m.awayGoals);
+  const line = m => `${esc(team(m.home).short)} ${m.homeGoals}–${m.awayGoals} ${esc(team(m.away).short)}`;
+  $('bigWins').innerHTML = ms.filter(m => margin(m) > 0).sort((a, b) => margin(b) - margin(a) || (b.homeGoals + b.awayGoals) - (a.homeGoals + a.awayGoals)).slice(0, 6).map(m => li(line(m), '+' + margin(m))).join('') || empty('No wins yet.');
+  $('highScoring').innerHTML = [...ms].sort((a, b) => (b.homeGoals + b.awayGoals) - (a.homeGoals + a.awayGoals)).slice(0, 6).map(m => li(line(m), m.homeGoals + m.awayGoals)).join('') || empty('No results yet.');
+  const redRows = state.teams.map(t => ({ t, n: ms.reduce((s, m) => s + (m.home === t.code ? (m.homeReds || 0) : m.away === t.code ? (m.awayReds || 0) : 0), 0) })).filter(x => x.n).sort((a, b) => b.n - a.n);
+  $('reds').innerHTML = redRows.length ? redRows.map(x => li(esc(x.t.short), x.n)).join('') : empty('No red cards so far.');
+  const lad = currentLadder();
+  $('homeAway').innerHTML = lad.filter(r => r.P).map(r => li(esc(team(r.code).short), `${r.homePts} <span class="muted" style="font-weight:400">/</span> ${r.awayPts}`)).join('') || empty('No results yet.');
+  const vens = {}; crowds.forEach(m => { if (!m.venue) return; (vens[m.venue] = vens[m.venue] || []).push(m.attendance); });
+  const vRows = Object.entries(vens).map(([v, a]) => ({ v, avg: a.reduce((s, x) => s + x, 0) / a.length, n: a.length })).sort((a, b) => b.avg - a.avg);
+  $('venues').innerHTML = vRows.length ? vRows.map(x => li(`${esc(x.v)} <span class="muted">(${x.n})</span>`, fmt(Math.round(x.avg)))).join('') : empty('Add venues and attendances on Matchday.');
+}
+
+function drawChart(per, avg) {
+  if (!window.Chart) return;
+  const css = getComputedStyle(document.documentElement);
+  const muted = css.getPropertyValue('--muted').trim(), line = css.getPropertyValue('--line').trim();
+  $('lgBar').style.background = css.getPropertyValue('--accent').trim();
+  const data = {
+    labels: per.map(p => FINAL_STAGES.includes(p.k) ? p.k : 'R' + p.k),
+    datasets: [
+      { type: 'bar', label: 'Goals', data: per.map(p => p.goals), backgroundColor: per.map(p => dayColour(p.date)), borderRadius: 4, yAxisID: 'y', order: 2 },
+      { type: 'line', label: 'Goals per game', data: avg, borderColor: LIME, backgroundColor: LIME, pointRadius: 2, borderWidth: 2, tension: .3, yAxisID: 'y2', order: 1 }
+    ]
+  };
+  const opts = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.dataset.type === 'bar' ? `${c.raw} goals in ${per[c.dataIndex].n} games` : `${c.raw} per game so far` } } },
+    scales: {
+      x: { ticks: { color: muted }, grid: { display: false } },
+      y: { beginAtZero: true, ticks: { color: muted, precision: 0 }, grid: { color: line } },
+      y2: { position: 'right', beginAtZero: true, ticks: { color: muted }, grid: { display: false } }
+    }
+  };
+  if (state.chart) { state.chart.data = data; state.chart.options = opts; state.chart.update(); }
+  else state.chart = new Chart($('goalsChart'), { data, options: opts });
+}
+
+function showTeam(code) {
+  const t = team(code), rows = currentLadder(), r = rows.find(x => x.code === code), pos = rows.indexOf(r) + 1;
+  const ms = seasonMatches().filter(m => (m.home === code || m.away === code)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const done = ms.filter(played);
+  const homeCrowds = done.filter(m => m.home === code && m.attendance);
+  const reds = done.reduce((s, m) => s + (m.home === code ? (m.homeReds || 0) : (m.awayReds || 0)), 0);
+  $('teamTitle').innerHTML = `${crest(code)} ${esc(t.name)}`;
+  const list = ms.map(m => {
+    const home = m.home === code, opp = home ? m.away : m.home;
+    if (!played(m)) return `<li><span>${niceDate(m.date)} · ${home ? 'v' : '@'} ${esc(team(opp).short)}</span><span class="muted">${esc(m.kickoff ? niceTime(m.kickoff) : '')}</span></li>`;
+    const gf = home ? m.homeGoals : m.awayGoals, ga = home ? m.awayGoals : m.homeGoals, res = gf > ga ? 'W' : gf < ga ? 'L' : 'D';
+    return `<li><span><span class="res" data-r="${res}">${res}</span> ${home ? 'v' : '@'} ${esc(team(opp).short)} <span class="muted">${esc(isFinal(m) ? m.stage : 'R' + m.round)}</span></span><span class="v">${gf}–${ga}</span></li>`;
+  }).join('');
+  $('teamBody').innerHTML = `<dl class="kv">
+      <dt>Ladder</dt><dd>${pos ? pos + getOrdinal(pos) : '–'} · ${r ? r.Pts : 0} pts</dd>
+      <dt>Record</dt><dd>${r ? `${r.W}W ${r.D}D ${r.L}L · GD ${signed(r.GD)}` : '–'}</dd>
+      <dt>Home / away</dt><dd>${r ? `${r.homePts} pts from ${r.homeP} · ${r.awayPts} pts from ${r.awayP}` : '–'}</dd>
+      <dt>Home crowd</dt><dd>${homeCrowds.length ? fmt(Math.round(homeCrowds.reduce((s, m) => s + m.attendance, 0) / homeCrowds.length)) + ' average' : '–'}</dd>
+      <dt>Red cards</dt><dd>${reds}</dd>
+      <dt>Home ground</dt><dd>${esc(t.homeVenue || '–')}</dd></dl>
+    <ul class="list">${list || '<li class="muted">No fixtures yet.</li>'}</ul>`;
+  $('teamDlg').showModal();
+}
+const getOrdinal = n => (['th','st','nd','rd'][(n % 100 - 20) % 10] || ['th','st','nd','rd'][n % 100] || 'th');
+
+/* ---------- history ---------- */
+async function renderHistory() {
+  const sel = $('histSel');
+  if (!state.history.tabs.length) {
+    if (!state.live) { $('histTable').innerHTML = ''; $('histNote').textContent = 'Past seasons load from your sheet once it is connected.'; return; }
+    try {
+      const res = await state.mcp.callTool(SERVER, 'get_spreadsheet', { spreadsheetId: SHEET_ID, fields: ['sheets.properties.title'] }, { cache: false });
+      const sheets = (res.payload && res.payload.sheets) || [];
+      state.history.tabs = sheets.map(s => s.properties && s.properties.title).filter(t => /^\d{4}\/\d{2}$/.test(t || '') && t !== state.settings.season);
+    } catch (err) { $('histNote').textContent = explain(err); return; }
+    sel.innerHTML = state.history.tabs.map(t => `<option>${esc(t)}</option>`).join('');
+  }
+  const tab = sel.value || state.history.tabs[0];
+  if (!tab) { $('histNote').textContent = 'No past season tabs found.'; return; }
+  let rows = state.history.cache[tab];
+  if (!rows) {
+    $('histNote').textContent = 'Loading ' + tab + '…';
+    try { rows = state.history.cache[tab] = await readRange(`'${tab}'!A1:N40`); }
+    catch (err) { $('histNote').textContent = explain(err); return; }
+  }
+  const hi = rows.findIndex(r => r.some(c => String(c).trim() === 'PTS'));
+  if (hi < 0) { $('histTable').innerHTML = ''; $('histNote').textContent = `Couldn't find the ladder header (PTS) in ${tab}.`; return; }
+  const h = rows[hi].map(c => String(c).trim()), ix = k => h.indexOf(k);
+  const teams = rows.slice(hi + 1).filter(r => String(r[2] ?? '').trim());
+  $('histTable').innerHTML = `<thead><tr><th class="l">#</th><th class="l">Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th></tr></thead><tbody>${teams.map((r, i) => {
+    const gd = toNum(r[ix('+/-')]) ?? 0, flag = String(r[5] ?? '').trim();
+    return `<tr${i + 1 === (+state.settings.finalsTeams || 6) ? ' class="cut"' : ''}><td class="l pos">${esc(r[0] || i + 1)}</td><td class="l club">${esc(r[2])}${flag ? ' ' + esc(flag) : ''}</td><td>${esc(r[ix('P')] ?? '')}</td><td>${esc(r[ix('W')] ?? '')}</td><td>${esc(r[ix('D')] ?? '')}</td><td>${esc(r[ix('L')] ?? '')}</td><td class="${gd > 0 ? 'gd-pos' : gd < 0 ? 'gd-neg' : ''}">${signed(gd)}</td><td class="pts">${esc(r[ix('PTS')] ?? '')}</td></tr>`;
+  }).join('')}</tbody>`;
+  $('histNote').textContent = `Read-only, straight from your ${tab} tab.`;
+}
+
+// Same layout as the season tabs: pos | | club | | | | PTS | +/- | P | W | L | D | F | A | round margins… | EF | SF1 | SF2 | GF
+function seasonSummary() {
+  const rows = currentLadder(), ms = seasonMatches();
+  const n = +state.settings.regularRounds || 26;
+  const margin = (code, filter) => { const m = ms.find(x => played(x) && filter(x) && (x.home === code || x.away === code)); return m ? (m.home === code ? m.homeGoals - m.awayGoals : m.awayGoals - m.homeGoals) : ''; };
+  const header = ['', '', state.settings.season, '', '', '', 'PTS', '+/-', 'P', 'W', 'L', 'D', 'F', 'A', ...Array.from({ length: n }, (_, i) => i + 1), 'EF', 'SF1', 'SF2', 'GF'];
+  const lines = rows.map((r, i) => [i + 1, '', team(r.code).name, '', '', '', r.Pts, r.GD, r.P, r.W, r.L, r.D, r.GF, r.GA,
+    ...Array.from({ length: n }, (_, k) => margin(r.code, m => !isFinal(m) && +m.round === k + 1)),
+    ...FINAL_STAGES.map(s => margin(r.code, m => m.stage === s))]);
+  return [header, ...lines].map(l => l.join('\t')).join('\n');
+}
+
+/* ---------- sheet access ---------- */
+function setStatus(kind, text) { $('status').dataset.state = kind; $('statusText').textContent = text; }
+function notice(text, kind) { const n = $('notice'); if (!text) { n.hidden = true; return; } n.textContent = text; n.dataset.kind = kind || ''; n.hidden = false; }
+function explain(err) {
+  switch (err && err.code) {
+    case 'server_not_connected': return 'Google Sheets isn\'t connected for your account. Add it in claude.ai Settings → Connectors, then press Refresh.';
+    case 'google_signin': return 'Your Google sign-in has expired. Press Connect to sign in again.';
+    case 'needs_reauth': return 'Your Google Sheets connection has expired. Reconnect it in claude.ai Settings → Connectors, then press Refresh.';
+    case 'selection_required': return 'You have more than one Google Sheets connector. Choose one when Claude asks, then press Refresh.';
+    case 'not_in_manifest': case 'consent_required': return 'This page isn\'t allowed to use Google Sheets yet. Allow it from the page\'s permissions, then press Refresh.';
+    case 'approval_required': return 'Google Sheets needs your approval for this page. Press Refresh and choose Allow.';
+    case 'blocked_by_policy': return 'Your organisation blocks Google Sheets for this page.';
+    case 'server_unavailable': return 'Google Sheets didn\'t answer in time. Press Refresh to try again.';
+    case 'tool_error': return 'Google Sheets reported a problem: ' + (err.message || 'unknown error') + '.';
+    case 'not_granted': case 'capability_disabled': case 'capability_removed': return 'This view can\'t reach your connectors. Open the page in Claude to connect your sheet.';
+    default: return 'Couldn\'t reach your sheet' + (err && err.message ? ': ' + err.message : '') + '. Press Refresh to try again.';
+  }
+}
+async function readRange(range) {
+  const res = await state.mcp.callTool(SERVER, 'get_values', { spreadsheetId: SHEET_ID, range }, { cache: false });
+  const p = res.payload;
+  return (p && Array.isArray(p.values)) ? p.values : [];
+}
+const byHeader = rows => { const h = (rows[0] || []).map(x => String(x).trim()); return rows.slice(1).map((r, i) => { const o = { _row: i + 2 }; h.forEach((k, j) => { if (k) o[k] = r[j] ?? ''; }); return o; }); };
+
+async function refresh() {
+  if (!state.mcp) return;
+  setStatus('loading', 'Loading from your sheet…');
+  $('refreshBtn').disabled = true;
+  try {
+    const [settings, teams, venues, matches] = await Promise.all([
+      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:G60'), readRange('Venues!A1:B200'), readRange('Matches!A1:Z3000')
+    ]);
+    const s = { ...EXAMPLE.settings };
+    for (const r of settings.slice(1)) { const k = String(r[0] ?? '').trim(); if (k) s[k] = String(r[1] ?? '').trim(); }
+    ['pointsWin','pointsDraw','pointsLoss','regularRounds','finalsTeams'].forEach(k => s[k] = toNum(s[k]) ?? EXAMPLE.settings[k]);
+    state.settings = s;
+    state.teams = byHeader(teams).filter(t => String(t.code).trim() && String(t.active || 'Y').trim().toUpperCase() !== 'N')
+      .map(t => ({ code: String(t.code).trim(), name: String(t.name).trim(), short: String(t.short || t.name).trim(), colour1: String(t.colour1 || '#888888').trim(), colour2: String(t.colour2 || '#444444').trim(), homeVenue: String(t.homeVenue || '').trim() }));
+    state.venues = byHeader(venues).map(v => String(v.venue).trim()).filter(Boolean);
+    state.matches = byHeader(matches).filter(m => String(m.id).trim()).map(m => {
+      const o = { _row: m._row };
+      MATCH_COLS.forEach(k => { const v = m[k]; o[k] = NUM_FIELDS.includes(k) ? toNum(v) : String(v ?? '').trim(); });
+      o.date = toDate(m.date); o.stage = o.stage || 'Regular';
+      return o;
+    });
+    state.drafts = {}; state.live = true; state.history = { tabs: [], cache: {} };
+    if (!roundKeys().includes(state.round)) state.round = null;
+    notice('');
+    setStatus('live', 'Live from your sheet · ' + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
+    fillPickers(); renderAll();
+  } catch (err) {
+    setStatus('error', state.live ? 'Showing the last data loaded' : 'Showing example matches');
+    notice(explain(err), 'error');
+  } finally { $('refreshBtn').disabled = false; }
+}
+
+// Find the row by id just before writing, and require exactly one match.
+async function findRow(id) {
+  const ids = await readRange('Matches!A1:A3000');
+  const hits = ids.map((r, i) => String(r[0] ?? '').trim() === id ? i + 1 : 0).filter(Boolean);
+  if (hits.length !== 1) throw { code: 'tool_error', message: hits.length ? `match ${id} appears ${hits.length} times in Matches` : `match ${id} isn't in Matches any more` };
+  const header = ((await readRange('Matches!A1:Z1'))[0] || []).map(h => String(h).trim());
+  return { row: hits[0], col: k => { const i = header.indexOf(k); if (i < 0) throw { code: 'tool_error', message: `Matches has no ${k} column` }; return colLetter(i); } };
+}
+const sheetValue = (k, v) => {
+  if (v == null || v === '') return '';
+  if (NUM_FIELDS.includes(k)) return Number(v);
+  if (k === 'date') return v;               // yyyy-mm-dd → a real date in the sheet
+  return "'" + String(v);                    // text stays text
+};
+const stamp = () => { const d = new Date(); return `${iso(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+async function writeCells(id, changes) {
+  const { row, col } = await findRow(id);
+  for (const [k, v] of Object.entries(changes)) {
+    await state.mcp.callTool(SERVER, 'update_values', { spreadsheetId: SHEET_ID, range: `Matches!${col(k)}${row}`, values: [[sheetValue(k, v)]] }, { cache: false });
+  }
+  await state.mcp.callTool(SERVER, 'update_values', { spreadsheetId: SHEET_ID, range: `Matches!${col('updatedAt')}${row}`, values: [["'" + stamp()]] }, { cache: false });
+}
+
+async function saveResult(id, btn) {
+  if (state.busy) return;
+  const m = state.matches.find(x => x.id === id); if (!m) return;
+  if (!state.live) { notice('Saving needs the live connection to your sheet. ' + connectHint(), 'error'); return; }
+  const d = draftOf(m), fields = changedFields(m);
+  if ((d.homeGoals == null) !== (d.awayGoals == null)) { notice('Enter both scores, or clear both to remove the result.', 'error'); return; }
+  const changes = {}; fields.forEach(f => changes[f] = d[f]);
+  state.busy = true; btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await writeCells(id, changes);
+    Object.assign(m, changes); delete state.drafts[id];
+    notice(''); setStatus('live', `Saved ${team(m.home).short} v ${team(m.away).short} · ` + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
+    renderAll();
+  } catch (err) {
+    const unsure = err && ['server_unavailable','upstream_error','cancelled'].includes(err.code);
+    notice(unsure ? 'The save may or may not have gone through. Reloading your sheet so you can check before saving again.' : explain(err), 'error');
+    if (unsure) await refresh(); else { btn.disabled = false; btn.textContent = 'Save result'; }
+  } finally { state.busy = false; }
+}
+
+function nextIds(count) {
+  const max = state.matches.reduce((n, m) => { const k = parseInt(String(m.id).replace(/\D/g, ''), 10); return Number.isFinite(k) && k > n ? k : n; }, 0);
+  return Array.from({ length: count }, (_, i) => 'M' + String(max + i + 1).padStart(4, '0'));
+}
+async function appendFixtures(list) {
+  const header = ((await readRange('Matches!A1:Z1'))[0] || []).map(h => String(h).trim());
+  if (!header.includes('id')) throw { code: 'tool_error', message: 'Matches has no id column' };
+  await refreshIdsOnly();
+  const ids = nextIds(list.length), now = stamp();
+  const rows = list.map((f, i) => header.map(k => k === 'id' ? "'" + ids[i] : k === 'season' ? "'" + state.settings.season : k === 'updatedAt' ? "'" + now : k in f ? sheetValue(k, f[k]) : ''));
+  await state.mcp.callTool(SERVER, 'append_values', { spreadsheetId: SHEET_ID, range: 'Matches!A1', values: rows }, { cache: false });
+  list.forEach((f, i) => state.matches.push({ id: ids[i], season: state.settings.season, homeGoals: null, awayGoals: null, homeReds: null, awayReds: null, attendance: null, homePens: null, awayPens: null, extraTime: '', notes: '', ...f }));
+}
+// Re-read ids right before adding so two devices can't hand out the same id.
+async function refreshIdsOnly() {
+  const ids = await readRange('Matches!A2:A3000');
+  ids.forEach(r => { const id = String(r[0] ?? '').trim(); if (id && !state.matches.some(m => m.id === id)) state.matches.push({ id, season: '' }); });
+}
+const connectHint = () => state.google ? 'Press Connect at the top to sign in to Google.' : 'Open this page in Claude to connect it.';
+
+/* ---------- fixture dialogs ---------- */
+function fillPickers() {
+  const opts = '<option value="">Choose a club</option>' + state.teams.map(t => `<option value="${esc(t.code)}">${esc(t.name)}</option>`).join('');
+  $('fHome').innerHTML = opts; $('fAway').innerHTML = opts;
+  $('venueList').innerHTML = state.venues.map(v => `<option value="${esc(v)}">`).join('');
+}
+let editing = null;
+function openFixture(m) {
+  editing = m ? m.id : null;
+  $('fxTitle').textContent = m ? 'Edit fixture' : 'Add fixture';
+  $('fxAnother').hidden = !!m;
+  const fin = FINAL_STAGES.includes(state.round);
+  $('fStage').value = m ? m.stage : (fin ? state.round : 'Regular');
+  $('fRound').value = m ? (m.round ?? '') : (fin ? '' : state.round);
+  $('fDate').value = m ? (m.date || '') : ($('fDate').value || '');
+  $('fKick').value = m ? (m.kickoff || '') : '';
+  $('fHome').value = m ? m.home : ''; $('fAway').value = m ? m.away : '';
+  $('fVenue').value = m ? (m.venue || '') : '';
+  $('fPlayed').value = m && m.playedRound ? m.playedRound : '';
+  $('fxMsg').textContent = '';
+  const post = m && isPost(m);
+  if (post) { $('fxTitle').textContent = 'Set new date'; $('fDate').value = ''; $('fPlayed').value = ''; $('fxMsg').textContent = `Postponed from ${niceDate(m.date)}. Pick the new date and the round fills in from it.`; }
+  $('fxPost').hidden = !(m && !post && !played(m) && !isFinal(m));
+  $('fxPost').textContent = 'Postpone'; $('fxPost').dataset.armed = '';
+  $('fxDlg').showModal();
+  if (post) $('fDate').focus();
+}
+// Works out which round a date falls in, from the dates of each round's own games.
+const dayNum = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+function suggestRound(date, exceptId) {
+  if (!date) return null;
+  const x = dayNum(date); let best = null;
+  roundKeys().filter(k => !FINAL_STAGES.includes(k)).forEach(k => {
+    const ds = seasonMatches().filter(m => !isFinal(m) && String(m.round) === k && !moved(m) && !isPost(m) && m.date && m.id !== exceptId).map(m => dayNum(m.date));
+    if (!ds.length) return;
+    const lo = Math.min(...ds), hi = Math.max(...ds), dist = x < lo ? lo - x : x > hi ? x - hi : 0;
+    if (!best || dist <= best.dist) best = { k: +k, dist };
+  });
+  return best ? best.k : null;
+}
+$('fDate').addEventListener('change', () => {
+  if ($('fStage').value !== 'Regular' || !editing) return;
+  const k = suggestRound($('fDate').value, editing), own = toNum($('fRound').value);
+  if (!k) return;
+  $('fPlayed').value = k === own ? '' : k;
+  $('fxMsg').textContent = k === own ? `That date is in round ${own}, its own round.` : `That date falls in round ${k}, so it'll show there too. Change it if that's wrong.`;
+});
+$('fxPost').addEventListener('click', async () => {
+  const b = $('fxPost'), m = state.matches.find(x => x.id === editing); if (!m) return;
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Tap again to postpone'; $('fxMsg').textContent = 'The game stays on its matchday, marked postponed, until you set a new date.'; return; }
+  if (!state.live) { $('fxMsg').textContent = 'Saving needs the live connection. ' + connectHint(); return; }
+  b.disabled = true; $('fxMsg').textContent = 'Saving…';
+  try {
+    const changes = { status: 'Postponed', notes: (m.notes ? m.notes + '; ' : '') + `Postponed from ${m.date || 'TBC'}` };
+    if (m.playedRound) changes.playedRound = null;
+    await writeCells(m.id, changes); Object.assign(m, changes);
+    $('fxDlg').close(); renderAll();
+  } catch (err) { $('fxMsg').textContent = explain(err); }
+  finally { b.disabled = false; }
+});
+$('fHome').addEventListener('change', () => { const t = team($('fHome').value); if (t.homeVenue && !$('fVenue').value) $('fVenue').value = t.homeVenue; });
+async function saveFixture(another) {
+  const f = { stage: $('fStage').value, round: toNum($('fRound').value), date: $('fDate').value, kickoff: $('fKick').value, home: $('fHome').value, away: $('fAway').value, venue: $('fVenue').value.trim(), playedRound: toNum($('fPlayed').value) };
+  if (f.playedRound === f.round) f.playedRound = null;
+  if (!f.home || !f.away || f.home === f.away) { $('fxMsg').textContent = 'Pick two different clubs.'; return; }
+  if (!f.date) { $('fxMsg').textContent = 'Add the date.'; return; }
+  if (f.stage === 'Regular' && !f.round) { $('fxMsg').textContent = 'Add the round number.'; return; }
+  if (!state.live) { $('fxMsg').textContent = 'Saving needs the live connection. ' + connectHint(); return; }
+  const btns = [$('fxSave'), $('fxAnother')]; btns.forEach(b => b.disabled = true); $('fxMsg').textContent = 'Saving…';
+  try {
+    if (editing) {
+      const m = state.matches.find(x => x.id === editing);
+      if (isPost(m)) f.status = '';
+      const changes = {}; Object.keys(f).forEach(k => { if ((f[k] ?? '') !== (m[k] ?? '')) changes[k] = f[k]; });
+      if (Object.keys(changes).length) { await writeCells(editing, changes); Object.assign(m, changes); }
+      $('fxDlg').close();
+    } else {
+      await appendFixtures([f]);
+      if (another) { $('fHome').value = ''; $('fAway').value = ''; $('fVenue').value = ''; $('fKick').value = ''; $('fxMsg').textContent = `Added ${team(f.home).short} v ${team(f.away).short}.`; }
+      else $('fxDlg').close();
+    }
+    state.round = f.stage === 'Regular' ? String(f.round) : f.stage;
+    renderAll();
+  } catch (err) { $('fxMsg').textContent = explain(err); }
+  finally { btns.forEach(b => b.disabled = false); }
+}
+$('fxForm').addEventListener('submit', e => { e.preventDefault(); saveFixture(false); });
+$('fxAnother').addEventListener('click', () => saveFixture(true));
+$('fxClose').addEventListener('click', () => $('fxDlg').close());
+
+// paste fixtures
+const findTeam = s => { const q = String(s || '').trim().toLowerCase(); return state.teams.find(t => [t.code, t.short, t.name].some(x => x.toLowerCase() === q)); };
+let pasted = [];
+function parsePaste() {
+  const lines = $('pText').value.split('\n').map(l => l.trim()).filter(Boolean);
+  pasted = lines.map(l => {
+    const p = l.split(/\t|,/).map(x => x.trim());
+    const date = toDate(p[0]), kick = (p[1] || '').match(/^\d{1,2}:\d{2}$/) ? p[1].padStart(5, '0') : '';
+    const rest = kick ? p.slice(2) : p.slice(1);
+    const h = findTeam(rest[0]), a = findTeam(rest[1]);
+    const err = !date ? 'date not recognised' : !h ? `club "${rest[0] || ''}" not found` : !a ? `club "${rest[1] || ''}" not found` : h.code === a.code ? 'same club twice' : '';
+    return { line: l, err, f: err ? null : { stage: $('pStage').value, round: toNum($('pRound').value), date, kickoff: kick, home: h.code, away: a.code, venue: rest[2] || h.homeVenue || '' } };
+  });
+  const ok = pasted.filter(p => p.f);
+  $('pPreview').innerHTML = pasted.length ? `<ul class="list">${pasted.map(p => p.f
+    ? `<li><span>${niceDate(p.f.date)} ${p.f.kickoff ? niceTime(p.f.kickoff) : ''} · ${esc(team(p.f.home).short)} v ${esc(team(p.f.away).short)}</span><span class="muted">${esc(p.f.venue)}</span></li>`
+    : `<li><span class="bad">${esc(p.line)}</span><span class="bad">${esc(p.err)}</span></li>`).join('')}</ul>` : '';
+  $('pSave').disabled = !ok.length || ok.length !== pasted.length;
+  $('pSave').textContent = ok.length ? `Add ${ok.length} fixture${ok.length > 1 ? 's' : ''}` : 'Add fixtures';
+}
+['input','change'].forEach(ev => { $('pText').addEventListener(ev, parsePaste); $('pRound').addEventListener(ev, parsePaste); $('pStage').addEventListener(ev, parsePaste); });
+function openPaste() {
+  const fin = FINAL_STAGES.includes(state.round);
+  $('pStage').value = fin ? state.round : 'Regular'; $('pRound').value = fin ? '' : state.round;
+  $('pMsg').textContent = 'Clubs can be codes (SYD), short names or full names.'; parsePaste(); $('pasteDlg').showModal();
+}
+$('pasteForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const list = pasted.map(p => p.f).filter(Boolean);
+  if (!list.length) return;
+  if (list[0].stage === 'Regular' && !list[0].round) { $('pMsg').textContent = 'Add the round number.'; return; }
+  if (!state.live) { $('pMsg').textContent = 'Saving needs the live connection. ' + connectHint(); return; }
+  $('pSave').disabled = true; $('pMsg').textContent = 'Saving…';
+  try {
+    await appendFixtures(list);
+    state.round = list[0].stage === 'Regular' ? String(list[0].round) : list[0].stage;
+    $('pText').value = ''; $('pasteDlg').close(); renderAll();
+  } catch (err) { $('pMsg').textContent = explain(err); $('pSave').disabled = false; }
+});
+$('pasteClose').addEventListener('click', () => $('pasteDlg').close());
+
+/* ---------- events ---------- */
+function showTab(name) {
+  state.tab = name;
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+  ['matchday','ladder','results','stats','history'].forEach(v => $('view-' + v).hidden = v !== name);
+  try { localStorage.setItem('st-tab', name); } catch (e) {}
+  renderAll();
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-goto]'); if (g) { showTab(g.dataset.goto); return; }
+  const tr = e.target.closest('tr[data-team]'); if (tr) { showTeam(tr.dataset.team); return; }
+  const act = e.target.closest('[data-act]'); if (!act) return;
+  const card = act.closest('[data-id]'), id = card && card.dataset.id;
+  if (act.dataset.act === 'add') openFixture(null);
+  else if (act.dataset.act === 'paste') openPaste();
+  else if (act.dataset.act === 'edit') openFixture(state.matches.find(m => m.id === id));
+  else if (act.dataset.act === 'save') saveResult(id, act);
+});
+$('fixtures').addEventListener('input', e => {
+  const inp = e.target.closest('[data-f]'); if (!inp) return;
+  const card = inp.closest('.fx'), m = state.matches.find(x => x.id === card.dataset.id), d = draftOf(m), f = inp.dataset.f;
+  d[f] = f === 'extraTime' ? inp.value : (inp.value === '' ? null : toNum(inp.value));
+  const dirty = changedFields(m).length > 0;
+  card.toggleAttribute('data-dirty', dirty);
+  card.querySelector('[data-act="save"]').disabled = !dirty;
+  card.querySelector('.fx-msg').textContent = dirty ? 'Unsaved changes' : '';
+});
+$('fixtures').addEventListener('change', e => { if (e.target.dataset.f === 'extraTime') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+$('roundSel').addEventListener('change', () => { state.round = $('roundSel').value; renderAll(); });
+const step = n => { const k = roundKeys(), i = k.indexOf(state.round); state.round = k[Math.max(0, Math.min(k.length - 1, i + n))]; renderAll(); };
+$('prevRound').addEventListener('click', () => step(-1));
+$('nextRound').addEventListener('click', () => step(1));
+$('addBtn').addEventListener('click', () => openFixture(null));
+$('pasteBtn').addEventListener('click', openPaste);
+$('teamClose').addEventListener('click', () => $('teamDlg').close());
+$('resTeam').addEventListener('change', renderResults);
+$('histSel').addEventListener('change', renderHistory);
+$('summaryBtn').addEventListener('click', () => {
+  const text = seasonSummary(), box = $('summaryBox');
+  box.value = text; box.hidden = false;
+  const done = ok => { $('summaryBtn').textContent = ok ? 'Copied' : 'Select the text below and copy it'; if (!ok) { box.focus(); box.select(); } };
+  try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+});
+$('refreshBtn').addEventListener('click', () => state.google && !google_.valid() ? googleConnect() : refresh());
+
+/* ---------- Google Sheets direct (GitHub Pages and other hosts outside claude.ai) ---------- */
+const google_ = {
+  cfgKey: 'st_config', tokKey: 'st-google-token', client: null,
+  cfg() { try { return JSON.parse(localStorage.getItem(this.cfgKey) || 'null') || {}; } catch (e) { return {}; } },
+  saveCfg(c) { try { localStorage.setItem(this.cfgKey, JSON.stringify({ ...this.cfg(), ...c })); } catch (e) {} },
+  tok() { try { return JSON.parse(localStorage.getItem(this.tokKey) || 'null'); } catch (e) { return null; } },
+  valid() { const t = this.tok(); return !!(t && t.exp > Date.now()); },
+  async callTool(server, tool, input) {
+    if (!this.valid()) { googleSignedOut(); throw { code: 'google_signin' }; }
+    const root = `https://sheets.googleapis.com/v4/spreadsheets/${input.spreadsheetId}`;
+    const base = `${root}/values/${encodeURIComponent(input.range || '')}`;
+    const url = tool === 'get_spreadsheet' ? `${root}?fields=${encodeURIComponent((input.fields || []).join(','))}`
+      : tool === 'get_values' ? base
+      : tool === 'append_values' ? base + ':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS'
+      : base + '?valueInputOption=USER_ENTERED';
+    const read = tool === 'get_values' || tool === 'get_spreadsheet';
+    const opts = { method: read ? 'GET' : tool === 'append_values' ? 'POST' : 'PUT', headers: { Authorization: 'Bearer ' + this.tok().t } };
+    if (!read) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify({ values: input.values }); }
+    const res = await fetch(url, opts);
+    if (res.status === 401) { try { localStorage.removeItem(this.tokKey); } catch (e) {} googleSignedOut(); throw { code: 'google_signin' }; }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw { code: 'tool_error', message: (body.error && body.error.message) || 'HTTP ' + res.status };
+    return { payload: body };
+  }
+};
+function googleSignedOut() { setStatus('error', state.live ? 'Signed out · showing the last data loaded' : 'Not connected · showing example matches'); $('refreshBtn').textContent = 'Connect'; }
+function loadGis() {
+  return new Promise((ok, fail) => {
+    if (window.google && google.accounts && google.accounts.oauth2) return ok();
+    const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+    s.onload = () => ok(); s.onerror = () => fail(new Error('Google sign-in didn\'t load')); document.head.appendChild(s);
+  });
+}
+function googleConnect() {
+  const id = google_.cfg().clientId;
+  if (!id) { $('gClient').value = ''; $('gMsg').textContent = ''; $('gDlg').showModal(); return; }
+  if (!(window.google && google.accounts && google.accounts.oauth2)) { loadGis().then(googleConnect, err => notice(err.message, 'error')); return; }
+  try {
+    if (!google_.client) google_.client = google.accounts.oauth2.initTokenClient({
+      client_id: id, scope: 'https://www.googleapis.com/auth/spreadsheets',
+      callback: r => {
+        if (r.error) { notice('Google sign-in failed: ' + r.error, 'error'); return; }
+        try { localStorage.setItem(google_.tokKey, JSON.stringify({ t: r.access_token, exp: Date.now() + (r.expires_in - 120) * 1000 })); } catch (e) {}
+        $('refreshBtn').textContent = 'Refresh'; refresh();
+      },
+      error_callback: e => notice('Google sign-in was closed or blocked' + (e && e.type ? ' (' + e.type + ')' : '') + '. Press Connect to try again.', 'error')
+    });
+    google_.client.requestAccessToken({ prompt: '' });
+  } catch (err) { notice(err.message, 'error'); }
+}
+function googleBoot() {
+  state.google = true; state.mcp = google_;
+  loadGis().catch(() => {});
+  if (google_.valid()) { refresh(); return; }
+  googleSignedOut();
+  notice('You\'re looking at example matches. ' + (google_.cfg().clientId ? 'Press Connect to sign in to Google and load your sheet.' : 'Press Connect to link your Google Sheet. You\'ll need the OAuth Client ID from your Google Cloud project.'), 'example');
+}
+$('gClose').addEventListener('click', () => $('gDlg').close());
+$('gForm').addEventListener('submit', e => {
+  const v = $('gClient').value.trim();
+  if (!/\.apps\.googleusercontent\.com$/.test(v)) { e.preventDefault(); $('gMsg').textContent = 'That doesn\'t look like a Client ID.'; return; }
+  google_.saveCfg({ clientId: v }); google_.client = null; googleConnect();
+});
+
+/* ---------- boot ---------- */
+applyTheme();
+fillPickers();
+try { const t = localStorage.getItem('st-tab'); if (['ladder','results','stats','history'].includes(t)) state.tab = t; } catch (e) {}
+showTab(state.tab);
+setStatus('loading', 'Connecting to your sheet…');
+(async () => {
+  if (!(window.claude && window.claude.use)) { googleBoot(); return; }
+  const mcp = await window.claude.use('mcp');
+  if (!mcp) {
+    setStatus('error', 'Showing example matches');
+    notice('These are example matches, not your results. Open this page in Claude to load your A-League sheet and save scores.', 'example');
+    return;
+  }
+  state.mcp = mcp;
+  refresh();
+})();
+</script>
+
+</body>
+</html>

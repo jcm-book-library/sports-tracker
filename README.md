@@ -6,7 +6,9 @@ Personal sports results tracker. Each competition has its own Google Sheet, whic
 
 | Path | What it is |
 |---|---|
-| `apps/team-match/index.html` | App for team-v-team competitions (pilot: A-League Men 2026/27). Published as a private claude.ai artifact; also runs on GitHub Pages with Google sign-in. |
+| `apps/team-match/index.html` | App source for team-v-team competitions (pilot: A-League Men 2026/27). Published as a private claude.ai artifact. |
+| `index.html` | GitHub Pages copy of the app, built by `python3 tools/build_pages.py`. Don't edit it directly. Outside claude.ai it signs in to Google with your OAuth Client ID. |
+| `manifest.webmanifest`, `icons/` | Let a phone save the Pages site as an app (Add to Home Screen). |
 
 Planned shapes: `team-match` (football, rugby league, AFL, NFL…), `race` (F1 and other motorsport), `cricket` (limited overs and WTC). A new competition in an existing shape needs a sheet with the tabs below and its own App Settings, not new code.
 
