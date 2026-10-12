@@ -12,7 +12,7 @@ Planned shapes: `team-match` (football, rugby league, AFL, NFL…), `race` (F1 a
 
 ## Sheet tabs (per competition)
 
-- `Matches`: one row per game. `id | season | round | stage | date | kickoff | home | away | homeGoals | awayGoals | homeReds | awayReds | venue | attendance | extraTime | homePens | awayPens | notes | updatedAt`. `stage` is `Regular`, `EF`, `SF1`, `SF2` or `GF`. `id` (M0001…) is permanent; never renumber it.
+- `Matches`: one row per game. `id | season | round | stage | date | kickoff | home | away | homeGoals | awayGoals | homeReds | awayReds | venue | attendance | extraTime | homePens | awayPens | notes | updatedAt | playedRound`. `stage` is `Regular`, `EF`, `SF1`, `SF2` or `GF`. `id` (M0001…) is permanent and matches the official match number; never renumber it. `round` is the matchday a game belongs to; `playedRound` is filled in only when a game is moved, with the round it is played alongside (the app shows it under both).
 - `Teams`: `code | name | short | colour1 | colour2 | homeVenue | active`.
 - `Venues`: `venue | city`.
 - `App Settings`: `key | value` — points per result, tiebreak order, rounds, finals teams and format, season.

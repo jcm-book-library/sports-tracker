@@ -90,6 +90,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .pair input{width:50%}
 .fx-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .fx-msg{font-size:12.5px;color:var(--muted)}
+.moved{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-2);border:1px solid color-mix(in srgb,var(--accent-2) 45%,var(--line));border-radius:999px;padding:2px 9px}
 .res{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;letter-spacing:.02em}
 .res[data-r="W"]{background:var(--win)} .res[data-r="D"]{background:var(--draw)} .res[data-r="L"]{background:var(--loss)}
 .empty{border:1px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:10px;align-items:center}
@@ -303,6 +304,7 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
       <label class="field">Home<select id="fHome" required></select></label>
       <label class="field">Away<select id="fAway" required></select></label>
       <label class="field full">Venue<input id="fVenue" list="venueList" autocomplete="off"></label>
+      <label class="field full">Played with round (only if the game was moved)<input id="fPlayed" type="number" min="1" inputmode="numeric" placeholder="Leave blank if it's played in its own round"></label>
     </div>
     <div class="dlg-foot"><span class="fx-msg" id="fxMsg"></span>
       <div style="display:flex;gap:8px"><button class="btn" type="button" id="fxAnother">Save and add another</button><button class="btn btn-primary" type="submit" id="fxSave">Save fixture</button></div></div>
@@ -346,8 +348,8 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
 <script>
 const SHEET_ID = '1YNszytKR0DjU0VPEs5lCq260qwOuOuRgrqTt2erI8Uo';
 const SERVER = 'Google Sheets';
-const MATCH_COLS = ['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt'];
-const NUM_FIELDS = ['round','homeGoals','awayGoals','homeReds','awayReds','attendance','homePens','awayPens'];
+const MATCH_COLS = ['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound'];
+const NUM_FIELDS = ['round','playedRound','homeGoals','awayGoals','homeReds','awayReds','attendance','homePens','awayPens'];
 const STAGES = { Regular: 'Regular season', EF: 'Elimination finals', SF1: 'Semi-finals · leg 1', SF2: 'Semi-finals · leg 2', GF: 'Grand final' };
 const FINAL_STAGES = ['EF','SF1','SF2','GF'];
 
@@ -491,11 +493,15 @@ function roundKeys() {
 }
 const roundLabel = k => FINAL_STAGES.includes(k) ? STAGES[k] : 'Round ' + k;
 const inRound = (m, k) => FINAL_STAGES.includes(k) ? m.stage === k : (!isFinal(m) && String(m.round) === k);
+// A rescheduled game keeps its matchday (round) and also shows in the round it's played with (playedRound).
+const playRound = m => m.playedRound || m.round;
+const moved = m => !isFinal(m) && m.playedRound && String(m.playedRound) !== String(m.round);
+const onMatchday = (m, k) => inRound(m, k) || (!FINAL_STAGES.includes(k) && moved(m) && String(m.playedRound) === k);
 function defaultRound() {
   const ms = seasonMatches();
   // The round holding the earliest unplayed game (a game moved to a later date doesn't hold its round open).
   const next = ms.filter(m => !played(m)).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'))[0];
-  const open = next && roundKeys().find(k => inRound(next, k));
+  const open = next && (isFinal(next) ? next.stage : String(playRound(next)));
   if (open) return open;
   const withGames = roundKeys().filter(k => ms.some(m => inRound(m, k)));
   if (!withGames.length) return '1';
@@ -507,7 +513,7 @@ function renderRoundSel() {
   if (!state.round || !keys.includes(state.round)) state.round = defaultRound();
   const ms = seasonMatches();
   $('roundSel').innerHTML = keys.map(k => {
-    const games = ms.filter(m => inRound(m, k)), done = games.filter(played).length;
+    const games = ms.filter(m => onMatchday(m, k)), done = games.filter(played).length;
     const tag = games.length ? (done === games.length ? ' ✓' : ` · ${done}/${games.length}`) : '';
     return `<option value="${k}"${k === state.round ? ' selected' : ''}>${roundLabel(k)}${tag}</option>`;
   }).join('');
@@ -525,7 +531,7 @@ const DRAFT_FIELDS = ['homeGoals','awayGoals','homeReds','awayReds','attendance'
 const changedFields = m => { const d = draftOf(m); return DRAFT_FIELDS.filter(f => (d[f] ?? '') !== (m[f] ?? '')); };
 
 function renderFixtures() {
-  const ms = seasonMatches().filter(m => inRound(m, state.round))
+  const ms = seasonMatches().filter(m => onMatchday(m, state.round))
     .sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.kickoff).localeCompare(String(b.kickoff)));
   const box = $('fixtures');
   if (!ms.length) {
@@ -539,6 +545,7 @@ function renderFixtures() {
     const res = played(m) ? (m.homeGoals > m.awayGoals ? `${esc(team(m.home).short)} win` : m.homeGoals < m.awayGoals ? `${esc(team(m.away).short)} win` : 'Draw') : '';
     const v = x => x == null ? '' : x;
     return `<article class="fx" data-id="${esc(m.id)}"${dirty ? ' data-dirty' : ''}>
+      ${moved(m) ? `<div class="moved">${String(m.round) === state.round ? `Moved to ${niceDate(m.date)} · played with Round ${esc(m.playedRound)}` : `Matchday ${esc(m.round)} game, rescheduled`}</div>` : ''}
       <div class="fx-meta"><span>${niceDate(m.date)}${m.kickoff ? ' · ' + niceTime(m.kickoff) : ''}${m.venue ? ' · ' + esc(m.venue) : ''}</span>
         <button class="link" type="button" data-act="edit">Edit fixture</button></div>
       <div class="fx-main">
@@ -810,7 +817,7 @@ async function refresh() {
   $('refreshBtn').disabled = true;
   try {
     const [settings, teams, venues, matches] = await Promise.all([
-      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:G60'), readRange('Venues!A1:B200'), readRange('Matches!A1:S3000')
+      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:G60'), readRange('Venues!A1:B200'), readRange('Matches!A1:Z3000')
     ]);
     const s = { ...EXAMPLE.settings };
     for (const r of settings.slice(1)) { const k = String(r[0] ?? '').trim(); if (k) s[k] = String(r[1] ?? '').trim(); }
@@ -918,12 +925,14 @@ function openFixture(m) {
   $('fKick').value = m ? (m.kickoff || '') : '';
   $('fHome').value = m ? m.home : ''; $('fAway').value = m ? m.away : '';
   $('fVenue').value = m ? (m.venue || '') : '';
+  $('fPlayed').value = m && m.playedRound ? m.playedRound : '';
   $('fxMsg').textContent = '';
   $('fxDlg').showModal();
 }
 $('fHome').addEventListener('change', () => { const t = team($('fHome').value); if (t.homeVenue && !$('fVenue').value) $('fVenue').value = t.homeVenue; });
 async function saveFixture(another) {
-  const f = { stage: $('fStage').value, round: toNum($('fRound').value), date: $('fDate').value, kickoff: $('fKick').value, home: $('fHome').value, away: $('fAway').value, venue: $('fVenue').value.trim() };
+  const f = { stage: $('fStage').value, round: toNum($('fRound').value), date: $('fDate').value, kickoff: $('fKick').value, home: $('fHome').value, away: $('fAway').value, venue: $('fVenue').value.trim(), playedRound: toNum($('fPlayed').value) };
+  if (f.playedRound === f.round) f.playedRound = null;
   if (!f.home || !f.away || f.home === f.away) { $('fxMsg').textContent = 'Pick two different clubs.'; return; }
   if (!f.date) { $('fxMsg').textContent = 'Add the date.'; return; }
   if (f.stage === 'Regular' && !f.round) { $('fxMsg').textContent = 'Add the round number.'; return; }
