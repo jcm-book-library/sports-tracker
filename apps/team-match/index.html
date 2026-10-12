@@ -90,6 +90,10 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .pair input{width:50%}
 .fx-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .fx-msg{font-size:12.5px;color:var(--muted)}
+.held{border:1px dashed color-mix(in srgb,var(--accent-2) 45%,var(--line));border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+.held .row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap}
+.fx[data-post] .side{opacity:.75}
+.pp{font-family:var(--display);font-weight:700;color:var(--muted);letter-spacing:.06em}
 .moved{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-2);border:1px solid color-mix(in srgb,var(--accent-2) 45%,var(--line));border-radius:999px;padding:2px 9px}
 .res{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;letter-spacing:.02em}
 .res[data-r="W"]{background:var(--win)} .res[data-r="D"]{background:var(--draw)} .res[data-r="L"]{background:var(--loss)}
@@ -173,6 +177,7 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
   .fx-main{grid-template-columns:minmax(0,1fr) auto;row-gap:8px}
   .score{display:contents}
   .score .dash{display:none}
+  .pp{display:none}
   .fx-main > .side:first-child{grid-row:1;grid-column:1}
   .score input:first-of-type{grid-row:1;grid-column:2}
   .fx-main > .side.away{grid-row:2;grid-column:1;justify-content:flex-end;text-align:left;flex-direction:row-reverse}
@@ -219,6 +224,7 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
             <button class="btn btn-primary" type="button" id="addBtn">Add fixture</button>
           </div>
         </div>
+        <div class="held" id="held" hidden></div>
         <div class="fixtures" id="fixtures"></div>
       </div>
       <div class="stack">
@@ -307,7 +313,7 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
       <label class="field full">Played with round (only if the game was moved)<input id="fPlayed" type="number" min="1" inputmode="numeric" placeholder="Leave blank if it's played in its own round"></label>
     </div>
     <div class="dlg-foot"><span class="fx-msg" id="fxMsg"></span>
-      <div style="display:flex;gap:8px"><button class="btn" type="button" id="fxAnother">Save and add another</button><button class="btn btn-primary" type="submit" id="fxSave">Save fixture</button></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="fxPost" hidden>Postpone</button><button class="btn" type="button" id="fxAnother">Save and add another</button><button class="btn btn-primary" type="submit" id="fxSave">Save fixture</button></div></div>
   </form>
 </dialog>
 <datalist id="venueList"></datalist>
@@ -348,7 +354,7 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
 <script>
 const SHEET_ID = '1YNszytKR0DjU0VPEs5lCq260qwOuOuRgrqTt2erI8Uo';
 const SERVER = 'Google Sheets';
-const MATCH_COLS = ['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound'];
+const MATCH_COLS = ['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status'];
 const NUM_FIELDS = ['round','playedRound','homeGoals','awayGoals','homeReds','awayReds','attendance','homePens','awayPens'];
 const STAGES = { Regular: 'Regular season', EF: 'Elimination finals', SF1: 'Semi-finals · leg 1', SF2: 'Semi-finals · leg 2', GF: 'Grand final' };
 const FINAL_STAGES = ['EF','SF1','SF2','GF'];
@@ -496,11 +502,12 @@ const inRound = (m, k) => FINAL_STAGES.includes(k) ? m.stage === k : (!isFinal(m
 // A rescheduled game keeps its matchday (round) and also shows in the round it's played with (playedRound).
 const playRound = m => m.playedRound || m.round;
 const moved = m => !isFinal(m) && m.playedRound && String(m.playedRound) !== String(m.round);
+const isPost = m => m.status === 'Postponed';
 const onMatchday = (m, k) => inRound(m, k) || (!FINAL_STAGES.includes(k) && moved(m) && String(m.playedRound) === k);
 function defaultRound() {
   const ms = seasonMatches();
   // The round holding the earliest unplayed game (a game moved to a later date doesn't hold its round open).
-  const next = ms.filter(m => !played(m)).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'))[0];
+  const next = ms.filter(m => !played(m) && !isPost(m)).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'))[0];
   const open = next && (isFinal(next) ? next.stage : String(playRound(next)));
   if (open) return open;
   const withGames = roundKeys().filter(k => ms.some(m => inRound(m, k)));
@@ -530,7 +537,14 @@ function draftOf(m) {
 const DRAFT_FIELDS = ['homeGoals','awayGoals','homeReds','awayReds','attendance','extraTime','homePens','awayPens'];
 const changedFields = m => { const d = draftOf(m); return DRAFT_FIELDS.filter(f => (d[f] ?? '') !== (m[f] ?? '')); };
 
+function renderHeld() {
+  const list = seasonMatches().filter(isPost).sort((a, b) => (a.round || 0) - (b.round || 0));
+  const box = $('held'); box.hidden = !list.length;
+  box.innerHTML = list.length ? `<span class="eyebrow" style="color:var(--accent-2)">Waiting for a new date · ${list.length}</span>` + list.map(m =>
+    `<div class="row" data-id="${esc(m.id)}"><span>${crest(m.home)} ${esc(team(m.home).short)} v ${esc(team(m.away).short)} ${crest(m.away)} <span class="muted">· matchday ${esc(m.round)} · was ${niceDate(m.date)}</span></span><button class="btn" type="button" data-act="edit">Set new date</button></div>`).join('') : '';
+}
 function renderFixtures() {
+  renderHeld();
   const ms = seasonMatches().filter(m => onMatchday(m, state.round))
     .sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.kickoff).localeCompare(String(b.kickoff)));
   const box = $('fixtures');
@@ -541,6 +555,12 @@ function renderFixtures() {
     return;
   }
   box.innerHTML = ms.map(m => {
+    if (isPost(m)) return `<article class="fx" data-id="${esc(m.id)}" data-post>
+      <div class="moved">Postponed · waiting for a new date</div>
+      <div class="fx-meta"><span>Was ${niceDate(m.date)}${m.venue ? ' · ' + esc(m.venue) : ''}</span></div>
+      <div class="fx-main"><div class="side">${crest(m.home)}<span class="nm">${esc(team(m.home).short)}</span></div><span class="pp">P – P</span><div class="side away"><span class="nm">${esc(team(m.away).short)}</span>${crest(m.away)}</div></div>
+      <div class="fx-foot"><span class="fx-msg">Stays on matchday ${esc(m.round)} until it's rescheduled</span><button class="btn btn-primary" type="button" data-act="edit">Set new date</button></div>
+    </article>`;
     const d = draftOf(m), dirty = changedFields(m).length > 0, fin = isFinal(m);
     const res = played(m) ? (m.homeGoals > m.awayGoals ? `${esc(team(m.home).short)} win` : m.homeGoals < m.awayGoals ? `${esc(team(m.away).short)} win` : 'Draw') : '';
     const v = x => x == null ? '' : x;
@@ -927,8 +947,46 @@ function openFixture(m) {
   $('fVenue').value = m ? (m.venue || '') : '';
   $('fPlayed').value = m && m.playedRound ? m.playedRound : '';
   $('fxMsg').textContent = '';
+  const post = m && isPost(m);
+  if (post) { $('fxTitle').textContent = 'Set new date'; $('fDate').value = ''; $('fPlayed').value = ''; $('fxMsg').textContent = `Postponed from ${niceDate(m.date)}. Pick the new date and the round fills in from it.`; }
+  $('fxPost').hidden = !(m && !post && !played(m) && !isFinal(m));
+  $('fxPost').textContent = 'Postpone'; $('fxPost').dataset.armed = '';
   $('fxDlg').showModal();
+  if (post) $('fDate').focus();
 }
+// Works out which round a date falls in, from the dates of each round's own games.
+const dayNum = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+function suggestRound(date, exceptId) {
+  if (!date) return null;
+  const x = dayNum(date); let best = null;
+  roundKeys().filter(k => !FINAL_STAGES.includes(k)).forEach(k => {
+    const ds = seasonMatches().filter(m => !isFinal(m) && String(m.round) === k && !moved(m) && !isPost(m) && m.date && m.id !== exceptId).map(m => dayNum(m.date));
+    if (!ds.length) return;
+    const lo = Math.min(...ds), hi = Math.max(...ds), dist = x < lo ? lo - x : x > hi ? x - hi : 0;
+    if (!best || dist <= best.dist) best = { k: +k, dist };
+  });
+  return best ? best.k : null;
+}
+$('fDate').addEventListener('change', () => {
+  if ($('fStage').value !== 'Regular' || !editing) return;
+  const k = suggestRound($('fDate').value, editing), own = toNum($('fRound').value);
+  if (!k) return;
+  $('fPlayed').value = k === own ? '' : k;
+  $('fxMsg').textContent = k === own ? `That date is in round ${own}, its own round.` : `That date falls in round ${k}, so it'll show there too. Change it if that's wrong.`;
+});
+$('fxPost').addEventListener('click', async () => {
+  const b = $('fxPost'), m = state.matches.find(x => x.id === editing); if (!m) return;
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Tap again to postpone'; $('fxMsg').textContent = 'The game stays on its matchday, marked postponed, until you set a new date.'; return; }
+  if (!state.live) { $('fxMsg').textContent = 'Saving needs the live connection. ' + connectHint(); return; }
+  b.disabled = true; $('fxMsg').textContent = 'Saving…';
+  try {
+    const changes = { status: 'Postponed', notes: (m.notes ? m.notes + '; ' : '') + `Postponed from ${m.date || 'TBC'}` };
+    if (m.playedRound) changes.playedRound = null;
+    await writeCells(m.id, changes); Object.assign(m, changes);
+    $('fxDlg').close(); renderAll();
+  } catch (err) { $('fxMsg').textContent = explain(err); }
+  finally { b.disabled = false; }
+});
 $('fHome').addEventListener('change', () => { const t = team($('fHome').value); if (t.homeVenue && !$('fVenue').value) $('fVenue').value = t.homeVenue; });
 async function saveFixture(another) {
   const f = { stage: $('fStage').value, round: toNum($('fRound').value), date: $('fDate').value, kickoff: $('fKick').value, home: $('fHome').value, away: $('fAway').value, venue: $('fVenue').value.trim(), playedRound: toNum($('fPlayed').value) };
@@ -941,6 +999,7 @@ async function saveFixture(another) {
   try {
     if (editing) {
       const m = state.matches.find(x => x.id === editing);
+      if (isPost(m)) f.status = '';
       const changes = {}; Object.keys(f).forEach(k => { if ((f[k] ?? '') !== (m[k] ?? '')) changes[k] = f[k]; });
       if (Object.keys(changes).length) { await writeCells(editing, changes); Object.assign(m, changes); }
       $('fxDlg').close();
@@ -1012,7 +1071,7 @@ document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]'); if (g) { showTab(g.dataset.goto); return; }
   const tr = e.target.closest('tr[data-team]'); if (tr) { showTeam(tr.dataset.team); return; }
   const act = e.target.closest('[data-act]'); if (!act) return;
-  const card = act.closest('.fx'), id = card && card.dataset.id;
+  const card = act.closest('[data-id]'), id = card && card.dataset.id;
   if (act.dataset.act === 'add') openFixture(null);
   else if (act.dataset.act === 'paste') openPaste();
   else if (act.dataset.act === 'edit') openFixture(state.matches.find(m => m.id === id));

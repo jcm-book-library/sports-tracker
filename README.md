@@ -12,7 +12,8 @@ Planned shapes: `team-match` (football, rugby league, AFL, NFL…), `race` (F1 a
 
 ## Sheet tabs (per competition)
 
-- `Matches`: one row per game. `id | season | round | stage | date | kickoff | home | away | homeGoals | awayGoals | homeReds | awayReds | venue | attendance | extraTime | homePens | awayPens | notes | updatedAt | playedRound`. `stage` is `Regular`, `EF`, `SF1`, `SF2` or `GF`. `id` (M0001…) is permanent and matches the official match number; never renumber it. `round` is the matchday a game belongs to; `playedRound` is filled in only when a game is moved, with the round it is played alongside (the app shows it under both).
+- `Matches`: one row per game. `id | season | round | stage | date | kickoff | home | away | homeGoals | awayGoals | homeReds | awayReds | venue | attendance | extraTime | homePens | awayPens | notes | updatedAt | playedRound | status`. `stage` is `Regular`, `EF`, `SF1`, `SF2` or `GF`. `id` (M0001…) is permanent and matches the official match number; never renumber it. `round` is the matchday a game belongs to; `playedRound` is filled in only when a game is moved, with the round it is played alongside (the app shows it under both).
+- Postponements: `status = Postponed` holds a game on its matchday with no valid date (the old date stays in `date`, and `notes` records it). The app lists these in a "Waiting for a new date" tray; setting the new date clears the status and suggests `playedRound` from the dates of the other rounds' games.
 - `Teams`: `code | name | short | colour1 | colour2 | homeVenue | active`.
 - `Venues`: `venue | city`.
 - `App Settings`: `key | value` — points per result, tiebreak order, rounds, finals teams and format, season.

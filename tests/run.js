@@ -17,7 +17,7 @@ const SHEET = {
     ['PER','Perth Glory','Perth','#4B2A7B','#F37021','HBF Park','Y'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium','Y'],
     ['WEL','Wellington Phoenix','Wellington','#FFD700','#1A1A1A','Sky Stadium','Y'],['WSW','Western Sydney Wanderers','Western Sydney','#C8102E','#1A1A1A','CommBank Stadium','Y']],
   'Venues': [['venue','city'],['Allianz Stadium','Sydney'],['AAMI Park','Melbourne']],
-  'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound']],
+  'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status']],
   '2025/26': [[],['2025/26','','','','','','PTS','+/-','P','W','L','D','F','A'],['1','','Newcastle Jets','','','','48','17','26','15','8','3'],['2','','Adelaide United','','','','43','10','26','12','7','7']]
 };
 window.__SHEET = SHEET; window.__CALLS = [];
@@ -112,6 +112,25 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   console.log('round 9 cards:', await page.$$eval('.fx', els => els.map(e => e.innerText.split('\n').slice(0, 3).join(' | '))));
   await page.selectOption('#roundSel', '1');
   console.log('round 1 moved tag:', await page.$$eval('.moved', els => els.map(e => e.textContent)));
+  // round 2 fixtures, then postpone a round 1 game and reschedule it into round 2's week
+  await page.click('#pasteBtn');
+  await page.fill('#pRound', '2');
+  await page.fill('#pText', '2026-10-23, 20:00, BRI, PER\n2026-10-24, 15:00, NEW, MAC');
+  await page.click('#pSave');
+  await page.waitForFunction(() => !document.getElementById('pasteDlg').open);
+  await page.selectOption('#roundSel', '1');
+  await page.click(`.fx[data-id="${ids[4]}"] [data-act="edit"]`);
+  await page.click('#fxPost'); await page.click('#fxPost');
+  await page.waitForFunction(() => !document.getElementById('fxDlg').open);
+  console.log('held tray:', (await page.textContent('#held')).replace(/\s+/g, ' ').trim());
+  console.log('postponed cell:', JSON.stringify(await page.evaluate(id => { const r = window.__SHEET.Matches.find(r => r[0] === id); return [r[17], r[20]]; }, ids[4])));
+  await page.click(`#held [data-act="edit"]`);
+  console.log('dialog title:', await page.textContent('#fxTitle'));
+  await page.fill('#fDate', '2026-10-24'); await page.dispatchEvent('#fDate', 'change');
+  console.log('suggested played round:', await page.inputValue('#fPlayed'), '|', await page.textContent('#fxMsg'));
+  await page.click('#fxSave');
+  await page.waitForFunction(() => !document.getElementById('fxDlg').open);
+  console.log('after reschedule:', JSON.stringify(await page.evaluate(id => { const r = window.__SHEET.Matches.find(r => r[0] === id); return [r[4], r[19], r[20]]; }, ids[4])), 'held hidden:', await page.$eval('#held', e => e.hidden));
   console.log('after edit venue cell:', (await page.evaluate(() => window.__SHEET.Matches[1][12])));
 
   for (const tab of ['ladder', 'results', 'stats', 'history']) {
