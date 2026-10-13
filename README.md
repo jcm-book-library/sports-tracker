@@ -41,10 +41,12 @@ Planned shapes: `team-match` (football, rugby league, AFL, NFL…), `race` (F1 a
 Sheet: the Formula E tracker. The original season tabs (`14/15` … `27`) and `Records` are left as they are; the app only reads them.
 
 - `Races`: `id | season | round | date | country | flag | city | circuit | name | heat | status | notes`. `id` like `2627-R01`. `heat` is 1 or 2 for double-headers. `status` is blank, `Postponed` or `Cancelled`.
-- `Results`: one row per driver per race. `id | season | raceId | driver | team | qualiPos | grid | finish | status | pole | fastestLap | pointsAdj | notes | updatedAt`. `id` is `raceId-driver` (e.g. `2627-R01-ROW`). `finish` is the classified position; `status` is blank, `DNF`, `DNS`, `DSQ` or `NC`. `pole` and `fastestLap` are `Y`. `pointsAdj` is only for stewards' deductions or half points. Points are worked out by the app from the `Points` tab and the bonuses in `App Settings`; they are never typed.
+- `Results`: one row per driver per race. `id | season | raceId | driver | team | qualiPos | grid | finish | status | pole | fastestLap | pointsAdj | notes | updatedAt | groupFastest`. `id` is `raceId-driver` (e.g. `2627-R01-ROW`). `finish` is the classified position; `status` is blank, `DNF`, `DNS`, `DSQ` or `NC`. `pole`, `fastestLap` and `groupFastest` (fastest in a qualifying group, 2019/20–2020/21) are `Y`. `pointsAdj` is only for stewards' deductions or half points. Points are worked out by the app from the `Points` tab and the bonuses in `App Settings`; they are never typed.
 - `Drivers`: `code | name | flag | nationality | active | notes`. Codes are permanent (three letters, as on timing screens).
 - `Teams`: `team | short | powertrain | colour1 | colour2 | active | notes`. `powertrain` feeds the manufacturers' table.
 - `Lineups`: who drove for whom each season: `season | driver | team | number | fromRound | toRound | notes`. A mid-season swap is a second row with `fromRound`.
 - `Circuits`: `circuit | city | country | flag | type | notes`, reused across seasons for circuit records.
 - `Points`: `system | position | points | notes`.
 - `App Settings`: competition, season, points system, pole and fastest-lap bonuses, team and manufacturer rules.
+- `Seasons`: bonus rules per season, because they changed over the years: `season | poleBonus | fastestLapBonus | fastestLapTop10Only | groupFastestBonus | notes`.
+- History (2014/15–2025/26) was imported from Wikipedia into `Races`, `Results`, `Lineups`, `Drivers` and `Circuits`, and every season's points totals were checked against the official standings. Two known adjustments are in `Results` notes (Rowland 2024/25 R8, Cassidy 2024/25 R11: pole points not awarded). One open mismatch: Mitch Evans 2024/25 works out at 77, while Wikipedia says 74.
