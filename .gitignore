@@ -1,3 +1,4 @@
 tests/*.png
 tests/page.html
 node_modules/
+tests/page-wc.html

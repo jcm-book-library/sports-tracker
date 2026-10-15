@@ -50,3 +50,14 @@ Sheet: the Formula E tracker. The original season tabs (`14/15` … `27`) and `R
 - `App Settings`: competition, season, points system, pole and fastest-lap bonuses, team and manufacturer rules.
 - `Seasons`: bonus rules per season, because they changed over the years: `season | poleBonus | fastestLapBonus | fastestLapTop10Only | groupFastestBonus | notes`.
 - History (2014/15–2025/26) was imported from Wikipedia into `Races`, `Results`, `Lineups`, `Drivers` and `Circuits`, and every season's points totals were checked against the official standings. Two known adjustments are in `Results` notes (Rowland 2024/25 R8, Cassidy 2024/25 R11: pole points not awarded). One open mismatch: Mitch Evans 2024/25 works out at 77, while Wikipedia says 74.
+
+## Tournament app (Rugby League World Cup 2026)
+
+`apps/tournament/index.html` is the claude.ai artifact; `world-cup/index.html` is the GitHub Pages copy (built by `tools/build_pages.py`). Sheet: "Rugby League World Cup" (`1AOY5rfdN0xSDgEmVZIQowZjR4XZOIPTgP396U46l3A0`).
+
+- `Matches`: `id | tournament | stage | round | pool | date | kickoff | home | away | homeSlot | awaySlot | homeScore | awayScore | homeTries | awayTries | homeSinBins | awaySinBins | homeSendOffs | awaySendOffs | goldenPoint | venue | attendance | referee | status | notes | updatedAt`. `stage` is `Pool`, `SF` or `Final`. Kick-offs are Melbourne time. Knockout games leave `home`/`away` blank and use slots: `A1` (Pool A winner), `BC2` (Pools B & C runner-up), `W-M16` (winner of M16). When a knockout result is saved, the app writes the teams in too, but only once the games that decide them are finished. Knockout games can't be saved as a draw: enter the score after golden point and set `goldenPoint` to `Y`.
+- `Teams`: `code | name | short | pool | flag | colour1 | colour2 | nickname`.
+- `Venues`: `venue | city | country | capacity`.
+- `App Settings`: `key | value`. `tables` lists the tables as `A=Pool A;BC=Pools B & C`: the letters are the pools that share a table. Pools B and C are one table because their teams only play the other pool. Also `pointsWin`/`pointsDraw`/`pointsLoss`, `tiebreakers` (`pointsDiff`, `pointsFor`, `tries`, `wins`, `h2hPoints`, `h2hPointsDiff`), `qualifiers` (how many teams per table go through) and `poolRounds`.
+
+Test: `node tests/tournament.js` plays a whole made-up tournament through the page and prints the tables, bracket, sheet writes and phone overflow.
