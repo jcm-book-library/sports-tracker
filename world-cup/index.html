@@ -17,23 +17,25 @@
 <!-- Built from apps/tournament/index.html by tools/build_pages.py. Edit the source, not this file. -->
 <title>World Cup Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,600;0,800;0,900;1,900&family=Rubik:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-/* Layout: phone-first single column; laptop gets two columns on Matchday (fixtures | mini ladder).
-   Proton Seasons (dark only, sister to Jackets & Manuscripts): month accent with drift + tint,
-   lime only for the season average line. Result colours (green W / blue D / red L) are fixed and
-   never take the accent or a club colour. */
+/* Layout: phone-first single column; laptop gets two columns on Matchday (fixtures | pool tables).
+   RLWC26 look (dark only): deep navy surfaces, cyan accent, cream for the running-average line,
+   heavy italic Archivo for headings. Result colours (green W / blue D / red L) are fixed and never
+   take the accent or a team colour. */
 :root{
-  --bg:#16141f; --surface:#1e1b2b; --raise:#2a2640; --line:#353050;
-  --fg:#f1effa; --muted:#a49fbf; --accent:#43ad8f; --accent-next:#7bae6a; --accent-ink:#ffffff; --accent-2:#c4f04a;
-  --danger:#ff7a7a;
+  --bg:#061633; --surface:#0b2149; --raise:#112c5c; --line:#1d3b72;
+  --fg:#ffffff; --muted:#9fb4d8; --accent:#00e1e6; --accent-next:#00e1e6; --accent-ink:#061633; --accent-2:#f3efdf;
+  --danger:#ff5468; --live:#e8112d;
   --win:#3fae6a; --draw:#4f8fe0; --loss:#e05f5f;
-  --display:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
-  --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Archivo",ui-sans-serif,system-ui,sans-serif;
+  --body:"Rubik",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+
 body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 40px}
 h1,h2,h3,.num{font-family:var(--display)}
@@ -202,6 +204,19 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
   .score input{width:52px;height:42px;font-size:20px}
 }
 /* tournament extras */
+h1{font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
+h2{font-weight:800;text-transform:uppercase;letter-spacing:.01em}
+h1 .cy{color:var(--accent)}
+.eyebrow{color:var(--accent)}
+.tab{text-transform:uppercase;letter-spacing:.04em;font-size:13px}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.btn-primary{text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.score input{font-weight:800}
+.navrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.navrow .tabs{margin-bottom:0}
+.compSwitch{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.compSwitch button{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:7px 14px;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.compSwitch button[aria-pressed="true"]{background:var(--accent-2);color:var(--accent-ink)}
 .flag{font-size:16px;line-height:1;flex:none}
 .proj{font-style:italic;color:var(--muted)}
 .slot{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em}
@@ -218,7 +233,7 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
   <header>
     <div class="brand">
       <div class="eyebrow" id="dateLine">&nbsp;</div>
-      <h1>World Cup Tracker</h1>
+      <h1>World Cup <span class="cy">Tracker</span></h1>
       <div class="comp" id="compLine">Rugby League World Cup · 2026</div>
     </div>
     <div class="status" id="status" data-state="loading">
@@ -229,12 +244,15 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
 
   <div class="notice" id="notice" hidden></div>
 
+  <div class="navrow">
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button class="tab" role="tab" id="tab-matchday" aria-selected="true" data-tab="matchday">Matchday</button>
     <button class="tab" role="tab" id="tab-pools" aria-selected="false" data-tab="pools">Pools</button>
     <button class="tab" role="tab" id="tab-results" aria-selected="false" data-tab="results">Results</button>
     <button class="tab" role="tab" id="tab-stats" aria-selected="false" data-tab="stats">Stats</button>
   </nav>
+  <div class="compSwitch" role="group" aria-label="Competition" id="compSwitch"></div>
+  </div>
 
   <!-- MATCHDAY -->
   <section id="view-matchday" role="tabpanel" aria-labelledby="tab-matchday">
@@ -395,26 +413,10 @@ const isKO = m => KO.includes(m.stage);
 const signed = n => n > 0 ? '+' + n : String(n);
 const ordinal = n => n + (['th','st','nd','rd'][(n % 100 - 20) % 10] || ['th','st','nd','rd'][n % 100] || 'th');
 
-/* ---------- Proton Seasons theme ---------- */
-const MC = ['#e8935a','#e07a7a','#d9738f','#c573b4','#a674e0','#7f6cf5','#6a7ff0','#5591e0','#3fa4b8','#43ad8f','#7bae6a','#d6a345'];
-const BASE = { bg:'#16141f', surface:'#1e1b2b', raise:'#2a2640', line:'#353050' };
-const LIME = '#c4f04a';
-const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-const mix = (a, b, t) => '#' + hexRgb(a).map((v, i) => Math.round(v + (hexRgb(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
-function dayColour(isoDate) {
-  const y = +isoDate.slice(0, 4), m = +isoDate.slice(5, 7) - 1, d = +isoDate.slice(8, 10);
-  const len = new Date(y, m + 1, 0).getDate();
-  return mix(MC[m], MC[(m + 1) % 12], ((d - 1) / (len - 1)) * 0.6);
-}
+/* ---------- theme ---------- */
+const CREAM = '#f3efdf';
 function applyTheme() {
-  const t = today(), m = +t.slice(5, 7) - 1, c = dayColour(t), r = document.documentElement.style;
-  r.setProperty('--accent', c);
-  r.setProperty('--accent-next', MC[(m + 1) % 12]);
-  r.setProperty('--bg', mix(BASE.bg, c, 0.05));
-  r.setProperty('--surface', mix(BASE.surface, c, 0.05));
-  r.setProperty('--raise', mix(BASE.raise, c, 0.06));
-  r.setProperty('--line', mix(BASE.line, c, 0.08));
-  const [y, mo, d] = t.split('-').map(Number);
+  const [y, mo, d] = today().split('-').map(Number);
   $('dateLine').textContent = `${DAYS[new Date(y, mo - 1, d).getDay()]} ${d} ${FULL_MONTHS[mo - 1]} ${y}`;
 }
 
@@ -424,11 +426,26 @@ const state = {
   settings: { ...EXAMPLE.settings },
   teams: EXAMPLE.teams.map(t => ({ ...t })),
   venues: [], matches: EXAMPLE.matches.map(m => ({ ...m })),
-  round: null, tab: 'matchday', drafts: {}, chart: null
+  round: null, tab: 'matchday', drafts: {}, chart: null,
+  base: { ...EXAMPLE.settings }, allTeams: EXAMPLE.teams.map(t => ({ ...t, comp: 'M' })), comp: 'M',
+  comps: [{ comp: 'M', name: "Men's World Cup", short: 'Men' }, { comp: 'W', name: "Women's World Cup", short: 'Women' }]
 };
+const compOf = x => String(x.comp || '').trim() || 'M';
+// One sheet holds both competitions: rows carry a comp code (M, W); the Competitions tab holds each one's format.
+function applyComp() {
+  const c = state.comps.find(x => x.comp === state.comp) || state.comps[0];
+  if (c && c.comp !== state.comp) state.comp = c.comp;
+  const s = { ...state.base };
+  if (c) ['tables','qualifiers','poolRounds','tiebreakers'].forEach(k => { if (String(c[k] ?? '').trim()) s[k] = String(c[k]).trim(); });
+  ['qualifiers','poolRounds'].forEach(k => s[k] = toNum(s[k]) ?? EXAMPLE.settings[k]);
+  s.competitionName = c ? c.name : s.competition;
+  state.settings = s;
+  state.teams = state.allTeams.filter(t => compOf(t) === state.comp);
+  $('compSwitch').innerHTML = state.comps.map(x => `<button type="button" data-comp="${esc(x.comp)}" aria-pressed="${x.comp === state.comp}">${esc(x.short || x.name)}</button>`).join('');
+}
 const team = code => state.teams.find(t => t.code === code) || { code, name: code || 'TBC', short: code || 'TBC', flag: '', colour1: '#888888', colour2: '#444444' };
 const crest = code => { const t = team(code); return t.flag ? `<span class="flag" aria-hidden="true">${esc(t.flag)}</span>` : `<span class="crest" style="background:linear-gradient(135deg,${esc(t.colour1)} 50%,${esc(t.colour2)} 50%)" aria-hidden="true"></span>`; };
-const tourMatches = () => state.matches.filter(m => m.tournament === state.settings.tournament);
+const tourMatches = () => state.matches.filter(m => m.tournament === state.settings.tournament && compOf(m) === state.comp);
 
 /* ---------- pool tables ---------- */
 // "A=Pool A;BC=Pools B & C" → [{ key:'A', name:'Pool A', pools:['A'] }, { key:'BC', name:'Pools B & C', pools:['B','C'] }]
@@ -517,7 +534,7 @@ function sideInfo(m, side) {
 
 /* ---------- rendering ---------- */
 function renderAll() {
-  $('compLine').textContent = `${state.settings.competition} · ${state.settings.tournament}`;
+  $('compLine').textContent = `${state.settings.competition} · ${state.settings.competitionName} · ${state.settings.tournament}`;
   renderRoundSel(); renderFixtures(); renderMiniTables();
   if (state.tab === 'pools') renderPools();
   if (state.tab === 'results') renderResults();
@@ -723,8 +740,8 @@ function drawChart(per, avg) {
   const data = {
     labels: per.map(p => shortRound(p.k)),
     datasets: [
-      { type: 'bar', label: 'Points', data: per.map(p => p.pts), backgroundColor: per.map(p => dayColour(p.date)), borderRadius: 4, yAxisID: 'y', order: 2 },
-      { type: 'line', label: 'Points per game', data: avg, borderColor: LIME, backgroundColor: LIME, pointRadius: 2, borderWidth: 2, tension: .3, yAxisID: 'y2', order: 1 }
+      { type: 'bar', label: 'Points', data: per.map(p => p.pts), backgroundColor: css.getPropertyValue('--accent').trim(), borderRadius: 4, yAxisID: 'y', order: 2 },
+      { type: 'line', label: 'Points per game', data: avg, borderColor: CREAM, backgroundColor: CREAM, pointRadius: 2, borderWidth: 2, tension: .3, yAxisID: 'y2', order: 1 }
     ]
   };
   const opts = {
@@ -795,15 +812,17 @@ async function refresh() {
   setStatus('loading', 'Loading from your sheet…');
   $('refreshBtn').disabled = true;
   try {
-    const [settings, teams, venues, matches] = await Promise.all([
-      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:H60'), readRange('Venues!A1:B200'), readRange('Matches!A1:Z500')
+    const [settings, teams, venues, matches, comps] = await Promise.all([
+      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:J80'), readRange('Venues!A1:B200'), readRange('Matches!A1:AE500'), readRange('Competitions!A1:H20').catch(() => [])
     ]);
     const s = { ...EXAMPLE.settings };
     for (const r of settings.slice(1)) { const k = String(r[0] ?? '').trim(); if (k) s[k] = String(r[1] ?? '').trim(); }
     ['pointsWin','pointsDraw','pointsLoss','qualifiers','poolRounds'].forEach(k => s[k] = toNum(s[k]) ?? EXAMPLE.settings[k]);
-    state.settings = s;
-    state.teams = byHeader(teams).filter(t => String(t.code).trim())
-      .map(t => ({ code: String(t.code).trim(), name: String(t.name).trim(), short: String(t.short || t.name).trim(), pool: String(t.pool || '').trim(), flag: String(t.flag || '').trim(), colour1: String(t.colour1 || '#888888').trim(), colour2: String(t.colour2 || '#444444').trim() }));
+    state.base = s;
+    const cs = byHeader(comps).filter(c => String(c.comp).trim()).map(c => ({ ...c, comp: String(c.comp).trim(), name: String(c.name || c.comp).trim(), short: String(c.short || '').trim() }));
+    if (cs.length) state.comps = cs;
+    state.allTeams = byHeader(teams).filter(t => String(t.code).trim())
+      .map(t => ({ code: String(t.code).trim(), name: String(t.name).trim(), short: String(t.short || t.name).trim(), pool: String(t.pool || '').trim(), flag: String(t.flag || '').trim(), colour1: String(t.colour1 || '#888888').trim(), colour2: String(t.colour2 || '#444444').trim(), comp: compOf(t) }));
     state.venues = byHeader(venues).map(v => String(v.venue).trim()).filter(Boolean);
     state.matches = byHeader(matches).filter(m => String(m.id).trim()).map(m => {
       const o = { _row: m._row };
@@ -811,7 +830,7 @@ async function refresh() {
       o.date = toDate(m.date); o.stage = o.stage || 'Pool';
       return o;
     });
-    state.drafts = {}; state.live = true;
+    state.drafts = {}; state.live = true; applyComp();
     notice('');
     setStatus('live', 'Live from your sheet · ' + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
     fillPickers(); renderAll();
@@ -826,7 +845,7 @@ async function findRow(id) {
   const ids = await readRange('Matches!A1:A500');
   const hits = ids.map((r, i) => String(r[0] ?? '').trim() === id ? i + 1 : 0).filter(Boolean);
   if (hits.length !== 1) throw { code: 'tool_error', message: hits.length ? `match ${id} appears ${hits.length} times in Matches` : `match ${id} isn't in Matches any more` };
-  const header = ((await readRange('Matches!A1:Z1'))[0] || []).map(h => String(h).trim());
+  const header = ((await readRange('Matches!A1:AE1'))[0] || []).map(h => String(h).trim());
   return { row: hits[0], col: k => { const i = header.indexOf(k); if (i < 0) throw { code: 'tool_error', message: `Matches has no ${k} column` }; return colLetter(i); } };
 }
 const sheetValue = (k, v) => {
@@ -896,9 +915,11 @@ function openFixture(m) {
   $('fxMsg').textContent = m && isKO(m) && !m.home ? 'Leave the teams as TBC and they fill in from the pool tables.' : '';
   $('fxDlg').showModal();
 }
+// Ids carry the competition letter (M01, W01) so they stay unique across the whole sheet.
 function nextId() {
-  const max = state.matches.reduce((n, m) => { const k = parseInt(String(m.id).replace(/\D/g, ''), 10); return Number.isFinite(k) && k > n ? k : n; }, 0);
-  return 'M' + String(max + 1).padStart(2, '0');
+  const pre = state.comp;
+  const max = state.matches.filter(m => String(m.id).startsWith(pre)).reduce((n, m) => { const k = parseInt(String(m.id).slice(pre.length), 10); return Number.isFinite(k) && k > n ? k : n; }, 0);
+  return pre + String(max + 1).padStart(2, '0');
 }
 async function saveFixture() {
   const f = { stage: $('fStage').value, round: toNum($('fRound').value), date: $('fDate').value, kickoff: $('fKick').value, home: $('fHome').value, away: $('fAway').value, venue: $('fVenue').value.trim(), referee: $('fRef').value.trim() };
@@ -914,11 +935,11 @@ async function saveFixture() {
       const changes = {}; Object.keys(f).forEach(k => { if ((f[k] ?? '') !== (m[k] ?? '')) changes[k] = f[k]; });
       if (Object.keys(changes).length) { await writeCells(editing, changes); Object.assign(m, changes); }
     } else {
-      const header = ((await readRange('Matches!A1:Z1'))[0] || []).map(h => String(h).trim());
+      const header = ((await readRange('Matches!A1:AE1'))[0] || []).map(h => String(h).trim());
       const ids = await readRange('Matches!A2:A500');
       ids.forEach(r => { const id = String(r[0] ?? '').trim(); if (id && !state.matches.some(m => m.id === id)) state.matches.push({ id, tournament: '' }); });
       const id = nextId(), pool = f.stage === 'Pool' ? (tableDefs().find(d => d.pools.includes(team(f.home).pool)) || {}).key || '' : '';
-      const rec = { ...f, id, tournament: state.settings.tournament, pool };
+      const rec = { ...f, id, tournament: state.settings.tournament, pool, comp: state.comp };
       await state.mcp.callTool(SERVER, 'append_values', { spreadsheetId: SHEET_ID, range: 'Matches!A1', values: [header.map(k => k === 'updatedAt' ? "'" + stamp() : k in rec ? sheetValue(k, rec[k]) : '')] }, { cache: false });
       state.matches.push({ ...EXAMPLE.matches[0], ...rec, homeSlot: '', awaySlot: '', notes: '' });
     }
@@ -941,6 +962,12 @@ function showTab(name) {
   renderAll();
 }
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+$('compSwitch').addEventListener('click', e => {
+  const b = e.target.closest('[data-comp]'); if (!b || b.dataset.comp === state.comp) return;
+  state.comp = b.dataset.comp; state.round = null;
+  try { localStorage.setItem('wc-comp', state.comp); } catch (err) {}
+  applyComp(); fillPickers(); renderAll();
+});
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]'); if (g) { showTab(g.dataset.goto); return; }
   const tr = e.target.closest('tr[data-team]'); if (tr) { showTeam(tr.dataset.team); return; }
@@ -1034,6 +1061,8 @@ $('gForm').addEventListener('submit', e => {
 
 /* ---------- boot ---------- */
 applyTheme();
+try { const c = localStorage.getItem('wc-comp'); if (c) state.comp = c; } catch (e) {}
+applyComp();
 fillPickers();
 try { const t = localStorage.getItem('wc-tab'); if (TABS.includes(t)) state.tab = t; } catch (e) {}
 showTab(state.tab);

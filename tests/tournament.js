@@ -16,10 +16,12 @@ const fx = [
 ].map(([id,stage,round,pool,date,kick,home,away,hs='',as='']) => [id,'2026',stage,round,pool,date,kick,home,away,hs,as,'','','','','','','','','','Venue '+id,'','','','','']);
 const SHEET = {
   'App Settings': [['key','value'],['competition','Rugby League World Cup'],['tournament','2026'],['pointsWin','2'],['pointsDraw','1'],['pointsLoss','0'],['tiebreakers','pointsDiff,pointsFor,h2hPoints'],['tables','A=Pool A;BC=Pools B & C'],['qualifiers','2'],['poolRounds','3']],
-  'Teams': [['code','name','short','pool','flag','colour1','colour2'],['AUS','Australia','Australia','A','🇦🇺','#00843D','#FFCD00'],['NZL','New Zealand','New Zealand','A','🇳🇿','#111','#fff'],['FIJ','Fiji','Fiji','A','🇫🇯','#fff','#68BBE3'],['COK','Cook Islands','Cook Islands','A','🇨🇰','#00A651','#fff'],
-    ['ENG','England','England','B','🏴','#fff','#CE1124'],['LEB','Lebanon','Lebanon','B','🇱🇧','#ED1C24','#00A651'],['SAM','Samoa','Samoa','B','🇼🇸','#002B7F','#fff'],['FRA','France','France','C','🇫🇷','#fff','#002395'],['PNG','Papua New Guinea','PNG','C','🇵🇬','#CE1126','#FCD116'],['TGA','Tonga','Tonga','C','🇹🇴','#C10000','#fff']],
+  'Teams': [['code','name','short','pool','flag','colour1','colour2','nickname','comp'],['AUS','Australia','Australia','A','🇦🇺','#00843D','#FFCD00'],['NZL','New Zealand','New Zealand','A','🇳🇿','#111','#fff'],['FIJ','Fiji','Fiji','A','🇫🇯','#fff','#68BBE3'],['COK','Cook Islands','Cook Islands','A','🇨🇰','#00A651','#fff'],
+    ['ENG','England','England','B','🏴','#fff','#CE1124'],['LEB','Lebanon','Lebanon','B','🇱🇧','#ED1C24','#00A651'],['SAM','Samoa','Samoa','B','🇼🇸','#002B7F','#fff'],['FRA','France','France','C','🇫🇷','#fff','#002395'],['PNG','Papua New Guinea','PNG','C','🇵🇬','#CE1126','#FCD116'],['TGA','Tonga','Tonga','C','🇹🇴','#C10000','#fff'],
+    ['AUS','Australia','Australia','A','🇦🇺','#00843D','#FFCD00','','W'],['SAM','Samoa','Samoa','A','🇼🇸','#002B7F','#fff','','W'],['NZL','New Zealand','New Zealand','B','🇳🇿','#111','#fff','','W'],['FIJ','Fiji','Fiji','B','🇫🇯','#fff','#68BBE3','','W']],
   'Venues': [['venue','city'],['Allianz Stadium','Sydney']],
-  'Matches': [H, ...fx]
+  'Competitions': [['comp','name','short','tables','qualifiers','poolRounds','tiebreakers'],['M',"Men's World Cup",'Men','A=Pool A;BC=Pools B & C','2','3','pointsDiff,pointsFor,h2hPoints'],['W',"Women's World Cup",'Women','A=Group A;B=Group B','2','3','pointsDiff,pointsFor,h2hPoints']],
+  'Matches': [[...H, 'comp'], ...fx, ['W01','2026','Pool','1','A','2026-10-16','20:05','AUS','SAM','','','','','','','','','','','','CommBank Stadium','','','','','','W'], ['W04','2026','Pool','1','B','2026-10-18','13:50','NZL','FIJ','','','','','','','','','','','','McDonald Jones Stadium','','','','','','W']]
 };
 const stub = `<script>
 const SHEET = ${JSON.stringify(SHEET)};
@@ -100,6 +102,15 @@ fs.writeFileSync(path.join(__dirname, 'page-wc.html'), `<!doctype html><html><he
   await page.screenshot({ path: path.join(__dirname, 'wc-matchday-phone.png'), fullPage: true });
   await page.click('#tab-pools'); await page.click('#poolTables tr[data-team="ENG"]');
   console.log('team dialog:', (await page.textContent('#teamBody')).replace(/\s+/g, ' ').trim().slice(0, 200));
+  await page.setViewportSize({ width: 1280, height: 900 }); await page.keyboard.press('Escape');
+  await page.click('#compSwitch [data-comp="W"]'); await page.click('#tab-matchday'); await page.waitForTimeout(150);
+  console.log('women header:', await page.textContent('#compLine'), '| round:', await page.$eval('#roundSel', s => s.options[s.selectedIndex].text));
+  await save('W01', { homeScore: 32, awayScore: 4, homeTries: 6, awayTries: 1 });
+  console.log('women W01 row:', JSON.stringify(await page.evaluate(() => window.__SHEET.Matches.find(r => r[0] === 'W01').slice(7, 15))));
+  console.log('women tables:', await page.$$eval('#miniTables .panel', ps => ps.map(p => p.querySelector('h2').textContent + ': ' + [...p.querySelectorAll('tbody tr')].map(r => r.innerText.replace(/\s+/g, ' ').trim()).join(' / '))));
+  await page.screenshot({ path: path.join(__dirname, 'wc-women-desktop.png') });
+  await page.click('#compSwitch [data-comp="M"]'); await page.waitForTimeout(100);
+  console.log('men Pool A after switching back:', await page.$eval('#miniTables .panel', p => p.innerText.replace(/\s+/g, ' ').slice(0, 80)));
   console.log('errors:', errors.length ? errors : 'none');
   await browser.close();
 })().catch(e => { console.error(e); process.exit(1); });

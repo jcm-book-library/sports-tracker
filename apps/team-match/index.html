@@ -1,23 +1,26 @@
 <title>Sports Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Lexend:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 /* Layout: phone-first single column; laptop gets two columns on Matchday (fixtures | mini ladder).
-   Proton Seasons (dark only, sister to Jackets & Manuscripts): month accent with drift + tint,
-   lime only for the season average line. Result colours (green W / blue D / red L) are fixed and
-   never take the accent or a club colour. */
+   A-Leagues look (dark only): electric-blue page with diagonal bands, deep navy-blue panels,
+   coral for actions and the selected tab, lime only for the season average line and highlights.
+   Result colours (green W / blue D / red L) are fixed and never take the accent or a club colour. */
 :root{
-  --bg:#16141f; --surface:#1e1b2b; --raise:#2a2640; --line:#353050;
-  --fg:#f1effa; --muted:#a49fbf; --accent:#43ad8f; --accent-next:#7bae6a; --accent-ink:#ffffff; --accent-2:#c4f04a;
+  --bg:#2121b8; --surface:#14148a; --raise:#1c1ca3; --line:#3030c0;
+  --fg:#ffffff; --muted:#bcc0f7; --accent:#ff4f4f; --accent-next:#ff4f4f; --accent-ink:#ffffff; --accent-2:#d8f542;
   --danger:#ff7a7a;
   --win:#3fae6a; --draw:#4f8fe0; --loss:#e05f5f;
-  --display:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
-  --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Rubik",ui-sans-serif,system-ui,sans-serif;
+  --body:"Lexend",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0}
+[hidden]{display:none!important}
+.status[data-state="live"] .dot{background:var(--accent-2)}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0;
+  background-image:linear-gradient(105deg,transparent 0 18%,rgba(255,255,255,.045) 18% 30%,transparent 30% 58%,rgba(255,255,255,.035) 58% 64%,transparent 64%);background-attachment:fixed}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 40px}
 h1,h2,h3,.num{font-family:var(--display)}
 h1{font-size:clamp(26px,4vw,34px);font-weight:700;letter-spacing:-.02em;margin:0;text-wrap:balance}
@@ -172,6 +175,17 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px;margin:0}
 .kv dt{color:var(--muted)} .kv dd{margin:0;font-variant-numeric:tabular-nums}
 .copybox{width:100%;min-height:120px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+/* A-Leagues accents */
+h1{font-weight:900;letter-spacing:-.01em} h2{font-weight:800}
+.eyebrow{color:var(--accent-2)}
+#dateLine{color:var(--accent-2)}
+.tab{text-transform:uppercase;letter-spacing:.03em;font-size:13px}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.btn{border-radius:999px}
+.btn-primary{text-transform:uppercase;letter-spacing:.03em}
+.link{color:var(--accent-2)}
+.score input{font-weight:800}
+.t tr.cut td{border-bottom-color:color-mix(in srgb,var(--accent-2) 70%,var(--line))}
 /* phone: scoreboard rows (home over away), each with its own score box */
 @media (max-width:520px){
   .fx-main{grid-template-columns:minmax(0,1fr) auto;row-gap:8px}
@@ -405,26 +419,10 @@ const played = m => m.homeGoals != null && m.awayGoals != null;
 const isFinal = m => FINAL_STAGES.includes(m.stage);
 const signed = n => n > 0 ? '+' + n : String(n);
 
-/* ---------- Proton Seasons theme ---------- */
-const MC = ['#e8935a','#e07a7a','#d9738f','#c573b4','#a674e0','#7f6cf5','#6a7ff0','#5591e0','#3fa4b8','#43ad8f','#7bae6a','#d6a345'];
-const BASE = { bg:'#16141f', surface:'#1e1b2b', raise:'#2a2640', line:'#353050' };
-const LIME = '#c4f04a';
-const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-const mix = (a, b, t) => '#' + hexRgb(a).map((v, i) => Math.round(v + (hexRgb(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
-function dayColour(isoDate) {
-  const y = +isoDate.slice(0, 4), m = +isoDate.slice(5, 7) - 1, d = +isoDate.slice(8, 10);
-  const len = new Date(y, m + 1, 0).getDate();
-  return mix(MC[m], MC[(m + 1) % 12], ((d - 1) / (len - 1)) * 0.6);
-}
+/* ---------- theme ---------- */
+const LIME = '#d8f542';
 function applyTheme() {
-  const t = today(), m = +t.slice(5, 7) - 1, c = dayColour(t), r = document.documentElement.style;
-  r.setProperty('--accent', c);
-  r.setProperty('--accent-next', MC[(m + 1) % 12]);
-  r.setProperty('--bg', mix(BASE.bg, c, 0.05));
-  r.setProperty('--surface', mix(BASE.surface, c, 0.05));
-  r.setProperty('--raise', mix(BASE.raise, c, 0.06));
-  r.setProperty('--line', mix(BASE.line, c, 0.08));
-  const [y, mo, d] = t.split('-').map(Number);
+  const [y, mo, d] = today().split('-').map(Number);
   $('dateLine').textContent = `${DAYS[new Date(y, mo - 1, d).getDay()]} ${d} ${FULL_MONTHS[mo - 1]} ${y}`;
 }
 
@@ -721,7 +719,7 @@ function drawChart(per, avg) {
   const data = {
     labels: per.map(p => FINAL_STAGES.includes(p.k) ? p.k : 'R' + p.k),
     datasets: [
-      { type: 'bar', label: 'Goals', data: per.map(p => p.goals), backgroundColor: per.map(p => dayColour(p.date)), borderRadius: 4, yAxisID: 'y', order: 2 },
+      { type: 'bar', label: 'Goals', data: per.map(p => p.goals), backgroundColor: css.getPropertyValue('--accent').trim(), borderRadius: 4, yAxisID: 'y', order: 2 },
       { type: 'line', label: 'Goals per game', data: avg, borderColor: LIME, backgroundColor: LIME, pointRadius: 2, borderWidth: 2, tension: .3, yAxisID: 'y2', order: 1 }
     ]
   };
