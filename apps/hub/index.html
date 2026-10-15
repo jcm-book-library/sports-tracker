@@ -1,0 +1,110 @@
+<title>Sports Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Hub: the home screen for every competition app. Proton Seasons (dark only, sister to Jackets & Manuscripts):
+   month accent with drift + tint. Each card carries its own competition's colours, as the apps do. */
+:root{
+  --bg:#16141f; --surface:#1e1b2b; --raise:#2a2640; --line:#353050;
+  --fg:#f1effa; --muted:#a49fbf; --accent:#43ad8f; --accent-2:#c4f04a;
+  --display:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:16px;padding-block:24px 48px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:clamp(28px,5vw,40px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin:28px 0 12px}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);font-weight:700}
+.lede{color:var(--muted);margin:6px 0 0;max-width:60ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{position:relative;display:flex;flex-direction:column;gap:10px;min-height:150px;padding:16px;border-radius:16px;
+  background:var(--c-bg);color:var(--c-fg);border:1px solid color-mix(in srgb,var(--c-fg) 14%,transparent);text-decoration:none;overflow:hidden}
+.card::after{content:"";position:absolute;inset:auto -30px -40px auto;width:150px;height:150px;border-radius:50%;background:var(--c-accent);opacity:.18;pointer-events:none}
+a.card:hover{border-color:var(--c-accent)}
+a.card:focus-visible{outline:2px solid var(--c-accent);outline-offset:3px}
+.card .sport{font-size:11px;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--c-accent)}
+.card h3{font-size:20px;line-height:1.2}
+.card .when{font-size:13px;opacity:.8}
+.card .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:3px 10px}
+.chip.live{background:var(--c-accent);color:var(--c-bg)}
+.chip.soon{border:1px solid color-mix(in srgb,var(--c-fg) 35%,transparent)}
+.go{font-weight:700;font-size:13px;color:var(--c-accent)}
+.card.later{opacity:.72}
+.foot-note{color:var(--muted);font-size:13px;margin-top:28px}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow" id="dateLine">&nbsp;</div>
+  <h1>Sports Tracker</h1>
+  <p class="lede">Every competition you log. Results live in your Google Sheets; each app works out the tables and stats.</p>
+  <h2 id="nowHead">On now</h2>
+  <div class="grid" id="now"></div>
+  <h2 id="nextHead">Coming up</h2>
+  <div class="grid" id="next"></div>
+  <h2 id="doneHead">Finished</h2>
+  <div class="grid" id="done"></div>
+  <p class="foot-note">Add an app to your home screen from its own page, or keep this one and tap through.</p>
+</div>
+
+<script>
+/* One entry per competition. `href` is the app's folder on this site; leave it out until the app is built.
+   start/end are yyyy-mm-dd; `when` is shown when exact dates aren't known yet. */
+const COMPS = [
+  { name: 'A-League Men', sport: 'Football', season: '2026/27', start: '2026-10-16', end: '2027-05-31', href: 'a-league/', colours: ['#2121b8', '#ffffff', '#ff4f4f'] },
+  { name: 'Rugby League World Cup', sport: 'Rugby league · men and women', season: '2026', start: '2026-10-15', end: '2026-11-15', href: 'world-cup/', colours: ['#061633', '#ffffff', '#00e1e6'] },
+  { name: 'Formula E', sport: 'Motorsport', season: '2026/27', start: '2026-12-01', when: 'From December', colours: ['#14102b', '#ffffff', '#3ec6ff'] },
+  { name: 'Big Bash League and the Test summer', sport: 'Cricket', season: '2026/27', start: '2026-12-01', when: 'From December', colours: ['#13221a', '#ffffff', '#f2c230'] },
+  { name: 'AFL', sport: 'Australian football', season: '2027', start: '2027-03-01', when: 'Early 2027', colours: ['#0d1f3c', '#ffffff', '#e8463a'] },
+  { name: 'NRL', sport: 'Rugby league', season: '2027', start: '2027-03-01', when: 'Early 2027', colours: ['#0b2a1c', '#ffffff', '#33d17a'] },
+  { name: 'Formula 1', sport: 'Motorsport', season: '2027', start: '2027-03-01', when: 'Early 2027', colours: ['#1a0f12', '#ffffff', '#ff3b3b'] },
+  { name: 'European football', sport: 'Football', season: '2027/28', start: '2027-08-01', when: 'From August 2027', colours: ['#1b1631', '#ffffff', '#b98cff'] }
+];
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const nice = s => { const [y, m, d] = s.split('-').map(Number); return `${d} ${MONTHS[m - 1]}`; };
+
+/* Proton Seasons: this month's accent, drifting toward next month's */
+const MC = ['#e8935a','#e07a7a','#d9738f','#c573b4','#a674e0','#7f6cf5','#6a7ff0','#5591e0','#3fa4b8','#43ad8f','#7bae6a','#d6a345'];
+const BASE = { bg:'#16141f', surface:'#1e1b2b', raise:'#2a2640', line:'#353050' };
+const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => '#' + hexRgb(a).map((v, i) => Math.round(v + (hexRgb(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
+function applyTheme() {
+  const t = today(), [y, mo, d] = t.split('-').map(Number), m = mo - 1;
+  const c = mix(MC[m], MC[(m + 1) % 12], ((d - 1) / (new Date(y, mo, 0).getDate() - 1)) * 0.6), r = document.documentElement.style;
+  r.setProperty('--accent', c);
+  Object.entries(BASE).forEach(([k, v]) => r.setProperty('--' + k, mix(v, c, k === 'line' ? 0.08 : 0.05)));
+  $('dateLine').textContent = `${DAYS[new Date(y, m, d).getDay()]} ${d} ${FULL_MONTHS[m]} ${y}`;
+}
+
+function card(c, t) {
+  const live = c.start <= t && (!c.end || t <= c.end);
+  const [bg, fg, accent] = c.colours;
+  const when = c.end ? (live ? `Until ${nice(c.end)}` : t < c.start ? `Starts ${nice(c.start)}` : `Finished ${nice(c.end)}`) : c.when;
+  const chip = live ? '<span class="chip live">On now</span>' : `<span class="chip soon">${c.href ? 'Ready' : 'Planned'}</span>`;
+  const inner = `<span class="sport">${esc(c.sport)}</span><h3>${esc(c.name)}</h3><span class="when">${esc(c.season)} · ${esc(when)}</span>
+    <div class="foot">${chip}${c.href ? '<span class="go">Open →</span>' : ''}</div>`;
+  const style = `--c-bg:${bg};--c-fg:${fg};--c-accent:${accent}`;
+  return c.href ? `<a class="card" href="${esc(c.href)}" style="${style}">${inner}</a>` : `<div class="card later" style="${style}">${inner}</div>`;
+}
+function render() {
+  const t = today();
+  const isNow = c => c.start <= t && (!c.end || t <= c.end);
+  const now = COMPS.filter(isNow), next = COMPS.filter(c => !isNow(c) && (!c.end || c.end >= t)).sort((a, b) => a.start.localeCompare(b.start));
+  $('now').innerHTML = now.map(c => card(c, t)).join(''); $('nowHead').hidden = !now.length;
+  $('next').innerHTML = next.map(c => card(c, t)).join(''); $('nextHead').hidden = !next.length;
+  const done = COMPS.filter(c => c.end && c.end < t).sort((a, b) => b.end.localeCompare(a.end));
+  $('done').innerHTML = done.map(c => card(c, t)).join(''); $('doneHead').hidden = !done.length;
+}
+applyTheme(); render();
+</script>

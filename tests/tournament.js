@@ -17,7 +17,7 @@ const fx = [
 const SHEET = {
   'App Settings': [['key','value'],['competition','Rugby League World Cup'],['tournament','2026'],['pointsWin','2'],['pointsDraw','1'],['pointsLoss','0'],['tiebreakers','pointsDiff,pointsFor,h2hPoints'],['tables','A=Pool A;BC=Pools B & C'],['qualifiers','2'],['poolRounds','3']],
   'Teams': [['code','name','short','pool','flag','colour1','colour2','nickname','comp'],['AUS','Australia','Australia','A','🇦🇺','#00843D','#FFCD00'],['NZL','New Zealand','New Zealand','A','🇳🇿','#111','#fff'],['FIJ','Fiji','Fiji','A','🇫🇯','#fff','#68BBE3'],['COK','Cook Islands','Cook Islands','A','🇨🇰','#00A651','#fff'],
-    ['ENG','England','England','B','🏴','#fff','#CE1124'],['LEB','Lebanon','Lebanon','B','🇱🇧','#ED1C24','#00A651'],['SAM','Samoa','Samoa','B','🇼🇸','#002B7F','#fff'],['FRA','France','France','C','🇫🇷','#fff','#002395'],['PNG','Papua New Guinea','PNG','C','🇵🇬','#CE1126','#FCD116'],['TGA','Tonga','Tonga','C','🇹🇴','#C10000','#fff'],
+    ['ENG','England','England','B','🏴','#fff','#CE1124'],['LEB','Lebanon','Lebanon','B','🇱🇧','#ED1C24','#00A651'],['SAM','Samoa','Samoa','B','🇼🇸','#002B7F','#fff'],['FRA','France','France','C','🇫🇷','#fff','#002395'],['PNG','Papua New Guinea','Papua New Guinea','C','🇵🇬','#CE1126','#FCD116'],['TGA','Tonga','Tonga','C','🇹🇴','#C10000','#fff'],
     ['AUS','Australia','Australia','A','🇦🇺','#00843D','#FFCD00','','W'],['SAM','Samoa','Samoa','A','🇼🇸','#002B7F','#fff','','W'],['NZL','New Zealand','New Zealand','B','🇳🇿','#111','#fff','','W'],['FIJ','Fiji','Fiji','B','🇫🇯','#fff','#68BBE3','','W']],
   'Venues': [['venue','city'],['Allianz Stadium','Sydney']],
   'Competitions': [['comp','name','short','tables','qualifiers','poolRounds','tiebreakers'],['M',"Men's World Cup",'Men','A=Pool A;BC=Pools B & C','2','3','pointsDiff,pointsFor,h2hPoints'],['W',"Women's World Cup",'Women','A=Group A;B=Group B','2','3','pointsDiff,pointsFor,h2hPoints']],
@@ -98,7 +98,7 @@ fs.writeFileSync(path.join(__dirname, 'page-wc.html'), `<!doctype html><html><he
     await page.click('#tab-' + tab); await page.waitForTimeout(200);
     console.log(`phone ${tab} overflow px:`, await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth));
   }
-  await page.click('#tab-matchday'); await page.selectOption('#roundSel', '1'); await page.waitForTimeout(100);
+  await page.click('#tab-matchday'); await page.selectOption('#roundSel', '3'); await page.waitForTimeout(100);
   await page.screenshot({ path: path.join(__dirname, 'wc-matchday-phone.png'), fullPage: true });
   await page.click('#tab-pools'); await page.click('#poolTables tr[data-team="ENG"]');
   console.log('team dialog:', (await page.textContent('#teamBody')).replace(/\s+/g, ' ').trim().slice(0, 200));

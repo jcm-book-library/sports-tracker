@@ -1,10 +1,12 @@
 """Build the GitHub Pages copies from the app sources.
 
-index.html            <- apps/team-match/index.html (A-League)
+index.html            <- apps/hub/index.html (home page listing every competition)
+a-league/index.html   <- apps/team-match/index.html (A-League)
 world-cup/index.html  <- apps/tournament/index.html (Rugby League World Cup)
+Each app folder has its own manifest.webmanifest so it can be saved to a phone home screen on its own.
 
 
-apps/team-match/index.html is the claude.ai artifact source: page content only, no <html>/<head>.
+The app sources are the claude.ai artifact sources: page content only, no <html>/<head>.
 GitHub Pages needs a full document, plus the manifest and icons so a phone can save it as an app.
 Run after every change to the app:  python3 tools/build_pages.py
 """
@@ -16,7 +18,7 @@ HEAD = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#16141f">
+<meta name="theme-color" content="@THEME@">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,10 +31,11 @@ HEAD = """<!doctype html>
 <body>
 <!-- Built from @SRC@ by tools/build_pages.py. Edit the source, not this file. -->
 """
-for src, out, title, up in [("apps/team-match/index.html", "index.html", "Sports", ""),
-                            ("apps/tournament/index.html", "world-cup/index.html", "World Cup", "../")]:
+for src, out, title, up, theme in [("apps/hub/index.html", "index.html", "Sports", "", "#16141f"),
+                                   ("apps/team-match/index.html", "a-league/index.html", "A-League", "../", "#2121b8"),
+                                   ("apps/tournament/index.html", "world-cup/index.html", "World Cup", "../", "#061633")]:
     app = (root / src).read_text(encoding="utf-8")
-    head = HEAD.replace("@TITLE@", title).replace("@UP@", up).replace("@SRC@", src)
+    head = HEAD.replace("@TITLE@", title).replace("@UP@", up).replace("@SRC@", src).replace("@THEME@", theme)
     (root / out).parent.mkdir(parents=True, exist_ok=True)
     (root / out).write_text(head + app + "\n</body>\n</html>\n", encoding="utf-8")
     print("wrote", out)

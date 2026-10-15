@@ -6,9 +6,15 @@ Personal sports results tracker. Each competition has its own Google Sheet, whic
 
 | Path | What it is |
 |---|---|
+| `apps/hub/index.html` | Home page listing every competition (on now, coming up, finished). New competitions are added to its `COMPS` list. |
 | `apps/team-match/index.html` | App source for team-v-team competitions (pilot: A-League Men 2026/27). Published as a private claude.ai artifact. |
-| `index.html` | GitHub Pages copy of the app, built by `python3 tools/build_pages.py`. Don't edit it directly. Outside claude.ai it signs in to Google with your OAuth Client ID. |
-| `manifest.webmanifest`, `icons/` | Let a phone save the Pages site as an app (Add to Home Screen). |
+| `apps/tournament/index.html` | App source for pool-and-knockout tournaments (Rugby League World Cup 2026, men's and women's). Published as a private claude.ai artifact. |
+| `index.html`, `a-league/`, `world-cup/` | GitHub Pages copies, built by `python3 tools/build_pages.py`. Don't edit them directly. Outside claude.ai the apps sign in to Google with your OAuth Client ID. |
+| `manifest.webmanifest`, `*/manifest.webmanifest`, `icons/` | Let a phone save the hub, or any single app, to its home screen. |
+
+## Branches
+
+`main` is the live site (GitHub Pages publishes from it). Work happens on a separate branch and reaches `main` through a pull request, so the site on your phone only changes when a pull request is merged.
 
 Planned shapes: `team-match` (football, rugby league, AFL, NFL…), `race` (F1 and other motorsport), `cricket` (limited overs and WTC). A new competition in an existing shape needs a sheet with the tabs below and its own App Settings, not new code.
 
