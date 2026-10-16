@@ -48,7 +48,7 @@ a.card:focus-visible{outline:2px solid var(--c-accent);outline-offset:3px}
   <div class="grid" id="next"></div>
   <h2 id="doneHead">Finished</h2>
   <div class="grid" id="done"></div>
-  <p class="foot-note">Add an app to your home screen from its own page, or keep this one and tap through.</p>
+  <p class="foot-note">Each competition opens in its own tab, so this page stays open as your home base.</p>
 </div>
 
 <script>
@@ -95,7 +95,7 @@ function card(c, t) {
   const inner = `<span class="sport">${esc(c.sport)}</span><h3>${esc(c.name)}</h3><span class="when">${esc(c.season)} · ${esc(when)}</span>
     <div class="foot">${chip}${c.href ? '<span class="go">Open →</span>' : ''}</div>`;
   const style = `--c-bg:${bg};--c-fg:${fg};--c-accent:${accent}`;
-  return c.href ? `<a class="card" href="${esc(c.href)}" style="${style}">${inner}</a>` : `<div class="card later" style="${style}">${inner}</div>`;
+  return c.href ? `<a class="card" href="${esc(c.href)}" target="_blank" rel="noopener" style="${style}">${inner}</a>` : `<div class="card later" style="${style}">${inner}</div>`;
 }
 function render() {
   const t = today();
