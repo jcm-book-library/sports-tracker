@@ -6,8 +6,9 @@ Personal sports tracker for one user (no coding experience, ADHD: put their acti
 
 Club, league and team logos are kept privately in the user's Google Drive, never in this repo (it is public, and the Pages site is public). When building or extending any competition, end the reply with a reminder to add its logos, unless the table below already says they're done:
 
-- Drive folder **Sports Tracker Logos**, one subfolder per competition (folder name as in the table).
-- One file per team, named by the team code the app uses (`MCY.png`, `AUS.png`); the competition's own logo is `league.png`.
+- Drive folder **Sports Tracker Logos**, with subfolders as in the table. Logos belong to clubs, not competitions: a subfolder can be a shared pool used by several competitions (e.g. `england-football` serves the Premier League, Championship, League One, League Two and the cups, so promotion and relegation never mean moving files).
+- Small, fixed competitions: one file per team, named by the team code the app uses (`MCY.png`, `AUS.png`); the competition's own logo is `league.png`.
+- Shared pools: files named by club slug, lowercase with dashes (`burnley.png`, `man-city.png`), because 3-letter codes clash across 90+ clubs. Each competition's Teams tab gets a `logo` column holding the slug. A rebranded crest is saved as `burnley-2024.png` and that season's Teams tab points at it, so older seasons keep the old crest. Competition logos sit in the pool too (`premier-league.png`, `fa-cup.png`).
 - PNG with a transparent background, 256px or larger, or SVG.
 - Once a folder is filled, ask for the folder link and wire the app to it (logos load only after Google sign-in; the colour dots or flags stay as the fallback, and nothing breaks if a file is missing).
 
@@ -17,6 +18,7 @@ Club, league and team logos are kept privately in the user's Google Drive, never
 | Rugby League World Cup 2026 (men's and women's) | `world-cup` | Not yet (flags already built in; logos optional) |
 | Formula E | `formula-e` | Not yet |
 | Cricket (BBL and Tests) | `cricket` | Not yet |
+| English football (Premier League down to League Two, cups) | `england-football` (shared pool) | Not yet (planned for August 2027) |
 
 Add a row for each new competition and update it when the user says a folder is done.
 
