@@ -8,13 +8,13 @@ const page_html = fs.readFileSync(path.join(DIR, 'apps/team-match/index.html'), 
 const stub = `
 <script>
 const SHEET = {
-  'App Settings': [['key','value'],['competition','A-League Men'],['season','2026/27'],['pointsWin','3'],['pointsDraw','1'],['pointsLoss','0'],['regularRounds','28'],['tiebreakers','goalDiff,goalsFor,wins,h2hPoints,h2hGoalDiff'],['finalsTeams','6']],
-  'Teams': [['code','name','short','colour1','colour2','homeVenue','active'],
-    ['ADE','Adelaide United FC','Adelaide United FC','#D71920','#1B2A4A','Coopers Stadium','Y'],['AUC','Auckland FC','Auckland FC','#1E3A8A','#FFFFFF','Go Media Stadium','Y'],
+  'App Settings': [['key','value'],['competition','A-League Men'],['season','2026/27'],['pointsWin','3'],['pointsDraw','1'],['pointsLoss','0'],['regularRounds','28'],['tiebreakers','goalDiff,goalsFor,wins,h2hPoints,h2hGoalDiff'],['finalsTeams','6'],['logoFolder','FOLDER1']],
+  'Teams': [['code','name','short','colour1','colour2','homeVenue','active','logo'],
+    ['ADE','Adelaide United FC','Adelaide United FC','#D71920','#1B2A4A','Coopers Stadium','Y'],['AUC','Auckland FC','Auckland FC','#1E3A8A','#FFFFFF','Go Media Stadium','Y','Auckland.png'],
     ['BRI','Brisbane Roar FC','Brisbane Roar FC','#F26522','#1A1A1A','Suncorp Stadium','Y'],['CCM','Central Coast Mariners FC','Central Coast Mariners FC','#FFD100','#002B5C','Industree Group Stadium','Y'],
     ['MAC','Macarthur FC','Macarthur FC','#1A1A1A','#C5A253','Campbelltown Stadium','Y'],['MCY','Melbourne City FC','Melbourne City FC','#6CABDD','#1C2C5B','AAMI Park','Y'],
     ['MVC','Melbourne Victory','Melbourne Victory','#002A5C','#FFFFFF','AAMI Park','Y'],['NEW','Newcastle Jets FC','Newcastle Jets FC','#F2A900','#003A70','McDonald Jones Stadium','Y'],
-    ['PER','Perth Glory FC','Perth Glory FC','#4B2A7B','#F37021','HBF Park','Y'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium','Y'],
+    ['PER','Perth Glory FC','Perth Glory FC','#4B2A7B','#F37021','HBF Park','Y'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium','Y','Sydney FC.png'],
     ['WEL','Wellington Phoenix FC','Wellington Phoenix FC','#FFD700','#1A1A1A','Sky Stadium','Y'],['WSW','Western Sydney Wanderers FC','Western Sydney Wanderers FC','#C8102E','#1A1A1A','CommBank Stadium','Y']],
   'Venues': [['venue','city'],['Allianz Stadium','Sydney'],['AAMI Park','Melbourne']],
   'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status']],
@@ -32,6 +32,10 @@ const shown = v => typeof v === 'number' && v >= 1000 ? v.toLocaleString('en-US'
 const mcp = {
   async callTool(server, tool, input) {
     window.__CALLS.push([tool, input.range || '', JSON.stringify(input.values || '')]);
+    if (server === 'Google Drive') {
+      if (tool === 'search_files') return { payload: { files: [{ id: 'F1', title: 'Sydney FC.png', modifiedTime: '2026-10-17T00:00:00Z' }, { id: 'F2', title: 'Auckland.png', modifiedTime: '2026-10-17T00:00:00Z' }] } };
+      if (tool === 'download_file_content') return { payload: { content: 'iVBORw0KGgoAAAANSUhEUgAAAHgAAACMCAYAAAC3Z23dAAABWklEQVR4nO3RMQ0AIADAMJRw418FrkAGyejRf8nGnuvQNV4HYDAGY/CnDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7gOIPjDI4zOM7guAtqc5z7O4XhBgAAAABJRU5ErkJggg==', mimeType: 'image/png', id: input.fileId } };
+    }
     await new Promise(r => setTimeout(r, 5));
     if (tool === 'get_spreadsheet') return { payload: { sheets: Object.keys(SHEET).map(title => ({ properties: { title } })) } };
     const p = parse(input.range), t = SHEET[p.tab];
@@ -153,6 +157,7 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   console.log('phone ladder overflow px:', await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth));
   await page.screenshot({ path: path.join(__dirname, 'ladder-phone.png'), fullPage: true });
 
+  console.log('logo imgs on page:', await page.$$eval('img.logo', ims => ims.length), '| drive calls:', await page.evaluate(() => window.__CALLS.filter(c => c[0] === 'search_files' || c[0] === 'download_file_content').length));
   console.log('errors:', errors.length ? errors : 'none');
   await browser.close();
 })().catch(e => { console.error(e); process.exit(1); });

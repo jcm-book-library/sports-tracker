@@ -97,6 +97,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .side.away{justify-content:flex-end;text-align:right}
 .side .nm{line-height:1.2;min-width:0}
 .crest{width:14px;height:14px;border-radius:50%;flex:none;border:1px solid color-mix(in srgb,var(--fg) 25%,transparent)}
+.logo{width:20px;height:20px;object-fit:contain;flex:none}
+.side .logo{width:28px;height:28px}
 .score{display:flex;align-items:center;gap:6px}
 .score input{width:52px;height:46px;text-align:center;font:700 22px/1 var(--display);font-variant-numeric:tabular-nums;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:0}
 .score input:focus{border-color:var(--accent);outline:none}
@@ -452,10 +454,10 @@ const state = {
   teams: EXAMPLE.teams.map(t => ({ ...t })),
   venues: [...new Set(EXAMPLE.teams.map(t => t.homeVenue))],
   matches: EXAMPLE.matches.map(m => ({ ...m })),
-  round: null, tab: 'matchday', drafts: {}, history: { tabs: [], cache: {} }, chart: null
+  round: null, tab: 'matchday', drafts: {}, history: { tabs: [], cache: {} }, chart: null, logos: {}
 };
 const team = code => state.teams.find(t => t.code === code) || { code, name: code || '?', short: code || '?', colour1: '#888888', colour2: '#444444' };
-const crest = code => { const t = team(code); return `<span class="crest" style="background:linear-gradient(135deg,${esc(t.colour1)} 50%,${esc(t.colour2)} 50%)" aria-hidden="true"></span>`; };
+const crest = code => { const t = team(code); if (state.logos[code]) return `<img class="logo" src="${state.logos[code]}" alt="" aria-hidden="true">`; return `<span class="crest" style="background:linear-gradient(135deg,${esc(t.colour1)} 50%,${esc(t.colour2)} 50%)" aria-hidden="true"></span>`; };
 const seasonMatches = () => state.matches.filter(m => m.season === state.settings.season);
 
 /* ---------- ladder engine (team-match shape) ---------- */
@@ -854,14 +856,14 @@ async function refresh() {
   $('refreshBtn').disabled = true;
   try {
     const [settings, teams, venues, matches] = await Promise.all([
-      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:G60'), readRange('Venues!A1:B200'), readRange('Matches!A1:Z3000')
+      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:H60'), readRange('Venues!A1:B200'), readRange('Matches!A1:Z3000')
     ]);
     const s = { ...EXAMPLE.settings };
     for (const r of settings.slice(1)) { const k = String(r[0] ?? '').trim(); if (k) s[k] = String(r[1] ?? '').trim(); }
     ['pointsWin','pointsDraw','pointsLoss','regularRounds','finalsTeams'].forEach(k => s[k] = toNum(s[k]) ?? EXAMPLE.settings[k]);
     state.settings = s;
     state.teams = byHeader(teams).filter(t => String(t.code).trim() && String(t.active || 'Y').trim().toUpperCase() !== 'N')
-      .map(t => ({ code: String(t.code).trim(), name: String(t.name).trim(), short: String(t.short || t.name).trim(), colour1: String(t.colour1 || '#888888').trim(), colour2: String(t.colour2 || '#444444').trim(), homeVenue: String(t.homeVenue || '').trim() }));
+      .map(t => ({ code: String(t.code).trim(), name: String(t.name).trim(), short: String(t.short || t.name).trim(), colour1: String(t.colour1 || '#888888').trim(), colour2: String(t.colour2 || '#444444').trim(), homeVenue: String(t.homeVenue || '').trim(), logo: String(t.logo || '').trim() }));
     state.venues = byHeader(venues).map(v => String(v.venue).trim()).filter(Boolean);
     state.matches = byHeader(matches).filter(m => String(m.id).trim()).map(m => {
       const o = { _row: m._row };
@@ -874,6 +876,7 @@ async function refresh() {
     notice('');
     setStatus('live', 'Live from your sheet · ' + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
     fillPickers(); renderAll();
+    loadLogos();
   } catch (err) {
     setStatus('error', state.live ? 'Showing the last data loaded' : 'Showing example matches');
     notice(explain(err), 'error');
@@ -1121,6 +1124,53 @@ $('summaryBtn').addEventListener('click', () => {
 });
 $('refreshBtn').addEventListener('click', () => state.google && !google_.valid() ? googleConnect() : refresh());
 
+/* ---------- club logos ----------
+   Kept privately in your Google Drive (App Settings: logoFolder = the folder's id; Teams: logo = the file name).
+   Read with your own sign-in, shrunk to 96px and cached in this browser; until then clubs keep their colour dots. */
+const DRIVE = 'Google Drive';
+const LOGO_KEY = 'st-logos';
+function logoCache() { try { return JSON.parse(localStorage.getItem(LOGO_KEY) || '{}'); } catch (e) { return {}; } }
+function saveLogoCache(c) { try { localStorage.setItem(LOGO_KEY, JSON.stringify(c)); } catch (e) {} }
+async function listLogoFiles(folder) {
+  if (state.google) {
+    const q = encodeURIComponent(`'${folder}' in parents and trashed = false`);
+    const r = await google_.drive(`files?q=${q}&fields=files(id,name,modifiedTime)&pageSize=500`);
+    return (r.files || []).map(f => ({ id: f.id, title: f.name, modifiedTime: f.modifiedTime }));
+  }
+  const res = await state.mcp.callTool(DRIVE, 'search_files', { query: `parentId = '${folder}'`, excludeContentSnippets: true, pageSize: 200 }, { cache: false });
+  return (res.payload && res.payload.files) || [];
+}
+async function downloadLogo(id) {
+  if (state.google) return URL.createObjectURL(await google_.drive(`files/${id}?alt=media`, true));
+  const p = (await state.mcp.callTool(DRIVE, 'download_file_content', { fileId: id }, { cache: false })).payload || {};
+  return `data:${p.mimeType || 'image/png'};base64,${p.content}`;
+}
+const shrink = src => new Promise((ok, fail) => {
+  const img = new Image();
+  img.onload = () => {
+    const k = Math.min(1, 96 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); ok(c.toDataURL('image/png'));
+  };
+  img.onerror = () => fail(new Error('not an image')); img.src = src;
+});
+async function loadLogos() {
+  const folder = String(state.settings.logoFolder || '').trim(), want = state.teams.filter(t => t.logo);
+  if (!folder || !want.length || !state.mcp) return;
+  const cache = logoCache(), key = t => folder + '/' + t.logo;
+  want.forEach(t => { if (cache[key(t)]) state.logos[t.code] = cache[key(t)].src; });
+  if (Object.keys(state.logos).length) renderAll();
+  let files;
+  try { files = await listLogoFiles(folder); } catch (e) { return; } // no Drive access yet: colour dots stay
+  let changed = false;
+  for (const t of want) {
+    const f = files.find(x => x.title === t.logo || x.title.replace(/\.[^.]+$/, '') === t.logo);
+    if (!f || (cache[key(t)] && cache[key(t)].mod === f.modifiedTime)) continue;
+    try { const src = await shrink(await downloadLogo(f.id)); cache[key(t)] = { src, mod: f.modifiedTime }; state.logos[t.code] = src; changed = true; } catch (e) {}
+  }
+  if (changed) { saveLogoCache(cache); renderAll(); }
+}
+
 /* ---------- Google Sheets direct (GitHub Pages and other hosts outside claude.ai) ---------- */
 const google_ = {
   cfgKey: 'st_config', tokKey: 'st-google-token', client: null,
@@ -1144,6 +1194,12 @@ const google_ = {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw { code: 'tool_error', message: (body.error && body.error.message) || 'HTTP ' + res.status };
     return { payload: body };
+  },
+  async drive(path, asBlob) {
+    if (!this.valid()) throw { code: 'google_signin' };
+    const res = await fetch('https://www.googleapis.com/drive/v3/' + path, { headers: { Authorization: 'Bearer ' + this.tok().t } });
+    if (!res.ok) throw { code: 'tool_error', message: 'Drive HTTP ' + res.status };
+    return asBlob ? res.blob() : res.json();
   }
 };
 function googleSignedOut() { setStatus('error', state.live ? 'Signed out · showing the last data loaded' : 'Not connected · showing example matches'); $('refreshBtn').textContent = 'Connect'; }
@@ -1160,7 +1216,7 @@ function googleConnect() {
   if (!(window.google && google.accounts && google.accounts.oauth2)) { loadGis().then(googleConnect, err => notice(err.message, 'error')); return; }
   try {
     if (!google_.client) google_.client = google.accounts.oauth2.initTokenClient({
-      client_id: id, scope: 'https://www.googleapis.com/auth/spreadsheets',
+      client_id: id, scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly',
       callback: r => {
         if (r.error) { notice('Google sign-in failed: ' + r.error, 'error'); return; }
         try { localStorage.setItem(google_.tokKey, JSON.stringify({ t: r.access_token, exp: Date.now() + (r.expires_in - 120) * 1000 })); } catch (e) {}
