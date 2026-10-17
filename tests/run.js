@@ -10,12 +10,12 @@ const stub = `
 const SHEET = {
   'App Settings': [['key','value'],['competition','A-League Men'],['season','2026/27'],['pointsWin','3'],['pointsDraw','1'],['pointsLoss','0'],['regularRounds','28'],['tiebreakers','goalDiff,goalsFor,wins,h2hPoints,h2hGoalDiff'],['finalsTeams','6']],
   'Teams': [['code','name','short','colour1','colour2','homeVenue','active'],
-    ['ADE','Adelaide United','Adelaide','#D71920','#1B2A4A','Coopers Stadium','Y'],['AUC','Auckland FC','Auckland','#1E3A8A','#FFFFFF','Go Media Stadium','Y'],
-    ['BRI','Brisbane Roar','Brisbane','#F26522','#1A1A1A','Suncorp Stadium','Y'],['CCM','Central Coast Mariners','Central Coast','#FFD100','#002B5C','Industree Group Stadium','Y'],
-    ['MAC','Macarthur FC','Macarthur','#1A1A1A','#C5A253','Campbelltown Stadium','Y'],['MCY','Melbourne City','Melbourne City','#6CABDD','#1C2C5B','AAMI Park','Y'],
-    ['MVC','Melbourne Victory','Melbourne Victory','#002A5C','#FFFFFF','AAMI Park','Y'],['NEW','Newcastle Jets','Newcastle','#F2A900','#003A70','McDonald Jones Stadium','Y'],
-    ['PER','Perth Glory','Perth','#4B2A7B','#F37021','HBF Park','Y'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium','Y'],
-    ['WEL','Wellington Phoenix','Wellington','#FFD700','#1A1A1A','Sky Stadium','Y'],['WSW','Western Sydney Wanderers','Western Sydney','#C8102E','#1A1A1A','CommBank Stadium','Y']],
+    ['ADE','Adelaide United FC','Adelaide United FC','#D71920','#1B2A4A','Coopers Stadium','Y'],['AUC','Auckland FC','Auckland FC','#1E3A8A','#FFFFFF','Go Media Stadium','Y'],
+    ['BRI','Brisbane Roar FC','Brisbane Roar FC','#F26522','#1A1A1A','Suncorp Stadium','Y'],['CCM','Central Coast Mariners FC','Central Coast Mariners FC','#FFD100','#002B5C','Industree Group Stadium','Y'],
+    ['MAC','Macarthur FC','Macarthur FC','#1A1A1A','#C5A253','Campbelltown Stadium','Y'],['MCY','Melbourne City FC','Melbourne City FC','#6CABDD','#1C2C5B','AAMI Park','Y'],
+    ['MVC','Melbourne Victory','Melbourne Victory','#002A5C','#FFFFFF','AAMI Park','Y'],['NEW','Newcastle Jets FC','Newcastle Jets FC','#F2A900','#003A70','McDonald Jones Stadium','Y'],
+    ['PER','Perth Glory FC','Perth Glory FC','#4B2A7B','#F37021','HBF Park','Y'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium','Y'],
+    ['WEL','Wellington Phoenix FC','Wellington Phoenix FC','#FFD700','#1A1A1A','Sky Stadium','Y'],['WSW','Western Sydney Wanderers FC','Western Sydney Wanderers FC','#C8102E','#1A1A1A','CommBank Stadium','Y']],
   'Venues': [['venue','city'],['Allianz Stadium','Sydney'],['AAMI Park','Melbourne']],
   'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status']],
   '2025/26': [[],['2025/26','','','','','','PTS','+/-','P','W','L','D','F','A'],['1','','Newcastle Jets','','','','48','17','26','15','8','3'],['2','','Adelaide United','','','','43','10','26','12','7','7']]
@@ -69,9 +69,9 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
 
   // paste round 1 (6 games) + one bad line first to check validation
   await page.click('#pasteBtn');
-  await page.fill('#pText', '2026-10-16, 19:35, SYD, WSW\n17/10/2026, 17:00, Melbourne City, Melbourne Victory\n2026-10-17, 19:35, AUC, WEL\n2026-10-18, 15:00, CCM, NEW\n2026-10-18, 17:30, ADE, PER\n2026-10-18, 19:45, BRI, Nowhere FC');
+  await page.fill('#pText', '2026-10-16, 19:35, SYD, WSW\n17/10/2026, 17:00, Melbourne City FC, Melbourne Victory\n2026-10-17, 19:35, AUC, WEL\n2026-10-18, 15:00, CCM, NEW\n2026-10-18, 17:30, ADE, PER\n2026-10-18, 19:45, BRI, Nowhere FC');
   console.log('bad line disables save:', await page.isDisabled('#pSave'));
-  await page.fill('#pText', '2026-10-16, 19:35, SYD, WSW\n17/10/2026, 17:00, Melbourne City, Melbourne Victory\n2026-10-17, 19:35, AUC, WEL\n2026-10-18, 15:00, CCM, NEW\n2026-10-18, 17:30, ADE, PER\n2026-10-18, 19:45, BRI, MAC');
+  await page.fill('#pText', '2026-10-16, 19:35, SYD, WSW\n17/10/2026, 17:00, Melbourne City FC, Melbourne Victory\n2026-10-17, 19:35, AUC, WEL\n2026-10-18, 15:00, CCM, NEW\n2026-10-18, 17:30, ADE, PER\n2026-10-18, 19:45, BRI, MAC');
   console.log('save label:', await page.textContent('#pSave'));
   await page.click('#pSave');
   await page.waitForFunction(() => document.querySelectorAll('.fx').length === 6);

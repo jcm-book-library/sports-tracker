@@ -35,7 +35,6 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-.status[data-state="live"] .dot{background:var(--accent-2)}
 body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0;
   background-image:linear-gradient(105deg,transparent 0 18%,rgba(255,255,255,.045) 18% 30%,transparent 30% 58%,rgba(255,255,255,.035) 58% 64%,transparent 64%);background-attachment:fixed}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 40px}
@@ -193,6 +192,7 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
 .kv dt{color:var(--muted)} .kv dd{margin:0;font-variant-numeric:tabular-nums}
 .copybox{width:100%;min-height:120px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
 /* A-Leagues accents */
+.status[data-state="live"] .dot{background:var(--accent-2)}
 h1{font-weight:900;letter-spacing:-.01em} h2{font-weight:800}
 .eyebrow{color:var(--accent-2)}
 #dateLine{color:var(--accent-2)}
@@ -204,6 +204,7 @@ h1{font-weight:900;letter-spacing:-.01em} h2{font-weight:800}
 .score input{font-weight:800}
 .t tr.cut td{border-bottom-color:color-mix(in srgb,var(--accent-2) 70%,var(--line))}
 @media (max-width:520px){.tabs{width:100%;justify-content:space-between}.tab{padding:7px 5px;font-size:11px;letter-spacing:0}}
+@media (max-width:520px){.t td.club{white-space:normal}.t td.club .in{align-items:flex-start;line-height:1.25}.t th,.t td{padding-inline:5px}}
 /* phone: scoreboard rows (home over away), each with its own score box */
 @media (max-width:520px){
   .fx-main{grid-template-columns:minmax(0,1fr) auto;row-gap:8px}
@@ -396,12 +397,12 @@ const FINAL_STAGES = ['EF','SF1','SF2','GF'];
 const EXAMPLE = {
   settings: { competition: 'A-League Men', season: '2026/27', pointsWin: 3, pointsDraw: 1, pointsLoss: 0, regularRounds: 28, tiebreakers: 'goalDiff,goalsFor,wins,h2hPoints,h2hGoalDiff', finalsTeams: 6 },
   teams: [
-    ['ADE','Adelaide United','Adelaide','#D71920','#1B2A4A','Coopers Stadium'],['AUC','Auckland FC','Auckland','#1E3A8A','#FFFFFF','Go Media Stadium'],
-    ['BRI','Brisbane Roar','Brisbane','#F26522','#1A1A1A','Suncorp Stadium'],['CCM','Central Coast Mariners','Central Coast','#FFD100','#002B5C','Industree Group Stadium'],
-    ['MAC','Macarthur FC','Macarthur','#1A1A1A','#C5A253','Campbelltown Stadium'],['MCY','Melbourne City','Melbourne City','#6CABDD','#1C2C5B','AAMI Park'],
-    ['MVC','Melbourne Victory','Melbourne Victory','#002A5C','#FFFFFF','AAMI Park'],['NEW','Newcastle Jets','Newcastle','#F2A900','#003A70','McDonald Jones Stadium'],
-    ['PER','Perth Glory','Perth','#4B2A7B','#F37021','HBF Park'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium'],
-    ['WEL','Wellington Phoenix','Wellington','#FFD700','#1A1A1A','Sky Stadium'],['WSW','Western Sydney Wanderers','Western Sydney','#C8102E','#1A1A1A','CommBank Stadium']
+    ['ADE','Adelaide United FC','Adelaide United FC','#D71920','#1B2A4A','Coopers Stadium'],['AUC','Auckland FC','Auckland FC','#1E3A8A','#FFFFFF','Go Media Stadium'],
+    ['BRI','Brisbane Roar FC','Brisbane Roar FC','#F26522','#1A1A1A','Suncorp Stadium'],['CCM','Central Coast Mariners FC','Central Coast Mariners FC','#FFD100','#002B5C','Industree Group Stadium'],
+    ['MAC','Macarthur FC','Macarthur FC','#1A1A1A','#C5A253','Campbelltown Stadium'],['MCY','Melbourne City FC','Melbourne City FC','#6CABDD','#1C2C5B','AAMI Park'],
+    ['MVC','Melbourne Victory','Melbourne Victory','#002A5C','#FFFFFF','AAMI Park'],['NEW','Newcastle Jets FC','Newcastle Jets FC','#F2A900','#003A70','McDonald Jones Stadium'],
+    ['PER','Perth Glory FC','Perth Glory FC','#4B2A7B','#F37021','HBF Park'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium'],
+    ['WEL','Wellington Phoenix FC','Wellington Phoenix FC','#FFD700','#1A1A1A','Sky Stadium'],['WSW','Western Sydney Wanderers FC','Western Sydney Wanderers FC','#C8102E','#1A1A1A','CommBank Stadium']
   ].map(([code,name,short,colour1,colour2,homeVenue]) => ({ code, name, short, colour1, colour2, homeVenue })),
   matches: [
     ['EX1',1,'2026-10-16','19:35','SYD','WSW',2,1,0,0,'Allianz Stadium',28000],
