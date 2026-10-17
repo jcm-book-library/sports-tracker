@@ -14,13 +14,15 @@ Club, league and team logos are kept privately in the user's Google Drive, never
 
 | Competition | Drive subfolder | Logos |
 |---|---|---|
-| A-League Men | `a-league` | Not yet |
+| A-League Men | `a-league` (folder id `1XQnuJ0VcjqrCoDRR3_lkkQtDQ7uA5BMB`) | Done, wired up. Files are named by club (`Melbourne City.png`); the Teams tab's `logo` column holds each file name and App Settings `logoFolder` holds the folder id |
 | Rugby League World Cup 2026 (men's and women's) | `world-cup` | Not yet (flags already built in; logos optional) |
 | Formula E | `formula-e` | Not yet |
 | Cricket (BBL and Tests) | `cricket` | Not yet |
 | English football (Premier League down to League Two, cups) | `england-football` (shared pool) | Not yet (planned for August 2027) |
 
 Add a row for each new competition and update it when the user says a folder is done.
+
+Google accounts: the logo folders and sports sheets belong to joshc62453@gmail.com. The Google Drive connector in Claude is signed in as joshuacmckie@gmail.com, so each logo folder must be shared with that account (Editor) before Claude or the claude.ai artifacts can read it. The GitHub Pages apps read Drive with the user's own Google sign-in (drive.readonly scope).
 
 ## Shipping changes
 
