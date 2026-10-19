@@ -1,5 +1,7 @@
 # Notes for Claude
 
+**Read the house rules first:** [HOUSE-RULES.md](https://github.com/jcm-book-library/control-room/blob/main/HOUSE-RULES.md) in `control-room` (plain text: https://raw.githubusercontent.com/jcm-book-library/control-room/main/HOUSE-RULES.md). They cover Google Sheet safety, branches and pull requests into `main`, using cheaper models to save usage credits, and the build template. The notes below are this repo's own; where they are more specific, they win. The project charter is `project.json`.
+
 Personal sports tracker for one user (no coding experience, ADHD: put their action items first, keep steps short). See README.md for layout, sheet tabs and safety rules.
 
 ## Every new competition build: remind the user about logos
@@ -22,7 +24,7 @@ Club, league and team logos are kept privately in the user's Google Drive, never
 
 Add a row for each new competition and update it when the user says a folder is done.
 
-Google accounts: the logo folders and sports sheets belong to joshc62453@gmail.com. The Google Drive connector in Claude is signed in as joshuacmckie@gmail.com, so each logo folder must be shared with that account (Editor) before Claude or the claude.ai artifacts can read it. The GitHub Pages apps read Drive with the user's own Google sign-in (drive.readonly scope).
+Google accounts: the logo folders and sports sheets belong to the owner's main Google account. The Google Drive connector in Claude is signed in as the owner's second Google account, so each logo folder must be shared with that second account (Editor) before Claude or the claude.ai artifacts can read it. The GitHub Pages apps read Drive with the user's own Google sign-in (drive.readonly scope).
 
 ## Shipping changes
 
