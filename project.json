@@ -1,0 +1,10 @@
+{
+  "name": "Sports Tracker",
+  "repo": "sports-tracker",
+  "purpose": "Tracks results, ladders and stats for the sports competitions the owner follows, with one Google Sheet per competition.",
+  "family": "Entertainment",
+  "stage": "Working",
+  "live": "https://jcm-book-library.github.io/sports-tracker/",
+  "tags": [],
+  "updated": "2026-10-19"
+}
