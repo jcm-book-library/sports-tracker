@@ -8,10 +8,12 @@ const page_html = fs.readFileSync(path.join(DIR, 'apps/team-match/index.html'), 
 const loc = off => { const d = new Date(); d.setDate(d.getDate() + off); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const seedRows = [];
 // round 1: fully played, 3 weeks ago; round 2: unplayed, starting in 3 days
+// half-time values (homeHT, awayHT): S1 comeback by the home side, S2 away led and drew, S3 + S5 level, S4 away led and won, S6 has none
+const HT = [[0, 1], [0, 1], [0, 0], [0, 1], [0, 0], ['', '']];
 [['SYD','WSW',2,1],['MCY','MVC',1,1],['AUC','WEL',3,0],['CCM','NEW',0,2],['ADE','PER',1,0],['BRI','MAC',2,2]].forEach(([h, a, hg, ag], i) =>
-  seedRows.push(['S' + (i + 1), '2026/27', 1, 'Regular', loc(-21 + (i >> 1)), '19:35', h, a, hg, ag, 0, 0, '', 15000 + i * 1000, '', '', '', '', '', '', '']));
+  seedRows.push(['S' + (i + 1), '2026/27', 1, 'Regular', loc(-21 + (i >> 1)), '19:35', h, a, hg, ag, 0, 0, '', 15000 + i * 1000, '', '', '', '', '', '', '', ...HT[i]]));
 [['SYD','MCY'],['WSW','MVC'],['AUC','CCM'],['WEL','NEW'],['ADE','BRI'],['PER','MAC']].forEach(([h, a], i) =>
-  seedRows.push(['S' + (i + 7), '2026/27', 2, 'Regular', loc(3 + (i >> 1)), '19:35', h, a, '', '', '', '', '', '', '', '', '', '', '', '', '']));
+  seedRows.push(['S' + (i + 7), '2026/27', 2, 'Regular', loc(3 + (i >> 1)), '19:35', h, a, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']));
 const stub = `
 <script>
 const SHEET = {
@@ -24,7 +26,7 @@ const SHEET = {
     ['PER','Perth Glory FC','Perth Glory FC','#4B2A7B','#F37021','HBF Park','Y'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium','Y','Sydney FC.png'],
     ['WEL','Wellington Phoenix FC','Wellington Phoenix FC','#FFD700','#1A1A1A','Sky Stadium','Y'],['WSW','Western Sydney Wanderers FC','Western Sydney Wanderers FC','#C8102E','#1A1A1A','CommBank Stadium','Y']],
   'Venues': [['venue','city'],['Allianz Stadium','Sydney'],['AAMI Park','Melbourne']],
-  'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status']],
+  'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status','homeHT','awayHT']],
   '2025/26': [[],['2025/26','','','','','','PTS','+/-','P','W','L','D','F','A'],['1','','Newcastle Jets','','','','48','17','26','15','8','3'],['2','','Adelaide United','','','','43','10','26','12','7','7']]
 };
 SHEET.Matches.push(...${JSON.stringify(seedRows)});
@@ -134,6 +136,22 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   console.log('round select label:', await page.$eval('#roundSel', s => s.options[s.selectedIndex].text));
   await page.screenshot({ path: path.join(__dirname, 'matchday-desktop.png'), fullPage: true });
 
+  // half-time inputs: exist on every card, soft validation, and a save writes only the HT cells (+ updatedAt)
+  const sid = ids[0];
+  check('HT inputs on every card', await page.$$eval('.fx', els => els.every(e => e.querySelector('[data-f="homeHT"]') && e.querySelector('[data-f="awayHT"]'))));
+  await page.fill(`#hh-${sid}`, '5'); await page.fill(`#ah-${sid}`, '0');
+  const warnTxt = await page.textContent(`.fx[data-id="${sid}"] .fx-msg`);
+  check('HT above FT shows a soft warning', /HT is higher than FT/.test(warnTxt) && !(await page.isDisabled(`.fx[data-id="${sid}"] [data-act="save"]`)), warnTxt);
+  await page.fill(`#hh-${sid}`, '1');
+  check('warning clears when HT is valid', !/higher/.test(await page.textContent(`.fx[data-id="${sid}"] .fx-msg`)));
+  const mark = await page.evaluate(() => window.__CALLS.length);
+  await page.click(`.fx[data-id="${sid}"] [data-act="save"]`);
+  await page.waitForFunction(id => !document.querySelector(`.fx[data-id="${id}"]`).hasAttribute('data-dirty'), sid);
+  const wr = await page.evaluate(m => window.__CALLS.slice(m).filter(c => c[0] === 'update_values').map(c => c[1].replace('Matches!', '')), mark);
+  const srow = await page.evaluate(id => window.__SHEET.Matches.findIndex(r => r[0] === id) + 1, sid);
+  check('saving HT writes only homeHT, awayHT and updatedAt', JSON.stringify(wr.sort()) === JSON.stringify([`S${srow}`, `V${srow}`, `W${srow}`]), wr);
+  check('HT cells hold 1 and 0', JSON.stringify(await page.evaluate(id => window.__SHEET.Matches.find(r => r[0] === id).slice(21, 23), sid)) === '[1,0]');
+
   // edit a fixture: change venue of first
   await page.click(`.fx[data-id="${ids[0]}"] [data-act="edit"]`);
   await page.fill('#fVenue', 'Accor Stadium');
@@ -205,6 +223,16 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   check('one y-axis per chart', cfg.scales.join() === 'x,y' && cfg.scales2.join() === 'x,y');
   check('chart tooltips', /^Round 1: \d+ goals in 6 games$/.test(cfg.barTip), cfg.barTip);
   await page.screenshot({ path: path.join(__dirname, 'stats-desktop.png'), fullPage: true });
+  // half-time: 5 seeded games + the one saved above = 6; led and won = S4 (away) + the saved game
+  const hts = await page.evaluate(() => ({ note: document.getElementById('htNote').textContent, tiles: [...document.querySelectorAll('#htTiles .stat')].map(t => [t.querySelector('.eyebrow').textContent, t.querySelector('.num').textContent]), rows: document.querySelectorAll('#htRecord tbody tr').length }));
+  console.log('half-time:', JSON.stringify(hts));
+  check('half-time summary says from 6 games', /from 6 games/.test(hts.note), hts.note);
+  check('half-time led-and-won count', hts.tiles[0][0] === 'Led at HT, won' && hts.tiles[0][1] === '2' && hts.tiles[2][1] === '1' && hts.tiles[3][1] === '2', hts.tiles);
+  check('half-time record has 12 club rows', hts.rows === 12, hts.rows);
+  await page.click('#tab-results'); await page.waitForTimeout(150);
+  const resTxt = await page.textContent('#results');
+  check('results show HT', /HT 1–0/.test(resTxt) && /HT 0–1/.test(resTxt), resTxt.match(/HT \d–\d/g));
+  await page.click('#tab-stats'); await page.waitForTimeout(150);
   await page.click('#tab-matchday'); await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(__dirname, 'matchday-desktop.png'), fullPage: true });
 
@@ -215,6 +243,13 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
       await page.click(`#tab-${tab}`); await page.waitForTimeout(250);
       const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       check(`no horizontal overflow ${tab} @${w}`, ov <= 0, ov);
+      if (tab === 'matchday') {
+        const g = await page.evaluate(() => { const c = document.querySelector('.fx:not([data-post])'), r = e => e.getBoundingClientRect(), ht = r(c.querySelector('.fx-ht')), sc = [...c.querySelectorAll('.score input')].map(r), hi = [...c.querySelectorAll('.fx-ht input')].map(r);
+          return { dx: Math.abs((ht.left + ht.right) / 2 - (r(c).left + r(c).right) / 2), below: ht.top >= Math.max(...sc.map(x => x.bottom)) - 1, w: hi[0].width, sym: Math.abs((hi[0].left - ht.left) - (ht.right - hi[1].right)) }; });
+        check(`HT pair centred, below the score boxes, 40px inputs @${w}`, g.dx <= 1 && g.below && Math.round(g.w) === 40 && g.sym <= 1, g);
+        await page.screenshot({ path: path.join(__dirname, w === 390 ? 'ht-matchday-phone.png' : 'ht-matchday-desktop.png'), fullPage: true });
+      }
+      if (tab === 'stats' && w === 1280) await page.screenshot({ path: path.join(__dirname, 'ht-stats-desktop.png'), fullPage: true });
       if (w === 390 && (tab === 'matchday' || tab === 'stats')) await page.screenshot({ path: path.join(__dirname, `${tab}-phone.png`), fullPage: true });
     }
   }

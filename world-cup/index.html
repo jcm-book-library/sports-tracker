@@ -108,8 +108,20 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .fx-extra label{display:flex;flex-direction:column;gap:4px;color:var(--muted)}
 .fx-extra input,.fx-extra select{font:inherit;font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:100%;font-variant-numeric:tabular-nums}
 .fx-extra input:focus{border-color:var(--accent);outline:none}
-.pair{display:flex;gap:6px}
-.pair input{width:50%}
+.ht{display:flex;justify-content:center;align-items:center;gap:8px}
+.ht input{width:40px;height:34px;text-align:center;font:700 16px/1 var(--score);font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:0}
+.htl{width:26px;text-align:center;font:700 11px/1 var(--display);letter-spacing:.08em;color:var(--muted)}
+.sd{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.sd-row{display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);align-items:center;gap:6px}
+.sd-side{display:flex;align-items:center;justify-content:center;gap:3px;min-width:0}
+.sd-lab{text-align:center;font-size:12.5px;line-height:1.2;color:var(--muted)}
+.sd input{width:40px;height:32px;text-align:center;font:600 14px/1 var(--body);font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:0}
+.sd input::placeholder,.ht input::placeholder{color:var(--muted);opacity:.7}
+.ht input::-webkit-inner-spin-button,.ht input::-webkit-outer-spin-button,.sd input::-webkit-inner-spin-button,.sd input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.ht input:focus,.sd input:focus{border-color:var(--accent);outline:none}
+.sd .sl{width:8px;text-align:center;font-style:normal;color:var(--muted)}
+.fx-warn{display:flex;flex-direction:column;gap:2px;text-align:center;font-size:12.5px;color:var(--accent-2)}
+.fx-warn:empty{display:none}
 .fx-foot{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
 .fx-foot > [data-act="edit"]{justify-self:start}
 .fx-foot > [data-act="save"]{justify-self:end}
@@ -178,6 +190,16 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
 .list li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
 .list li:first-child{border-top:0}
 .list .v{font-weight:700;font-family:var(--display);font-variant-numeric:tabular-nums;flex:none}
+.tiles4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.tiles4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.panel .stat{background:color-mix(in srgb,var(--raise) 45%,var(--surface))}
+.stat .num.sm{font-size:clamp(20px,2.6vw,26px)}
+.t.auto{table-layout:auto}
+.t.auto td.club{overflow-wrap:normal}
+.t.auto th.grp{text-align:center}
+.t tr.tot td{border-top:2px solid var(--line);font-weight:700}
+.sec{margin-top:20px}
+.nm-c{display:none}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 @media (max-width:900px){.grid3{grid-template-columns:minmax(0,1fr)}}
 
@@ -210,11 +232,15 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
   .fx-main > .side.away{grid-row:2;grid-column:1;justify-content:flex-end;text-align:left;flex-direction:row-reverse}
   .score input:last-of-type{grid-row:2;grid-column:2}
   .score input{width:58px;height:42px;font-size:20px}
-  .fx-extra{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fx-extra{grid-template-columns:minmax(0,1fr)}
+  .sd-row{grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr)}
+  .sd input{width:34px}
+  .sd-lab{font-size:11.5px}
   .fx-foot{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .fx-foot .fx-msg{grid-column:1 / -1;grid-row:2}
 }
 /* tournament extras */
+.grid3 > .panel,.grid2 > .panel{margin-top:0}
 #poolTables{display:flex;flex-direction:column;gap:20px;margin-bottom:20px}
 #poolTables .panel + .panel{margin-top:0}
 h1{font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
@@ -246,6 +272,12 @@ h1 .cy{color:var(--accent)}
   .t.full col.c-pos{width:26px}.t.full col.c-p,.t.full col.c-w,.t.full col.c-d,.t.full col.c-l{width:30px}.t.full col.c-pd{width:42px}.t.full col.c-pts{width:38px}
   .t col.hide-sm{display:none}
   .t td.club .in{align-items:flex-start;line-height:1.25}
+  .t.auto{font-size:12.5px}
+  .t.auto .nm-f{display:none}.t.auto .nm-c{display:inline}
+  .t.auto td,.t.auto th{padding-inline:3px}
+  .t.auto th{font-size:10px;letter-spacing:.02em}
+  .t.auto td.club .in{gap:4px}
+  .t.auto .flagimg{width:18px;height:13px}
   .poolTag{margin-left:4px;padding:0 4px}
 }
 .champ{border-color:color-mix(in srgb,var(--accent-2) 55%,var(--line))}
@@ -341,6 +373,9 @@ h1 .cy{color:var(--accent)}
       <div class="panel"><div class="panel-head"><h2>Referees</h2><span class="muted" style="font-size:12px">games · sin bins</span></div><ul class="list" id="refs"></ul></div>
       <div class="panel"><div class="panel-head"><h2>Closest games</h2></div><ul class="list" id="closest"></ul></div>
     </div>
+    <div class="panel sec"><div class="panel-head"><h2>Half-time</h2><span class="muted" style="font-size:12px" id="htNote"></span></div><div id="htTiles"></div></div>
+    <div class="panel sec"><div class="panel-head"><h2>Half-time record</h2><span class="muted" style="font-size:12px">W-D-L from each half-time position</span></div><div class="table-wrap" id="htTable"></div></div>
+    <div class="panel sec"><div class="panel-head"><h2>Goal kicking</h2><span class="muted" style="font-size:12px">games with attempts entered</span></div><div class="table-wrap" id="kickTable"></div></div>
   </section>
 </div>
 
@@ -385,9 +420,11 @@ h1 .cy{color:var(--accent)}
 <script>
 const SHEET_ID = '1AOY5rfdN0xSDgEmVZIQowZjR4XZOIPTgP396U46l3A0';
 const SERVER = 'Google Sheets';
-const NUM_FIELDS = ['round','homeScore','awayScore','homeTries','awayTries','homeSinBins','awaySinBins','homeSendOffs','awaySendOffs','attendance'];
+const KICKS = ['Conv','PG','FG1','FG2'];   // conversions, penalty goals, 1-point and 2-point field goals (made + Att)
+const EXTRA_FIELDS = ['homeHT','awayHT', ...['home','away'].flatMap(s => KICKS.flatMap(k => [s + k, s + k + 'Att']))];
+const NUM_FIELDS = ['round','homeScore','awayScore','homeTries','awayTries','homeSinBins','awaySinBins','homeSendOffs','awaySendOffs','attendance', ...EXTRA_FIELDS];
 const KO = ['SF','Final'];
-const DRAFT_FIELDS = ['homeScore','awayScore','homeTries','awayTries','homeSinBins','awaySinBins','homeSendOffs','awaySendOffs','goldenPoint','attendance','referee'];
+const DRAFT_FIELDS = ['homeScore','awayScore','homeTries','awayTries','homeSinBins','awaySinBins','homeSendOffs','awaySendOffs','goldenPoint','attendance','referee', ...EXTRA_FIELDS];
 
 /* Shown only when the page can't reach the sheet: the real draw with no scores. */
 const EXAMPLE = {
@@ -573,6 +610,43 @@ function sideInfo(m, side) {
   return { code: r.code, label: r.code ? team(r.code).short : slotLabel(slot), proj: !r.sure, slot: slotLabel(slot) };
 }
 
+/* ---------- half-time and kicking ---------- */
+const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
+const hasHT = m => played(m) && m.homeHT != null && m.awayHT != null;
+// One side's made/attempted for one kick type; null unless the attempts were entered.
+const kickOf = (m, s, k) => m[s + k + 'Att'] == null ? null : { made: m[s + k] || 0, att: m[s + k + 'Att'] };
+// Goals = conversions + penalty goals.
+const goalsOf = (m, s) => { const g = ['Conv','PG'].map(k => kickOf(m, s, k)).filter(Boolean); return g.length ? { made: g.reduce((n, x) => n + x.made, 0), att: g.reduce((n, x) => n + x.att, 0) } : null; };
+// Per-team half-time record (W-D-L as [w,d,l] by position at the break) and kicking totals over the given played games.
+function teamExtras(ms) {
+  const T = {};
+  const get = c => T[c] = T[c] || { n: 0, led: [0,0,0], lvl: [0,0,0], trl: [0,0,0], pf1: 0, pa1: 0, pf2: 0, pa2: 0, k: Object.fromEntries(KICKS.map(k => [k, { made: 0, att: 0 }])) };
+  ms.forEach(m => [['home','away'], ['away','home']].forEach(([s, o]) => {
+    const c = sideCode(m, s); if (!c) return;
+    const r = get(c), f = m[s + 'Score'], a = m[o + 'Score'];
+    if (hasHT(m)) { const h = m[s + 'HT'], x = m[o + 'HT']; r[h > x ? 'led' : h < x ? 'trl' : 'lvl'][f > a ? 0 : f === a ? 1 : 2]++; r.n++; r.pf1 += h; r.pa1 += x; r.pf2 += f - h; r.pa2 += a - x; }
+    KICKS.forEach(k => { const q = kickOf(m, s, k); if (q) { r.k[k].made += q.made; r.k[k].att += q.att; } });
+  }));
+  return T;
+}
+const wdl = a => a[0] + a[1] + a[2] ? a.join('-') : '–';
+const goalTotals = r => ({ made: r.k.Conv.made + r.k.PG.made, att: r.k.Conv.att + r.k.PG.att });
+// Soft checks on the typed values (never block saving).
+function checksFor(m, d) {
+  const out = [], pts = { Conv: 2, PG: 2, FG1: 1, FG2: 2 }, names = { Conv: 'conversions', PG: 'penalty goals', FG1: 'one-point field goals', FG2: 'two-point field goals' };
+  ['home','away'].forEach(s => {
+    const lab = sideInfo(m, s).label, sc = d[s + 'Score'], tr = d[s + 'Tries'];
+    if (tr != null && sc != null && KICKS.some(k => d[s + k] != null)) {
+      const sum = 4 * tr + KICKS.reduce((n, k) => n + pts[k] * (d[s + k] || 0), 0);
+      if (sum !== sc) out.push(`${lab} breakdown adds to ${sum}, score is ${sc}`);
+    }
+    KICKS.forEach(k => { const mk = d[s + k], at = d[s + k + 'Att']; if (mk != null && at != null && mk > at) out.push(`${lab} ${names[k]}: ${mk} made from ${at} attempted`); });
+    const ht = d[s + 'HT']; if (ht != null && sc != null && ht > sc) out.push(`${lab} half-time ${ht} is higher than full time ${sc}`);
+  });
+  return out;
+}
+const warnHtml = m => checksFor(m, draftOf(m)).map(w => `<div>${esc(w)}</div>`).join('');
+
 /* ---------- rendering ---------- */
 function renderAll() {
   $('compLine').textContent = `${state.settings.competition} · ${state.settings.competitionName} · ${state.settings.tournament}`;
@@ -624,7 +698,10 @@ function renderFixtures() {
   box.innerHTML = ms.map(m => {
     const d = draftOf(m), dirty = changedFields(m).length > 0, ko = isKO(m);
     const h = sideInfo(m, 'home'), a = sideInfo(m, 'away');
-    const pair = (label, fh, fa, ph = '0') => `<label>${label}<span class="pair"><input data-f="${fh}" type="number" min="0" inputmode="numeric" value="${v(d[fh])}" aria-label="${esc(h.label)} ${label.toLowerCase()}" placeholder="${ph}"><input data-f="${fa}" type="number" min="0" inputmode="numeric" value="${v(d[fa])}" aria-label="${esc(a.label)} ${label.toLowerCase()}" placeholder="${ph}"></span></label>`;
+    const inp = (f, s, what, ph) => `<input data-f="${f}" type="number" min="0" inputmode="numeric" value="${v(d[f])}" aria-label="${esc(s.label)} ${what}" title="${what}" placeholder="${ph}">`;
+    const row = (label, l, r) => `<div class="sd-row"><div class="sd-side">${l}</div><span class="sd-lab">${label}</span><div class="sd-side">${r}</div></div>`;
+    const one = (label, k, ph = '0') => row(label, inp('home' + k, h, label.toLowerCase(), ph), inp('away' + k, a, label.toLowerCase(), ph));
+    const two = (label, k) => { const side = (s, x) => inp(s + k, x, label.toLowerCase() + ' made', '–') + '<i class="sl">/</i>' + inp(s + k + 'Att', x, label.toLowerCase() + ' attempted', '–'); return row(label, side('home', h), side('away', a)); };
     const winner = played(m) ? (m.homeScore > m.awayScore ? h.label : m.homeScore < m.awayScore ? a.label : null) : null;
     const res = played(m) ? (winner ? `<span class="res" data-r="W">${esc(winner)} win${m.goldenPoint === 'Y' ? ' · golden point' : ''}</span>` : `<span class="res" data-r="D">Draw</span>`) : 'Not played yet';
     const tag = ko ? `<div class="moved">${esc(stageName(m))}</div>` : `<span class="slot">${esc((tableDefs().find(t => t.key === m.pool) || {}).name || '')}</span>`;
@@ -641,14 +718,16 @@ function renderFixtures() {
         </div>
         <div class="side away">${name(a)}${a.code ? crest(a.code) : ''}</div>
       </div>
+      <div class="ht">${inp('homeHT', h, 'half-time points', '')}<span class="htl">HT</span>${inp('awayHT', a, 'half-time points', '')}</div>
+      <div class="sd">
+        ${one('Tries', 'Tries', '')}${two('Conversions', 'Conv')}${two('Penalty goals', 'PG')}${two('Field goals 1 pt', 'FG1')}${two('Field goals 2 pt', 'FG2')}${one('Sin bins', 'SinBins')}${one('Send-offs', 'SendOffs')}
+      </div>
       <div class="fx-extra">
-        ${pair('Tries', 'homeTries', 'awayTries', '')}
-        ${pair('Sin bins', 'homeSinBins', 'awaySinBins')}
-        ${pair('Send-offs', 'homeSendOffs', 'awaySendOffs')}
         <label>Golden point<select data-f="goldenPoint"><option value="">No</option><option value="Y"${d.goldenPoint === 'Y' ? ' selected' : ''}>Yes</option></select></label>
         <label>Attendance<input data-f="attendance" type="number" min="0" inputmode="numeric" value="${v(d.attendance)}"></label>
         <label>Referee<input data-f="referee" type="text" value="${esc(d.referee)}" autocomplete="off"></label>
       </div>
+      <div class="fx-warn" aria-live="polite">${warnHtml(m)}</div>
       <div class="fx-foot"><button class="link" type="button" data-act="edit">Edit fixture</button><span class="fx-msg">${dirty ? 'Unsaved changes' : res}</span>
         <button class="btn btn-primary" type="button" data-act="save"${dirty ? '' : ' disabled'}>Save result</button></div>
     </article>`;
@@ -715,8 +794,10 @@ function renderResults() {
   $('results').innerHTML = groups.map(([k, g]) => `<div class="rd"><h3>${esc(roundLabel(k))}</h3>${g.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(m => {
     const hc = sideCode(m, 'home'), ac = sideCode(m, 'away'), hw = m.homeScore > m.awayScore, aw = m.awayScore > m.homeScore;
     const tries = m.homeTries != null && m.awayTries != null ? `tries ${m.homeTries}–${m.awayTries}` : '';
+    const ht = hasHT(m) ? `HT ${m.homeHT}–${m.awayHT}` : '';
+    const gh = goalsOf(m, 'home'), ga = goalsOf(m, 'away'), goals = gh && ga ? `goals ${gh.made}/${gh.att} v ${ga.made}/${ga.att}` : '';
     const bins = (m.homeSinBins || 0) + (m.awaySinBins || 0), offs = (m.homeSendOffs || 0) + (m.awaySendOffs || 0);
-    const bits = [niceDate(m.date), m.venue, m.attendance ? fmt(m.attendance) + ' crowd' : '', tries, m.goldenPoint === 'Y' ? 'golden point' : '',
+    const bits = [niceDate(m.date), m.venue, m.attendance ? fmt(m.attendance) + ' crowd' : '', tries, ht, goals, m.goldenPoint === 'Y' ? 'golden point' : '',
       bins ? `${bins} sin bin${bins > 1 ? 's' : ''}` : '', offs ? `${offs} sent off` : '', m.referee ? 'ref ' + m.referee : ''].filter(Boolean);
     return `<div class="line"><span class="h${hw ? ' win' : ''}">${esc(team(hc).short)} ${crest(hc)}</span><span class="sc">${m.homeScore}–${m.awayScore}</span><span class="a${aw ? ' win' : ''}">${crest(ac)} ${esc(team(ac).short)}</span><span class="sub">${esc(bits.join(' · '))}</span></div>`;
   }).join('')}</div>`).join('');
@@ -774,7 +855,39 @@ function renderStats() {
   $('venues').innerHTML = vRows.length ? vRows.map(x => li(`${esc(x.v)} <span class="muted">(${x.n})</span>`, fmt(Math.round(x.avg)))).join('') : empty('Add attendances on Matchday.');
   const refs = {}; ms.filter(m => m.referee).forEach(m => { const r = refs[m.referee] = refs[m.referee] || { n: 0, bins: 0 }; r.n++; r.bins += (m.homeSinBins || 0) + (m.awaySinBins || 0) + (m.homeSendOffs || 0) + (m.awaySendOffs || 0); });
   const rRows = Object.entries(refs).sort((a, b) => b[1].n - a[1].n);
+  renderHalf(ms, total);
   $('refs').innerHTML = rRows.length ? rRows.map(([n, r]) => li(esc(n), `${r.n} · ${r.bins}`)).join('') : empty('Add referees on Matchday.');
+}
+
+function renderHalf(ms, total) {
+  const hm = ms.filter(hasHT), N = hm.length, X = teamExtras(ms);
+  let led = [0,0,0], lvl = 0, p1 = 0, p2 = 0;
+  hm.forEach(m => { const d = m.homeHT - m.awayHT, ft = m.homeScore - m.awayScore; p1 += m.homeHT + m.awayHT; p2 += total(m) - m.homeHT - m.awayHT; if (!d) { lvl++; return; } const l = d > 0 ? ft : -ft; led[l > 0 ? 0 : l === 0 ? 1 : 2]++; });
+  $('htNote').textContent = N ? `from ${N} game${N > 1 ? 's' : ''}` : '';
+  const tile = (label, num, sub, sm) => `<div class="stat"><span class="eyebrow">${label}</span><span class="num${sm ? ' sm' : ''}">${num}</span><span class="sub">${sub}</span></div>`;
+  $('htTiles').innerHTML = N ? `<div class="tiles4">${[
+    tile('Led at half-time', led[0] + led[1] + led[2], `won ${led[0]} · drawn ${led[1]} · lost ${led[2]}`),
+    tile('Level at half-time', lvl, `${pct(lvl, N)} of games`),
+    tile('Comebacks', led[2], 'won after trailing at the break'),
+    tile('Points by half', `${pct(p1, p1 + p2)} · ${pct(p2, p1 + p2)}`, `1st half ${p1} · 2nd half ${p2}`, true)
+  ].join('')}</div>` : '<div class="empty">Add half-time scores on Matchday and they show up here.</div>';
+
+  const team1 = c => `<td class="l club"><span class="in">${crest(c)}<span class="nm-f">${esc(team(c).short)}</span><span class="nm-c">${esc(c)}</span></span></td>`;
+  const codes = state.teams.map(t => t.code);
+  const hrows = [...codes].sort((a, b) => team(a).name.localeCompare(team(b).name)).map(c => {
+    const r = X[c] && X[c].n ? X[c] : null;
+    return `<tr class="click" data-team="${esc(c)}">${team1(c)}<td>${r ? wdl(r.led) : '–'}</td><td>${r ? wdl(r.lvl) : '–'}</td><td>${r ? wdl(r.trl) : '–'}</td><td>${r ? `${r.pf1}–${r.pa1}` : '–'}</td><td>${r ? `${r.pf2}–${r.pa2}` : '–'}</td></tr>`;
+  }).join('');
+  $('htTable').innerHTML = `<table class="t auto"><thead><tr><th class="l">Team</th><th>Led</th><th>Level</th><th>Trailed</th><th>1st half</th><th>2nd half</th></tr></thead><tbody>${hrows}</tbody></table>`;
+
+  const kc = q => q.att ? `${q.made}/${q.att}` : '–';
+  const kp = q => q.att ? pct(q.made, q.att) : '–';
+  const kcells = r => `<td>${kc(r.k.Conv)}</td><td class="hide-sm">${kp(r.k.Conv)}</td><td>${kc(r.k.PG)}</td><td class="hide-sm">${kp(r.k.PG)}</td><td class="pts">${kp(goalTotals(r))}</td><td>${kc(r.k.FG1)}</td><td>${kc(r.k.FG2)}</td>`;
+  const blank = () => ({ k: Object.fromEntries(KICKS.map(k => [k, { made: 0, att: 0 }])) });
+  const tot = blank(); codes.forEach(c => X[c] && KICKS.forEach(k => { tot.k[k].made += X[c].k[k].made; tot.k[k].att += X[c].k[k].att; }));
+  const gp = c => { const g = X[c] ? goalTotals(X[c]) : { att: 0, made: 0 }; return g.att ? g.made / g.att : -1; };
+  const krows = [...codes].sort((a, b) => gp(b) - gp(a) || team(a).name.localeCompare(team(b).name)).map(c => `<tr class="click" data-team="${esc(c)}">${team1(c)}${kcells(X[c] || blank())}</tr>`).join('');
+  $('kickTable').innerHTML = `<table class="t auto"><thead><tr><th class="l">Team</th><th>Conv</th><th class="hide-sm">Conv %</th><th>PG</th><th class="hide-sm">PG %</th><th>Goals %</th><th>FG 1pt</th><th>FG 2pt</th></tr></thead><tbody>${krows}<tr class="tot"><td class="l club">All teams</td>${kcells(tot)}</tr></tbody></table>`;
 }
 
 function drawChart(per, avg) {
@@ -809,6 +922,7 @@ function showTeam(code) {
   const ms = tourMatches().filter(m => sideCode(m, 'home') === code || sideCode(m, 'away') === code).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   const done = ms.filter(played);
   const sum = (f) => done.reduce((s, m) => s + (m[(sideCode(m, 'home') === code ? 'home' : 'away') + f] || 0), 0);
+  const X = teamExtras(done)[code], gt = X && goalTotals(X);
   $('teamTitle').innerHTML = `${crest(code)} ${esc(t.name)}`;
   const list = ms.map(m => {
     const home = sideCode(m, 'home') === code, opp = home ? sideCode(m, 'away') : sideCode(m, 'home');
@@ -822,7 +936,9 @@ function showTeam(code) {
       <dt>Pool record</dt><dd>${r ? `${r.W}W ${r.D}D ${r.L}L · PD ${signed(r.PD)}` : '–'}</dd>
       <dt>All games</dt><dd>${done.length ? `${sum('Score')} scored · ${done.reduce((s, m) => s + (sideCode(m, 'home') === code ? m.awayScore : m.homeScore), 0)} conceded` : '–'}</dd>
       <dt>Tries</dt><dd>${sum('Tries')}</dd>
-      <dt>Sin bins · send-offs</dt><dd>${sum('SinBins')} · ${sum('SendOffs')}</dd></dl>
+      <dt>Sin bins · send-offs</dt><dd>${sum('SinBins')} · ${sum('SendOffs')}</dd>
+      ${X && X.n ? `<dt>Half-time record</dt><dd>Led ${wdl(X.led)} · level ${wdl(X.lvl)} · trailed ${wdl(X.trl)} (W-D-L)</dd>` : ''}
+      ${gt && gt.att ? `<dt>Goal kicking</dt><dd>${pct(gt.made, gt.att)} (${gt.made}/${gt.att})</dd>` : ''}</dl>
     <ul class="list">${list || '<li class="muted">No fixtures yet.</li>'}</ul>`;
   $('teamDlg').showModal();
 }
@@ -858,7 +974,7 @@ async function refresh() {
   $('refreshBtn').disabled = true;
   try {
     const [settings, teams, venues, matches, comps] = await Promise.all([
-      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:J80'), readRange('Venues!A1:B200'), readRange('Matches!A1:AE500'), readRange('Competitions!A1:H20').catch(() => [])
+      readRange("'App Settings'!A1:B60"), readRange('Teams!A1:J80'), readRange('Venues!A1:B200'), readRange('Matches!A1:AZ500'), readRange('Competitions!A1:H20').catch(() => [])
     ]);
     const s = { ...EXAMPLE.settings };
     for (const r of settings.slice(1)) { const k = String(r[0] ?? '').trim(); if (k) s[k] = String(r[1] ?? '').trim(); }
@@ -891,7 +1007,7 @@ async function findRow(id) {
   const ids = await readRange('Matches!A1:A500');
   const hits = ids.map((r, i) => String(r[0] ?? '').trim() === id ? i + 1 : 0).filter(Boolean);
   if (hits.length !== 1) throw { code: 'tool_error', message: hits.length ? `match ${id} appears ${hits.length} times in Matches` : `match ${id} isn't in Matches any more` };
-  const header = ((await readRange('Matches!A1:AE1'))[0] || []).map(h => String(h).trim());
+  const header = ((await readRange('Matches!A1:AZ1'))[0] || []).map(h => String(h).trim());
   return { row: hits[0], col: k => { const i = header.indexOf(k); if (i < 0) throw { code: 'tool_error', message: `Matches has no ${k} column` }; return colLetter(i); } };
 }
 const sheetValue = (k, v) => {
@@ -981,7 +1097,7 @@ async function saveFixture() {
       const changes = {}; Object.keys(f).forEach(k => { if ((f[k] ?? '') !== (m[k] ?? '')) changes[k] = f[k]; });
       if (Object.keys(changes).length) { await writeCells(editing, changes); Object.assign(m, changes); }
     } else {
-      const header = ((await readRange('Matches!A1:AE1'))[0] || []).map(h => String(h).trim());
+      const header = ((await readRange('Matches!A1:AZ1'))[0] || []).map(h => String(h).trim());
       const ids = await readRange('Matches!A2:A500');
       ids.forEach(r => { const id = String(r[0] ?? '').trim(); if (id && !state.matches.some(m => m.id === id)) state.matches.push({ id, tournament: '' }); });
       const id = nextId(), pool = f.stage === 'Pool' ? (tableDefs().find(d => d.pools.includes(team(f.home).pool)) || {}).key || '' : '';
@@ -1030,6 +1146,7 @@ function onDraft(e) {
   card.toggleAttribute('data-dirty', dirty);
   card.querySelector('[data-act="save"]').disabled = !dirty;
   card.querySelector('.fx-msg').textContent = dirty ? 'Unsaved changes' : '';
+  card.querySelector('.fx-warn').innerHTML = warnHtml(m);
 }
 $('fixtures').addEventListener('input', onDraft);
 $('fixtures').addEventListener('change', onDraft);
