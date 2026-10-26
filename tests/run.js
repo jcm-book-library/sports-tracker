@@ -5,6 +5,13 @@ const path = require('path');
 const DIR = path.resolve(__dirname, '..');
 const page_html = fs.readFileSync(path.join(DIR, 'apps/team-match/index.html'), 'utf8');
 
+const loc = off => { const d = new Date(); d.setDate(d.getDate() + off); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const seedRows = [];
+// round 1: fully played, 3 weeks ago; round 2: unplayed, starting in 3 days
+[['SYD','WSW',2,1],['MCY','MVC',1,1],['AUC','WEL',3,0],['CCM','NEW',0,2],['ADE','PER',1,0],['BRI','MAC',2,2]].forEach(([h, a, hg, ag], i) =>
+  seedRows.push(['S' + (i + 1), '2026/27', 1, 'Regular', loc(-21 + (i >> 1)), '19:35', h, a, hg, ag, 0, 0, '', 15000 + i * 1000, '', '', '', '', '', '', '']));
+[['SYD','MCY'],['WSW','MVC'],['AUC','CCM'],['WEL','NEW'],['ADE','BRI'],['PER','MAC']].forEach(([h, a], i) =>
+  seedRows.push(['S' + (i + 7), '2026/27', 2, 'Regular', loc(3 + (i >> 1)), '19:35', h, a, '', '', '', '', '', '', '', '', '', '', '', '', '']));
 const stub = `
 <script>
 const SHEET = {
@@ -20,6 +27,7 @@ const SHEET = {
   'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status']],
   '2025/26': [[],['2025/26','','','','','','PTS','+/-','P','W','L','D','F','A'],['1','','Newcastle Jets','','','','48','17','26','15','8','3'],['2','','Adelaide United','','','','43','10','26','12','7','7']]
 };
+SHEET.Matches.push(...${JSON.stringify(seedRows)});
 window.__SHEET = SHEET; window.__CALLS = [];
 const col = s => s.split('').reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
 function parse(range) {
@@ -53,6 +61,9 @@ const mcp = {
     }
   }
 };
+// Chart.js comes from a CDN that is blocked in this sandbox: a recording stand-in lets the chart config code run and be checked.
+window.__CHARTS = {};
+window.addEventListener('DOMContentLoaded', () => { if (!window.Chart) window.Chart = class { constructor(el, cfg) { this.data = cfg.data; this.options = cfg.options; this.type = cfg.type; window.__CHARTS[el.id] = this; } update() {} static getChart(id) { return window.__CHARTS[id]; } }; });
 window.claude = { use: async name => name === 'mcp' ? mcp : null };
 </script>`;
 
@@ -69,16 +80,38 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   await page.goto('file://' + path.join(__dirname, 'page.html'));
   await page.waitForFunction(() => document.getElementById('status').dataset.state === 'live', null, { timeout: 15000 });
   console.log('status:', await page.textContent('#statusText'));
-  console.log('empty round shows:', (await page.textContent('#fixtures')).trim().slice(0, 40));
+  const checks = [];
+  const check = (name, ok, extra) => { checks.push([name, !!ok]); console.log((ok ? 'PASS' : 'FAIL') + ' ' + name + (extra !== undefined ? ' ' + JSON.stringify(extra) : '')); };
+  const ymd = off => { const d = new Date(); d.setDate(d.getDate() + off); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const dmy = off => { const [y, m, d] = ymd(off).split('-'); return `${d}/${m}/${y}`; };
+
+  // (1) opens on the round of the next unplayed game (round 1 is fully played, round 2 is upcoming)
+  check('opens at round 2', await page.$eval('#roundSel', s => s.value) === '2', await page.$eval('#roundSel', s => s.options[s.selectedIndex].text));
+  check('round 2 shows its 6 cards', await page.$$eval('.fx', e => e.length) === 6);
+  // (2) mini ladder headers
+  const heads = await page.$$eval('#miniLadder thead th', h => h.map(x => x.textContent.trim().toLowerCase()));
+  check('mini ladder headers', JSON.stringify(heads) === JSON.stringify(['#', 'club', 'gd', 'pts', 'form']), heads);
+  // (3) hover a fixture card -> exactly two ladder rows highlighted
+  await page.hover('.fx:nth-child(2)');
+  const hl = await page.$$eval('#miniLadder tr.hl', r => r.map(x => x.dataset.team));
+  const want = await page.$eval('.fx:nth-child(2)', c => c.dataset.id);
+  check('hover highlights two ladder rows', hl.length === 2, hl);
+  await page.mouse.move(2, 2);
+  check('hover off clears highlight', await page.$$eval('#miniLadder tr.hl', r => r.length) === 0);
+  await page.focus('.fx:nth-child(3) input');
+  check('focus highlights two rows', await page.$$eval('#miniLadder tr.hl', r => r.length) === 2);
+  await page.evaluate(() => document.activeElement.blur());
+  await page.mouse.move(2, 2);
 
   // paste round 1 (6 games) + one bad line first to check validation
   await page.click('#pasteBtn');
-  await page.fill('#pText', '2026-10-16, 19:35, SYD, WSW\n17/10/2026, 17:00, Melbourne City FC, Melbourne Victory\n2026-10-17, 19:35, AUC, WEL\n2026-10-18, 15:00, CCM, NEW\n2026-10-18, 17:30, ADE, PER\n2026-10-18, 19:45, BRI, Nowhere FC');
+  await page.fill('#pRound', '3');
+  await page.fill('#pText', `${ymd(10)}, 19:35, SYD, WSW\n${dmy(11)}, 17:00, Melbourne City FC, Melbourne Victory\n${ymd(11)}, 19:35, AUC, WEL\n${ymd(12)}, 15:00, CCM, NEW\n${ymd(12)}, 17:30, ADE, PER\n${ymd(12)}, 19:45, BRI, Nowhere FC`);
   console.log('bad line disables save:', await page.isDisabled('#pSave'));
-  await page.fill('#pText', '2026-10-16, 19:35, SYD, WSW\n17/10/2026, 17:00, Melbourne City FC, Melbourne Victory\n2026-10-17, 19:35, AUC, WEL\n2026-10-18, 15:00, CCM, NEW\n2026-10-18, 17:30, ADE, PER\n2026-10-18, 19:45, BRI, MAC');
+  await page.fill('#pText', `${ymd(10)}, 19:35, SYD, WSW\n${dmy(11)}, 17:00, Melbourne City FC, Melbourne Victory\n${ymd(11)}, 19:35, AUC, WEL\n${ymd(12)}, 15:00, CCM, NEW\n${ymd(12)}, 17:30, ADE, PER\n${ymd(12)}, 19:45, BRI, MAC`);
   console.log('save label:', await page.textContent('#pSave'));
   await page.click('#pSave');
-  await page.waitForFunction(() => document.querySelectorAll('.fx').length === 6);
+  await page.waitForFunction(() => document.getElementById('roundSel').value === '3' && document.querySelectorAll('.fx').length === 6);
   console.log('cards:', await page.$$eval('.fx', els => els.length));
 
   // enter results for 4 games
@@ -114,15 +147,15 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   console.log('moved row:', JSON.stringify(await page.evaluate(id => window.__SHEET.Matches.find(r => r[0] === id), ids[5])));
   await page.selectOption('#roundSel', '9');
   console.log('round 9 cards:', await page.$$eval('.fx', els => els.map(e => e.innerText.split('\n').slice(0, 3).join(' | '))));
-  await page.selectOption('#roundSel', '1');
-  console.log('round 1 moved tag:', await page.$$eval('.moved', els => els.map(e => e.textContent)));
+  await page.selectOption('#roundSel', '3');
+  console.log('round 3 moved tag:', await page.$$eval('.moved', els => els.map(e => e.textContent)));
   // round 2 fixtures, then postpone a round 1 game and reschedule it into round 2's week
   await page.click('#pasteBtn');
   await page.fill('#pRound', '2');
-  await page.fill('#pText', '2026-10-23, 20:00, BRI, PER\n2026-10-24, 15:00, NEW, MAC');
+  await page.fill('#pText', `${ymd(3)}, 20:00, BRI, PER\n${ymd(4)}, 15:00, NEW, MAC`);
   await page.click('#pSave');
   await page.waitForFunction(() => !document.getElementById('pasteDlg').open);
-  await page.selectOption('#roundSel', '1');
+  await page.selectOption('#roundSel', '3');
   await page.click(`.fx[data-id="${ids[4]}"] [data-act="edit"]`);
   await page.click('#fxPost'); await page.click('#fxPost');
   await page.waitForFunction(() => !document.getElementById('fxDlg').open);
@@ -130,7 +163,7 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   console.log('postponed cell:', JSON.stringify(await page.evaluate(id => { const r = window.__SHEET.Matches.find(r => r[0] === id); return [r[17], r[20]]; }, ids[4])));
   await page.click(`#held [data-act="edit"]`);
   console.log('dialog title:', await page.textContent('#fxTitle'));
-  await page.fill('#fDate', '2026-10-24'); await page.dispatchEvent('#fDate', 'change');
+  await page.fill('#fDate', ymd(4)); await page.dispatchEvent('#fDate', 'change');
   console.log('suggested played round:', await page.inputValue('#fPlayed'), '|', await page.textContent('#fxMsg'));
   await page.click('#fxSave');
   await page.waitForFunction(() => !document.getElementById('fxDlg').open);
@@ -146,18 +179,54 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   await page.click('#summaryBtn');
   console.log('summary first lines:\n' + (await page.$eval('#summaryBox', b => b.value)).split('\n').slice(0, 3).map(l => '  ' + l.split('\t').slice(0, 18).join('|')).join('\n'));
 
-  // phone width
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.click('#tab-matchday');
-  await page.waitForTimeout(200);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  console.log('phone horizontal overflow px:', overflow);
-  await page.screenshot({ path: path.join(__dirname, 'matchday-phone.png'), fullPage: true });
-  await page.click('#tab-ladder'); await page.waitForTimeout(200);
-  console.log('phone ladder overflow px:', await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth));
-  await page.screenshot({ path: path.join(__dirname, 'ladder-phone.png'), fullPage: true });
+  // (4) stats tab content
+  await page.click('#tab-stats'); await page.waitForTimeout(300);
+  const st = await page.evaluate(() => ({
+    cr: document.querySelectorAll('#crowdRound tbody tr').length, cc: document.querySelectorAll('#crowdClub tbody tr').length,
+    ha: document.querySelectorAll('#homeAway tbody tr').length, canv: document.querySelectorAll('#view-stats canvas').length,
+    crH: [...document.querySelectorAll('#crowdRound th')].map(x => x.textContent.trim()), ccH: [...document.querySelectorAll('#crowdClub th')].map(x => x.textContent.trim()),
+    haH: [...document.querySelectorAll('#homeAway th')].map(x => x.textContent.trim()), tags: document.querySelectorAll('#view-stats .ctag').length,
+    labels: window.Chart ? Chart.getChart('goalsChart').data.labels.length : -1, sc: window.Chart ? Chart.getChart('gameChart').data.datasets.map(d => d.data.length) : []
+  }));
+  console.log('stats:', JSON.stringify(st));
+  check('crowds by round table', st.cr >= 1 && st.crH.join() === 'Round,Games,Total,Average');
+  check('crowds by club table', st.cc >= 1 && st.ccH.join() === 'Club,Games,Total,Average');
+  check('home and away table', st.ha >= 1 && st.haH.join() === 'Club,Home,Away,P,Pts,GF–GA,P,Pts,GF–GA', st.haH);
+  check('two canvases', st.canv === 2);
+  check('club tags on stats', st.tags > 0);
+  check('goals chart shows every round + finals (32 labels)', st.labels === 32, st.labels);
+  const cfg = await page.evaluate(() => {
+    const g = Chart.getChart('goalsChart'), d = Chart.getChart('gameChart'), r2 = g.data.datasets[0].data;
+    const dot = d.data.datasets[0].data[0], avg = d.data.datasets[1].data[0], tt = d.options.plugins.tooltip.callbacks, xt = d.options.scales.x.ticks.callback;
+    return { bar: g.type, bars: g.data.datasets.length, scales: Object.keys(g.options.scales), scales2: Object.keys(d.options.scales), played: r2.filter(v => v != null).length, last: g.data.labels.slice(-4),
+      barTip: g.options.plugins.tooltip.callbacks.label({ dataIndex: 0 }), dotTip: tt.label({ dataset: d.data.datasets[0], raw: dot }), avgTip: tt.label({ dataset: d.data.datasets[1], raw: avg }), ticks: [xt(0), xt(5), xt(28), xt(29), xt(32), xt(33), xt(5.5)], jit: d.data.datasets[0].data.map(p => p.x).slice(0, 8) };
+  });
+  console.log('chart cfg:', JSON.stringify(cfg));
+  check('one y-axis per chart', cfg.scales.join() === 'x,y' && cfg.scales2.join() === 'x,y');
+  check('chart tooltips', /^Round 1: \d+ goals in 6 games$/.test(cfg.barTip), cfg.barTip);
+  await page.screenshot({ path: path.join(__dirname, 'stats-desktop.png'), fullPage: true });
+  await page.click('#tab-matchday'); await page.waitForTimeout(200);
+  await page.screenshot({ path: path.join(__dirname, 'matchday-desktop.png'), fullPage: true });
+
+  // (5) no horizontal overflow at 390 and 1280 on Matchday, Ladder, Results, Stats
+  for (const [w, h] of [[1280, 900], [390, 844]]) {
+    await page.setViewportSize({ width: w, height: h });
+    for (const tab of ['matchday', 'ladder', 'results', 'stats']) {
+      await page.click(`#tab-${tab}`); await page.waitForTimeout(250);
+      const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      check(`no horizontal overflow ${tab} @${w}`, ov <= 0, ov);
+      if (w === 390 && (tab === 'matchday' || tab === 'stats')) await page.screenshot({ path: path.join(__dirname, `${tab}-phone.png`), fullPage: true });
+    }
+  }
+  check('sticky ladder on desktop', (await (async () => { await page.setViewportSize({ width: 1280, height: 900 }); await page.click('#tab-matchday'); return page.$eval('.md-side', e => getComputedStyle(e).position); })()) === 'sticky');
+  check('matchday grid right column 340px', await page.$eval('.md-side', e => Math.round(e.getBoundingClientRect().width)) === 340);
 
   console.log('logo imgs on page:', await page.$$eval('img.logo', ims => ims.length), '| drive calls:', await page.evaluate(() => window.__CALLS.filter(c => c[0] === 'search_files' || c[0] === 'download_file_content').length));
-  console.log('errors:', errors.length ? errors : 'none');
+  const real = errors.filter(e => !/ERR_|Failed to load resource|net::|fonts\.g|cdnjs|accounts\.google/i.test(e));
+  check('no page errors', real.length === 0, real);
+  console.log('ignored network errors:', errors.length - real.length);
+  const failed = checks.filter(c => !c[1]);
+  console.log(failed.length ? 'FAILED: ' + failed.map(c => c[0]).join('; ') : `ALL ${checks.length} CHECKS PASSED`);
   await browser.close();
+  if (failed.length) process.exit(1);
 })().catch(e => { console.error(e); process.exit(1); });

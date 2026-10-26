@@ -1,6 +1,6 @@
 <title>World Cup Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,600;0,800;0,900;1,900&family=Rubik:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,600;0,800;0,900;1,900&family=Rubik:wght@400;500;600;700&family=Nunito:wght@600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 /* Layout: phone-first single column; laptop gets two columns on Matchday (fixtures | pool tables).
@@ -13,6 +13,7 @@
   --danger:#ff5468; --live:#e8112d;
   --win:#3fae6a; --draw:#4f8fe0; --loss:#e05f5f;
   --display:"Archivo",ui-sans-serif,system-ui,sans-serif;
+  --score:"Nunito",ui-rounded,system-ui,sans-serif;
   --body:"Rubik",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
@@ -74,24 +75,28 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .fixtures{display:flex;flex-direction:column;gap:12px}
 .fx{border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--raise) 45%,var(--surface));padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .fx[data-dirty]{border-color:color-mix(in srgb,var(--accent) 60%,var(--line))}
-.fx-meta{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.fx-meta{text-align:center;font-size:12.5px;color:var(--muted)}
+.fx > .slot,.fx > .moved{align-self:center;text-align:center}
 .fx-main{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
 .side{display:flex;align-items:center;gap:8px;min-width:0;font-weight:600}
 .side.away{justify-content:flex-end;text-align:right}
 .side .nm{line-height:1.2;min-width:0}
 .crest{width:14px;height:14px;border-radius:50%;flex:none;border:1px solid color-mix(in srgb,var(--fg) 25%,transparent)}
 .score{display:flex;align-items:center;gap:6px}
-.score input{width:52px;height:46px;text-align:center;font:700 22px/1 var(--display);font-variant-numeric:tabular-nums;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:0}
+.score input{width:64px;height:46px;text-align:center;font:700 22px/1 var(--score);font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:0}
+.score input::-webkit-inner-spin-button,.score input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .score input:focus{border-color:var(--accent);outline:none}
 .score .dash{color:var(--muted);font-weight:700}
-.fx-extra{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;font-size:13px}
+.fx-extra{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;font-size:13px}
 .fx-extra label{display:flex;flex-direction:column;gap:4px;color:var(--muted)}
 .fx-extra input,.fx-extra select{font:inherit;font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:100%;font-variant-numeric:tabular-nums}
 .fx-extra input:focus{border-color:var(--accent);outline:none}
 .pair{display:flex;gap:6px}
 .pair input{width:50%}
-.fx-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.fx-msg{font-size:12.5px;color:var(--muted)}
+.fx-foot{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.fx-foot > [data-act="edit"]{justify-self:start}
+.fx-foot > [data-act="save"]{justify-self:end}
+.fx-msg{font-size:12.5px;color:var(--muted);text-align:center}
 .held{border:1px dashed color-mix(in srgb,var(--accent-2) 45%,var(--line));border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
 .held .row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap}
 .fx[data-post] .side{opacity:.75}
@@ -103,9 +108,12 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 
 /* tables */
 .table-wrap{overflow-x:auto}
-table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+.t col.c-pos{width:28px}.t col.c-p{width:34px}.t col.c-pdm{width:48px}.t col.c-ptsm{width:40px}
+.t.full col.c-pos{width:32px}.t.full col.c-p,.t.full col.c-w,.t.full col.c-d,.t.full col.c-l{width:36px}.t.full col.c-pf,.t.full col.c-pa{width:46px}.t.full col.c-pd{width:50px}.t.full col.c-pts{width:44px}.t.full col.c-form{width:104px}
 .t th{text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding:8px 8px;white-space:nowrap;border-bottom:1px solid var(--line)}
 .t td{padding:8px 8px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.t td.club{white-space:normal;overflow-wrap:anywhere}
 .t th.l,.t td.l{text-align:left}
 .t tr:first-child td{border-top:0}
 .t td.club{font-weight:600}
@@ -114,12 +122,12 @@ table.t{width:100%;border-collapse:collapse;font-size:14px}
 .t tbody tr.click{cursor:pointer}
 .t tbody tr.click:hover td{background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
 .t tr.cut td{border-bottom:2px dashed color-mix(in srgb,var(--accent) 55%,var(--line))}
-.pos{color:var(--muted);width:28px}
+.pos{color:var(--muted)}
 .form{display:inline-flex;gap:3px}
 .form i{width:18px;height:18px;border-radius:4px;display:inline-grid;place-items:center;font-style:normal;font-size:10px;font-weight:700;color:#fff}
 .form i[data-r="W"]{background:var(--win)} .form i[data-r="D"]{background:var(--draw)} .form i[data-r="L"]{background:var(--loss)}
 .gd-pos{color:color-mix(in srgb,var(--win) 70%,#fff)} .gd-neg{color:color-mix(in srgb,var(--loss) 70%,#fff)}
-@media (max-width:560px){.t .hide-sm{display:none}}
+@media (max-width:520px){.t .hide-sm{display:none}}
 
 /* finals picture */
 .finals{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
@@ -134,7 +142,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px}
 .line:first-of-type{border-top:0}
 .line .h{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .line .a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.line .sc{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+.line .sc{font-family:var(--score);font-weight:700;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
 .line .sub{grid-column:1 / -1;font-size:12px;color:var(--muted);text-align:center;margin-top:-4px}
 .win{font-weight:700}
 
@@ -143,7 +151,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px}
 @media (max-width:900px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:480px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.stat .num{font-size:clamp(24px,3.4vw,32px);font-weight:700;line-height:1.1;letter-spacing:-.02em}
+.stat .num{font-family:var(--score);font-size:clamp(24px,3.4vw,32px);font-weight:700;line-height:1.1;letter-spacing:-.02em}
 .stat .sub{font-size:12.5px;color:var(--muted)}
 .chart-box{position:relative;height:230px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
@@ -184,9 +192,14 @@ dialog::backdrop{background:rgba(8,6,14,.66)}
   .score input:first-of-type{grid-row:1;grid-column:2}
   .fx-main > .side.away{grid-row:2;grid-column:1;justify-content:flex-end;text-align:left;flex-direction:row-reverse}
   .score input:last-of-type{grid-row:2;grid-column:2}
-  .score input{width:52px;height:42px;font-size:20px}
+  .score input{width:58px;height:42px;font-size:20px}
+  .fx-extra{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fx-foot{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .fx-foot .fx-msg{grid-column:1 / -1;grid-row:2}
 }
 /* tournament extras */
+#poolTables{display:flex;flex-direction:column;gap:20px;margin-bottom:20px}
+#poolTables .panel + .panel{margin-top:0}
 h1{font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
 h2{font-weight:800;text-transform:uppercase;letter-spacing:.01em}
 h1 .cy{color:var(--accent)}
@@ -194,7 +207,6 @@ h1 .cy{color:var(--accent)}
 .tab{text-transform:uppercase;letter-spacing:.04em;font-size:13px}
 .tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:none}
 .btn-primary{text-transform:uppercase;letter-spacing:.04em;font-weight:700}
-.score input{font-weight:800}
 .navrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
 .navrow .tabs{margin-bottom:0}
 .compSwitch{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
@@ -207,17 +219,22 @@ h1 .cy{color:var(--accent)}
 .bracket{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:center}
 @media (max-width:700px){.bracket{grid-template-columns:minmax(0,1fr)}}
 .bracket .col{display:flex;flex-direction:column;gap:12px}
-.tie .row .sc{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.tie .row .sc{font-family:var(--score);font-weight:700;font-variant-numeric:tabular-nums}
 .tie .row.won{font-weight:700}
 .poolTag{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:6px}
 @media (max-width:520px){
   .tab{padding:7px 8px;letter-spacing:0;font-size:12px}
   .navrow .tabs{width:100%;justify-content:space-between}
-  .t td.club{white-space:normal}
+  .t.full td,.t.full th{padding-inline:4px}
+  .t.full col.c-pos{width:26px}.t.full col.c-p,.t.full col.c-w,.t.full col.c-d,.t.full col.c-l{width:30px}.t.full col.c-pd{width:42px}.t.full col.c-pts{width:38px}
+  .t col.hide-sm{display:none}
   .t td.club .in{align-items:flex-start;line-height:1.25}
   .poolTag{margin-left:4px;padding:0 4px}
 }
 .champ{border-color:color-mix(in srgb,var(--accent-2) 55%,var(--line))}
+.tie.champbox{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tie.champbox .eyebrow,.tie.champbox .muted{color:var(--accent-ink)}
+.tie.champbox .row{font-weight:800;font-size:16px}
 </style>
 
 <div class="wrap">
@@ -433,7 +450,7 @@ const state = {
   settings: { ...EXAMPLE.settings },
   teams: EXAMPLE.teams.map(t => ({ ...t })),
   venues: [], matches: EXAMPLE.matches.map(m => ({ ...m })),
-  round: null, tab: 'matchday', drafts: {}, chart: null,
+  round: null, roundPicked: false, tab: 'matchday', drafts: {}, chart: null,
   base: { ...EXAMPLE.settings }, allTeams: EXAMPLE.teams.map(t => ({ ...t, comp: 'M' })), comp: 'M',
   comps: [{ comp: 'M', name: "Men's World Cup", short: 'Men' }, { comp: 'W', name: "Women's World Cup", short: 'Women' }]
 };
@@ -556,8 +573,11 @@ const roundLabel = k => k === 'SF' ? 'Semi-finals' : k === 'Final' ? 'Final' : '
 const inRound = (m, k) => KO.includes(k) ? m.stage === k : (m.stage === 'Pool' && String(m.round) === k);
 const shortRound = k => KO.includes(k) ? k : 'R' + k;
 function defaultRound() {
-  const next = tourMatches().filter(m => !played(m)).sort((a, b) => (a.date || '9').localeCompare(b.date || '9') || String(a.kickoff).localeCompare(String(b.kickoff)))[0];
-  return next ? (isKO(next) ? next.stage : String(next.round)) : 'Final';
+  const from = iso(new Date(Date.now() - 2 * 864e5));
+  const next = tourMatches().filter(m => !played(m) && m.date && m.date >= from).sort((a, b) => a.date.localeCompare(b.date) || String(a.kickoff).localeCompare(String(b.kickoff)))[0];
+  if (next) return isKO(next) ? next.stage : String(next.round);
+  const keys = roundKeys().filter(k => tourMatches().some(m => inRound(m, k)));
+  return keys[keys.length - 1] || 'Final';
 }
 function renderRoundSel() {
   const keys = roundKeys();
@@ -594,8 +614,7 @@ function renderFixtures() {
     const name = s => `<span class="nm${s.proj ? ' proj' : ''}">${esc(s.label)}${s.slot && s.code ? `<br><span class="slot">${esc(s.slot)}${s.proj ? ' · if it ended now' : ''}</span>` : ''}</span>`;
     return `<article class="fx" data-id="${esc(m.id)}"${dirty ? ' data-dirty' : ''}>
       ${tag}
-      <div class="fx-meta"><span>${niceDate(m.date)}${m.kickoff ? ' · ' + niceTime(m.kickoff) : ''}${m.venue ? ' · ' + esc(m.venue) : ''}</span>
-        <button class="link" type="button" data-act="edit">Edit fixture</button></div>
+      <div class="fx-meta">${niceDate(m.date)}${m.kickoff ? ' · ' + niceTime(m.kickoff) : ''}${m.venue ? ' · ' + esc(m.venue) : ''}</div>
       <div class="fx-main">
         <div class="side">${h.code ? crest(h.code) : ''}${name(h)}</div>
         <div class="score">
@@ -613,7 +632,7 @@ function renderFixtures() {
         <label>Attendance<input data-f="attendance" type="number" min="0" inputmode="numeric" value="${v(d.attendance)}"></label>
         <label>Referee<input data-f="referee" type="text" value="${esc(d.referee)}" autocomplete="off"></label>
       </div>
-      <div class="fx-foot"><span class="fx-msg">${dirty ? 'Unsaved changes' : res}</span>
+      <div class="fx-foot"><button class="link" type="button" data-act="edit">Edit fixture</button><span class="fx-msg">${dirty ? 'Unsaved changes' : res}</span>
         <button class="btn btn-primary" type="button" data-act="save"${dirty ? '' : ' disabled'}>Save result</button></div>
     </article>`;
   }).join('');
@@ -621,6 +640,8 @@ function renderFixtures() {
 
 function tableHtml(def, rows, mini) {
   const cut = +state.settings.qualifiers || 0, multi = def.pools.length > 1;
+  const cols = mini ? ['pos','team','p','pdm','ptsm'] : ['pos','team','p','w','d','l','pf','pa','pd','pts','form'];
+  const cg = cols.map(c => `<col class="c-${c}${['pf','pa','form'].includes(c) && !mini ? ' hide-sm' : ''}">`).join('');
   const head = mini
     ? `<thead><tr><th class="l">#</th><th class="l">Team</th><th>P</th><th>PD</th><th>Pts</th></tr></thead>`
     : `<thead><tr><th class="l">#</th><th class="l">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th class="hide-sm">PF</th><th class="hide-sm">PA</th><th>PD</th><th>Pts</th><th class="l hide-sm">Form</th></tr></thead>`;
@@ -633,7 +654,7 @@ function tableHtml(def, rows, mini) {
       ? `<tr ${cls}><td class="l pos">${i + 1}</td>${tm}<td>${r.P}</td><td>${pd}</td><td class="pts">${r.Pts}</td></tr>`
       : `<tr ${cls}><td class="l pos">${i + 1}</td>${tm}<td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td><td class="hide-sm">${r.PF}</td><td class="hide-sm">${r.PA}</td><td>${pd}</td><td class="pts">${r.Pts}</td><td class="l hide-sm">${form}</td></tr>`;
   }).join('');
-  return head + `<tbody>${body}</tbody>`;
+  return `<colgroup>${cg}</colgroup>` + head + `<tbody>${body}</tbody>`;
 }
 function renderMiniTables() {
   $('miniTables').innerHTML = tableDefs().map(def => `<div class="panel"><div class="panel-head"><h2>${esc(def.name)}</h2><button class="link" type="button" data-goto="pools">Full table</button></div>
@@ -646,7 +667,7 @@ function renderPools() {
     const ms = tableMatches(def), done = ms.filter(played).length;
     const note = def.pools.length > 1 ? `One table: Pool ${def.pools.join(' teams play Pool ')} teams. ` : '';
     return `<div class="panel"><div class="panel-head"><h2>${esc(def.name)}</h2><span class="muted" style="font-size:13px">${done} of ${ms.length} played</span></div>
-      <div class="table-wrap"><table class="t">${tableHtml(def, ranked(def), false)}</table></div>
+      <div class="table-wrap"><table class="t full">${tableHtml(def, ranked(def), false)}</table></div>
       <p class="muted" style="font-size:13px;margin:10px 0 0">${esc(note)}Top ${esc(state.settings.qualifiers)} go to the semi-finals. Level on points: ${esc(tb)}.</p></div>`;
   }).join('');
   renderBracket();
@@ -665,7 +686,7 @@ function renderBracket() {
   };
   const champ = koWinner(fin);
   $('bracket').innerHTML = `<div class="col">${sfs.map(tie).join('')}</div><div class="col">${tie(fin)}</div>
-    <div class="col"><div class="tie${champ ? ' champ' : ''}"><span class="eyebrow">World champions</span><div class="row"><span>${champ ? crest(champ) + ' ' + esc(team(champ).name) : '<span class="muted">Decided 15 November</span>'}</span></div></div></div>`;
+    <div class="col"><div class="tie champbox"><span class="eyebrow">World champions</span><div class="row"><span>${champ ? crest(champ) + ' ' + esc(team(champ).name) : '<span>Decided 15 November</span>'}</span></div></div></div>`;
 }
 
 function renderResults() {
@@ -837,6 +858,7 @@ async function refresh() {
       o.date = toDate(m.date); o.stage = o.stage || 'Pool';
       return o;
     });
+    if (!state.roundPicked) state.round = null;
     state.drafts = {}; state.live = true; applyComp();
     notice('');
     setStatus('live', 'Live from your sheet · ' + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
@@ -891,7 +913,7 @@ async function saveResult(id, btn) {
   state.busy = true; btn.disabled = true; btn.textContent = 'Saving…';
   try {
     await writeCells(id, changes);
-    Object.assign(m, changes); delete state.drafts[id];
+    Object.assign(m, changes); delete state.drafts[id]; state.roundPicked = true;
     notice(''); setStatus('live', `Saved ${team(sideCode(m, 'home')).short} v ${team(sideCode(m, 'away')).short} · ` + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
     renderAll();
   } catch (err) {
@@ -951,7 +973,7 @@ async function saveFixture() {
       state.matches.push({ ...EXAMPLE.matches[0], ...rec, homeSlot: '', awaySlot: '', notes: '' });
     }
     $('fxDlg').close();
-    state.round = f.stage === 'Pool' ? String(f.round) : f.stage;
+    state.round = f.stage === 'Pool' ? String(f.round) : f.stage; state.roundPicked = true;
     renderAll();
   } catch (err) { $('fxMsg').textContent = explain(err); }
   finally { $('fxSave').disabled = false; }
@@ -971,7 +993,7 @@ function showTab(name) {
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 $('compSwitch').addEventListener('click', e => {
   const b = e.target.closest('[data-comp]'); if (!b || b.dataset.comp === state.comp) return;
-  state.comp = b.dataset.comp; state.round = null;
+  state.comp = b.dataset.comp; state.round = null; state.roundPicked = false;
   try { localStorage.setItem('wc-comp', state.comp); } catch (err) {}
   applyComp(); fillPickers(); renderAll();
 });
@@ -994,8 +1016,8 @@ function onDraft(e) {
 }
 $('fixtures').addEventListener('input', onDraft);
 $('fixtures').addEventListener('change', onDraft);
-$('roundSel').addEventListener('change', () => { state.round = $('roundSel').value; renderAll(); });
-const step = n => { const k = roundKeys(), i = k.indexOf(state.round); state.round = k[Math.max(0, Math.min(k.length - 1, i + n))]; renderAll(); };
+$('roundSel').addEventListener('change', () => { state.round = $('roundSel').value; state.roundPicked = true; renderAll(); });
+const step = n => { const k = roundKeys(), i = k.indexOf(state.round); state.round = k[Math.max(0, Math.min(k.length - 1, i + n))]; state.roundPicked = true; renderAll(); };
 $('prevRound').addEventListener('click', () => step(-1));
 $('nextRound').addEventListener('click', () => step(1));
 $('addBtn').addEventListener('click', () => openFixture(null));
@@ -1006,8 +1028,10 @@ $('refreshBtn').addEventListener('click', () => state.google && !google_.valid()
 /* ---------- Google Sheets direct (GitHub Pages and other hosts outside claude.ai) ---------- */
 const google_ = {
   cfgKey: 'st_config', tokKey: 'st-google-token', client: null,
-  cfg() { try { return JSON.parse(localStorage.getItem(this.cfgKey) || 'null') || {}; } catch (e) { return {}; } },
-  saveCfg(c) { try { localStorage.setItem(this.cfgKey, JSON.stringify({ ...this.cfg(), ...c })); } catch (e) {} },
+  own() { try { return JSON.parse(localStorage.getItem(this.cfgKey) || 'null') || {}; } catch (e) { return {}; } },
+  // Falls back to the Client ID saved by the book app (same origin family), so it only has to be pasted once.
+  cfg() { let mbl = {}; try { mbl = JSON.parse(localStorage.getItem('mbl_config') || 'null') || {}; } catch (e) {} const own = this.own(); return { clientId: mbl.clientId, ...own }; },
+  saveCfg(c) { try { localStorage.setItem(this.cfgKey, JSON.stringify({ ...this.own(), ...c })); } catch (e) {} },
   tok() { try { return JSON.parse(localStorage.getItem(this.tokKey) || 'null'); } catch (e) { return null; } },
   valid() { const t = this.tok(); return !!(t && t.exp > Date.now()); },
   async callTool(server, tool, input) {
