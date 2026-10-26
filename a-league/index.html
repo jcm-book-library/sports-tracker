@@ -233,6 +233,14 @@ h1{font-weight:900;letter-spacing:-.01em} h2{font-weight:800}
 @media (max-width:900px){.md-grid{grid-template-columns:minmax(0,1fr)}}
 @media (min-width:901px){.md-side{position:sticky;top:16px;align-self:start}}
 .t.mini th,.t.mini td,.t.cmp th,.t.cmp td{padding-inline:6px}
+.t.mini{table-layout:fixed}
+.t.mini .c-pos{width:30px}.t.mini .c-club{width:62px}.t.mini .c-gd{width:44px}.t.mini .c-pts{width:40px}
+.t.mini th,.t.mini td{text-align:center}
+.t.mini td{height:42px;padding-block:0}
+.t.mini td.club .in{justify-content:center}
+.t.mini .logo{width:24px;height:24px}
+.t.mini .form{gap:4px}
+.form i.blank{border:1px dashed color-mix(in srgb,var(--fg) 25%,transparent);background:transparent}
 .t td.club .ctag,.ctag{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
 .t td.club .code{font-family:var(--display);font-weight:700;letter-spacing:.02em}
 .t tr.hl td{background:color-mix(in srgb,var(--accent) 18%,var(--surface))}
@@ -644,16 +652,18 @@ function renderFixtures() {
 function ladderRows(rows, mini) {
   const cut = +state.settings.finalsTeams || 0;
   const head = mini
-    ? `<thead><tr><th class="l">#</th><th class="l">Club</th><th>GD</th><th>PTS</th><th class="l">FORM</th></tr></thead>`
+    ? `<colgroup><col class="c-pos"><col class="c-club"><col class="c-gd"><col class="c-pts"><col></colgroup><thead><tr><th>#</th><th>Club</th><th>GD</th><th>PTS</th><th>Form</th></tr></thead>`
     : `<thead><tr><th class="l">#</th><th class="l">Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th class="hide-sm">GF</th><th class="hide-sm">GA</th><th>GD</th><th>Pts</th><th class="l hide-sm">Form</th></tr></thead>`;
   const body = rows.map((r, i) => {
     const gd = `<span class="${r.GD > 0 ? 'gd-pos' : r.GD < 0 ? 'gd-neg' : ''}">${signed(r.GD)}</span>`;
     const form = `<span class="form">${r.form.slice(-5).map(x => `<i data-r="${x}">${x}</i>`).join('')}</span>`;
-    const club = mini ? `<td class="l club" title="${esc(team(r.code).name)}"><span class="in">${state.logos[r.code] ? crest(r.code) : crest(r.code) + `<span class="code">${esc(r.code)}</span>`}</span></td>`
+    // mini ladder: every column centred; five form slots always, so rows line up before five games are played
+    const slots = mini ? `<span class="form">${[...Array(Math.max(0, 5 - Math.min(5, r.form.length))).fill('<i class="blank"></i>'), ...r.form.slice(-5).map(x => `<i data-r="${x}">${x}</i>`)].join('')}</span>` : '';
+    const club = mini ? `<td class="club" title="${esc(team(r.code).name)}"><span class="in">${state.logos[r.code] ? crest(r.code) : crest(r.code) + `<span class="code">${esc(r.code)}</span>`}</span></td>`
       : `<td class="l club"><span class="in">${crest(r.code)}${esc(team(r.code).name)}</span></td>`;
     const cls = `class="click${i + 1 === cut ? ' cut' : ''}" data-team="${esc(r.code)}"`;
     return mini
-      ? `<tr ${cls}><td class="l pos">${i + 1}</td>${club}<td>${gd}</td><td class="pts">${r.Pts}</td><td class="l">${form}</td></tr>`
+      ? `<tr ${cls}><td class="pos">${i + 1}</td>${club}<td>${gd}</td><td class="pts">${r.Pts}</td><td>${slots}</td></tr>`
       : `<tr ${cls}><td class="l pos">${i + 1}</td>${club}<td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td><td class="hide-sm">${r.GF}</td><td class="hide-sm">${r.GA}</td><td>${gd}</td><td class="pts">${r.Pts}</td><td class="l hide-sm">${form}</td></tr>`;
   }).join('');
   return head + `<tbody>${body}</tbody>`;
