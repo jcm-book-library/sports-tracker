@@ -93,7 +93,22 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .fx-toggle[aria-expanded="true"] .chev{transform:translateY(2px) rotate(-135deg)}
 .fx-toggle .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
 .fx-toggle[aria-expanded="true"] .dot{display:none}
-.fx-more{border-top:1px solid var(--line);padding-top:10px}
+.fx-more{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:10px}
+.fx-scorers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
+.sc-title{grid-column:1 / -1;text-align:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sc-col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sc-col label{text-align:center;font-size:12.5px;font-weight:600;color:var(--muted)}
+.sc-col textarea{width:100%;min-height:92px;resize:vertical;font:13px/1.45 var(--body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+.sc-col textarea:focus{border-color:var(--accent);outline:none}
+.sc-col textarea::placeholder{color:var(--muted);opacity:.7}
+.sc-prev{display:flex;flex-wrap:wrap;gap:4px;font-size:12px;color:var(--muted);align-content:flex-start;min-height:0}
+.sc-prev:empty{display:none}
+.sc-chip{border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--fg);white-space:nowrap}
+.sc-chip.og{border-color:var(--accent-2)}
+.sc-hint{color:var(--accent-2);align-self:center}
+.sc-bad{width:100%;color:var(--danger)}
+.fx-warn{display:flex;flex-direction:column;gap:2px;text-align:center;font-size:12.5px;color:var(--accent-2)}
+.fx-warn:empty{display:none}
 @media (prefers-reduced-motion:reduce){.fx-toggle .chev{transition:none}}
 .fx-extra label{display:flex;flex-direction:column;gap:4px;color:var(--muted)}
 .fx-extra input,.fx-extra select{font:inherit;font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:100%;font-variant-numeric:tabular-nums}
@@ -349,6 +364,8 @@ h1{font-weight:900;letter-spacing:-.01em} h2{font-weight:800}
     <div class="panel" style="margin-top:20px"><div class="panel-head"><h2>Home and away</h2><span class="muted" style="font-size:12px">played regular-season games</span></div><div class="table-wrap"><table class="t cmp" id="homeAway"></table></div></div>
     <div class="panel" style="margin-top:20px"><div class="panel-head"><h2>Half-time</h2><span class="muted" style="font-size:12px" id="htNote"></span></div><div class="tiles" id="htTiles" style="margin-bottom:0"></div></div>
     <div class="panel" style="margin-top:20px"><div class="panel-head"><h2>Half-time record</h2><span class="muted" style="font-size:12px">W-D-L at full time · goals GF–GA</span></div><div class="table-wrap"><table class="t cmp" id="htRecord"></table></div></div>
+    <div class="panel" style="margin-top:20px"><div class="panel-head"><h2>Goal scorers</h2><span class="muted" style="font-size:12px" id="scNote"></span></div><div class="tiles" id="scTiles" style="margin-bottom:12px"></div><div class="table-wrap"><table class="t cmp" id="topScorers"></table></div><p class="muted" style="font-size:13px;margin:12px 0 0" id="ogLine"></p></div>
+    <div class="panel" style="margin-top:20px"><div class="panel-head"><h2>Who scores first</h2><span class="muted" style="font-size:12px" id="fgNote"></span></div><div class="tiles" id="fgTiles" style="margin-bottom:12px"></div><div class="table-wrap"><table class="t cmp" id="firstGoal"></table></div><p class="muted" style="font-size:12px;margin:10px 0 0">Scored first and conceded first are shown as W-D-L at full time.</p></div>
     <div class="sgrid">
       <div class="panel"><div class="panel-head"><h2>Biggest wins</h2></div><ul class="list" id="bigWins"></ul></div>
       <div class="panel"><div class="panel-head"><h2>Highest scoring</h2></div><ul class="list" id="highScoring"></ul></div>
@@ -431,8 +448,9 @@ h1{font-weight:900;letter-spacing:-.01em} h2{font-weight:800}
 <script>
 const SHEET_ID = '1YNszytKR0DjU0VPEs5lCq260qwOuOuRgrqTt2erI8Uo';
 const SERVER = 'Google Sheets';
-const MATCH_COLS = ['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status','homeHT','awayHT'];
+const MATCH_COLS = ['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status','homeHT','awayHT','homeScorers','awayScorers'];
 const NUM_FIELDS = ['round','playedRound','homeGoals','awayGoals','homeReds','awayReds','attendance','homePens','awayPens','homeHT','awayHT'];
+const SC_FIELDS = ['homeScorers','awayScorers'];
 const STAGES = { Regular: 'Regular season', EF: 'Elimination finals', SF1: 'Semi-finals · leg 1', SF2: 'Semi-finals · leg 2', GF: 'Grand final' };
 const FINAL_STAGES = ['EF','SF1','SF2','GF'];
 
@@ -588,17 +606,95 @@ function renderRoundSel() {
   $('prevRound').disabled = i <= 0; $('nextRound').disabled = i >= keys.length - 1;
 }
 
+/* ---------- goal scorers ----------
+   Pasted from the A-League site (one scorer per line, e.g. B. Borrello 43') and saved as one tidy line of text in the
+   Matches tab (homeScorers / awayScorers): B. Borrello 43'; L. Gillion 45+2'; N. Milanovic 50' (pen)
+   Players are matched by name, so no player list is needed. The same name in two clubs is counted as one player. */
+const plainName = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/['’`.]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+// initial + surname, so "N. Milanović" and "Nikola Milanovic" are the same player
+const nameKey = name => { const t = plainName(name).split(' ').filter(Boolean); return t.length < 2 ? (t[0] || '') : t[0][0] + ' ' + t.slice(1).join(' '); };
+const NOT_A_SCORER = /^(goals?|goal ?scorers?|scorers?|own goals?|penalt(?:y|ies))\s*:?$/i;
+function parseScorers(text) {
+  const goals = [], bad = [], skipped = [];
+  const clubWords = state.teams.flatMap(t => [t.code, t.name, t.short]).map(plainName);
+  String(text || '').split(/\r?\n|;/).forEach(raw => {
+    const line = raw.replace(/[\u26BD\u{1F945}]/gu, ' ').replace(/^[\s•·*\-–—]+/, '').replace(/^\d+[.)]\s+/, '').trim();
+    if (!line) return;
+    if (NOT_A_SCORER.test(line) || clubWords.includes(plainName(line))) { skipped.push(line); return; }
+    const re = /(\d{1,3})(?:\s*\+\s*(\d{1,2}))?\s*['’′`]?|\(([^)]*)\)|\[([^\]]*)\]/g;
+    const made = []; let m, rest = '', last = 0, pend = null;
+    while ((m = re.exec(line))) {
+      rest += line.slice(last, m.index) + ' '; last = re.lastIndex;
+      if (m[1] != null) made.push({ min: +m[1], extra: m[2] ? +m[2] : 0, type: null });
+      else {
+        const t = String(m[3] ?? m[4] ?? '').trim().toLowerCase();
+        const type = /^(p|pen|pens|pk|penalty)\b/.test(t) ? 'pen' : /^(og|o\.?\s?g\.?|own goal)/.test(t) ? 'og' : null;
+        if (type) { if (made.length) made[made.length - 1].type = type; else pend = type; }
+      }
+    }
+    rest += line.slice(last);
+    const bare = /\b(pen|pk|og)\b\.?\s*$/i.exec(rest);
+    if (bare) { pend = pend || (/og/i.test(bare[1]) ? 'og' : 'pen'); rest = rest.slice(0, bare.index); }
+    const name = rest.replace(/[,&]/g, ' ').replace(/\band\b/gi, ' ').replace(/^[\s:\-–—]+|[\s:\-–—]+$/g, '').replace(/\s+/g, ' ');
+    if (!/[a-z\u00C0-\u024F]{2}/i.test(name) || made.some(g => g.min > 130)) { bad.push(line); return; }
+    if (!made.length) made.push({ min: null, extra: 0, type: null });
+    made.forEach(g => goals.push({ name, key: nameKey(name), min: g.min, extra: g.extra, type: g.type || pend || 'goal' }));
+  });
+  return { goals, bad, skipped };
+}
+const fmtGoal = g => `${g.name}${g.min != null ? ' ' + g.min + (g.extra ? '+' + g.extra : '') + "'" : ''}${g.type === 'pen' ? ' (pen)' : g.type === 'og' ? ' (OG)' : ''}`;
+const scorerText = raw => parseScorers(raw).goals.map(fmtGoal).join('; ');      // what is saved in the sheet
+const scorerLines = raw => parseScorers(raw).goals.map(fmtGoal).join('\n');     // what the box shows
+// goals in played games, with the club each player scored for (an own goal belongs to the other side's club)
+function seasonGoals() {
+  const out = [];
+  seasonMatches().filter(played).forEach(m => ['home', 'away'].forEach(side => parseScorers(m[side + 'Scorers']).goals.forEach(g =>
+    out.push({ ...g, m, side, club: g.type === 'og' ? (side === 'home' ? m.away : m.home) : m[side] }))));
+  return out;
+}
+const lev = (a, b) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
+// a name that isn't known for this club yet but looks like one that is (a missing initial, or one letter out)
+function suggestName(key, club, exceptId) {
+  const known = new Map(); seasonGoals().filter(g => g.club === club && g.type !== 'og' && g.m.id !== exceptId).forEach(g => { if (!known.has(g.key)) known.set(g.key, g.name); });
+  if (!key || known.has(key)) return null;
+  const parts = k => { const t = k.split(' '); return t.length < 2 ? ['', t[0]] : [t[0], t.slice(1).join(' ')]; }, [yi, ys] = parts(key);
+  for (const [k, name] of known) { const [ki, ks] = parts(k); if ((!yi || !ki || yi === ki) && (ks === ys || (ks.length > 3 && lev(ks, ys) === 1))) return name; }
+  return null;
+}
+function scorerPreview(m, d, side) {
+  const p = parseScorers(d[side + 'Scorers']);
+  const chips = p.goals.map(g => { const hint = g.type === 'og' ? null : suggestName(g.key, m[side], m.id); return `<span class="sc-chip${g.type === 'og' ? ' og' : ''}">${esc(fmtGoal(g))}</span>${hint ? `<span class="sc-hint">≈ ${esc(hint)}?</span>` : ''}`; }).join('');
+  return chips + p.bad.map(b => `<span class="sc-bad">Can't read: ${esc(b)}</span>`).join('');
+}
+// soft checks only: they never stop a save (except lines that can't be read)
+function scorerWarn(m, d) {
+  const out = [], P = {};
+  for (const [side, sc] of [['home', d.homeGoals], ['away', d.awayGoals]]) {
+    const p = P[side] = parseScorers(d[side + 'Scorers']), nm = team(m[side]).short;
+    if (p.bad.length) out.push(`${nm}: ${p.bad.length} line${p.bad.length > 1 ? 's' : ''} in the scorers box can't be read`);
+    if (p.goals.length && sc != null && p.goals.length !== sc) out.push(`${nm}: ${p.goals.length} scorer${p.goals.length === 1 ? '' : 's'} listed, score is ${sc}`);
+  }
+  const ok = (side, sc) => sc != null && P[side].goals.length === sc && P[side].goals.every(g => g.min != null);
+  if (d.homeHT != null && d.awayHT != null && ok('home', d.homeGoals) && ok('away', d.awayGoals)) {
+    const fh = side => P[side].goals.filter(g => g.min <= 45).length, h = fh('home'), a = fh('away');
+    if (h !== d.homeHT || a !== d.awayHT) out.push(`Goals up to 45' add to ${h}–${a}, half-time score is ${d.homeHT}–${d.awayHT}`);
+  }
+  return out.map(x => `<div>${esc(x)}</div>`).join('');
+}
+
 function draftOf(m) {
   return state.drafts[m.id] || (state.drafts[m.id] = {
     homeGoals: m.homeGoals, awayGoals: m.awayGoals, homeReds: m.homeReds, awayReds: m.awayReds,
-    attendance: m.attendance, extraTime: m.extraTime || '', homePens: m.homePens, awayPens: m.awayPens, homeHT: m.homeHT, awayHT: m.awayHT
+    attendance: m.attendance, extraTime: m.extraTime || '', homePens: m.homePens, awayPens: m.awayPens, homeHT: m.homeHT, awayHT: m.awayHT,
+    homeScorers: scorerLines(m.homeScorers), awayScorers: scorerLines(m.awayScorers)
   });
 }
-const DRAFT_FIELDS = ['homeGoals','awayGoals','homeReds','awayReds','attendance','extraTime','homePens','awayPens','homeHT','awayHT'];
+const DRAFT_FIELDS = ['homeGoals','awayGoals','homeReds','awayReds','attendance','extraTime','homePens','awayPens','homeHT','awayHT','homeScorers','awayScorers'];
 const hasHT = m => played(m) && m.homeHT != null && m.awayHT != null;
 const htBad = d => [d.homeHT != null && d.homeGoals != null && d.homeHT > d.homeGoals, d.awayHT != null && d.awayGoals != null && d.awayHT > d.awayGoals];
 const htWarn = (m, d) => { const [h, a] = htBad(d); return h || a ? `HT is higher than FT (${[h && team(m.home).short, a && team(m.away).short].filter(Boolean).join(', ')})` : ''; };
-const changedFields = m => { const d = draftOf(m); return DRAFT_FIELDS.filter(f => (d[f] ?? '') !== (m[f] ?? '')); };
+const changedFields = m => { const d = draftOf(m); return DRAFT_FIELDS.filter(f => SC_FIELDS.includes(f) ? scorerText(d[f]) !== scorerText(m[f]) : (d[f] ?? '') !== (m[f] ?? '')); };
 
 function renderHeld() {
   const list = seasonMatches().filter(isPost).sort((a, b) => (a.round || 0) - (b.round || 0));
@@ -656,7 +752,12 @@ function renderFixtures() {
         ${fin ? `<label>Extra time<select id="et-${esc(m.id)}" data-f="extraTime"><option value="">No</option><option value="Y"${d.extraTime === 'Y' ? ' selected' : ''}>Yes</option></select></label>
         <label>Penalties<span class="pair"><input id="hp-${esc(m.id)}" data-f="homePens" type="number" min="0" inputmode="numeric" value="${v(d.homePens)}" aria-label="${esc(team(m.home).short)} penalties"><input id="ap-${esc(m.id)}" data-f="awayPens" type="number" min="0" inputmode="numeric" value="${v(d.awayPens)}" aria-label="${esc(team(m.away).short)} penalties"></span></label>` : ''}
       </div>
+      <div class="fx-scorers">
+        <div class="sc-title">Goal scorers</div>
+        ${['home', 'away'].map(s => `<div class="sc-col"><label for="${s[0]}s-${esc(m.id)}">${esc(team(m[s]).short)}</label><textarea id="${s[0]}s-${esc(m.id)}" data-f="${s}Scorers" rows="4" spellcheck="false" autocomplete="off" placeholder="One scorer per line, e.g. B. Borrello 43'">${esc(d[s + 'Scorers'])}</textarea><div class="sc-prev" data-side="${s}">${scorerPreview(m, d, s)}</div></div>`).join('')}
       </div>
+      </div>
+      <div class="fx-warn" aria-live="polite">${scorerWarn(m, d)}</div>
       <div class="fx-foot"><button class="link" type="button" data-act="edit">Edit fixture</button><span class="fx-msg${warn ? ' warn' : ''}">${warn ? esc(warn) : dirty ? 'Unsaved changes' : res ? `<span class="res" data-r="${m.homeGoals === m.awayGoals ? 'D' : 'W'}">${res}</span>` : 'Not played yet'}</span>
         <button class="btn btn-primary" type="button" data-act="save"${dirty ? '' : ' disabled'}>Save result</button></div>
     </article>`;
@@ -745,7 +846,10 @@ function renderResults() {
   $('results').innerHTML = groups.map(([k, g]) => `<div class="rd"><h3>${esc(roundLabel(k))}</h3>${g.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(m => {
     const hw = m.homeGoals > m.awayGoals, aw = m.awayGoals > m.homeGoals;
     const bits = [niceDate(m.date), hasHT(m) ? `HT ${m.homeHT}–${m.awayHT}` : '', m.venue, m.attendance ? fmt(m.attendance) + ' crowd' : '', (m.homeReds || m.awayReds) ? `${(m.homeReds || 0) + (m.awayReds || 0)} red` : '', m.extraTime === 'Y' ? 'after extra time' : '', m.homePens != null && m.awayPens != null ? `${m.homePens}–${m.awayPens} on penalties` : ''].filter(Boolean);
-    return `<div class="line"><span class="h${hw ? ' win' : ''}">${esc(team(m.home).short)}</span><span class="sc">${m.homeGoals}–${m.awayGoals}</span><span class="a${aw ? ' win' : ''}">${esc(team(m.away).short)}</span><span class="sub">${esc(bits.join(' · '))}</span></div>`;
+    const scl = side => { const by = new Map(); parseScorers(m[side + 'Scorers']).goals.forEach(g => { const k = g.key + '|' + (g.type === 'og'); const e = by.get(k) || { name: g.name, t: [] }; e.t.push(g.min != null ? g.min + (g.extra ? '+' + g.extra : '') + "'" + (g.type === 'pen' ? ' pen' : g.type === 'og' ? ' og' : '') : (g.type === 'pen' ? 'pen' : g.type === 'og' ? 'og' : '')); by.set(k, e); });
+      return by.size ? m[side] + ': ' + [...by.values()].map(e => (e.name + ' ' + e.t.filter(Boolean).join(', ')).trim()).join(', ') : ''; };
+    const scorers = [scl('home'), scl('away')].filter(Boolean).join(' · ');
+    return `<div class="line"><span class="h${hw ? ' win' : ''}">${esc(team(m.home).short)}</span><span class="sc">${m.homeGoals}–${m.awayGoals}</span><span class="a${aw ? ' win' : ''}">${esc(team(m.away).short)}</span><span class="sub">${esc(bits.join(' · '))}</span>${scorers ? `<span class="sub">Goals: ${esc(scorers)}</span>` : ''}</div>`;
   }).join('')}</div>`).join('');
 }
 
@@ -812,6 +916,57 @@ function renderStats() {
   const vens = {}; crowds.forEach(m => { if (!m.venue) return; (vens[m.venue] = vens[m.venue] || []).push(m.attendance); });
   const vRows = Object.entries(vens).map(([v, a]) => ({ v, avg: a.reduce((s, x) => s + x, 0) / a.length, n: a.length })).sort((a, b) => b.avg - a.avg);
   $('venues').innerHTML = vRows.length ? vRows.map(x => li(`${esc(x.v)} <span class="muted">(${x.n})</span>`, fmt(Math.round(x.avg)))).join('') : empty('Add venues and attendances on Matchday.');
+  renderScorerStats(ms);
+}
+
+// Top scorers, braces, penalties, own goals, and who scores first (needs minutes). Players are matched by name.
+function renderScorerStats(ms) {
+  const tile = (label, num, sub) => `<div class="stat"><span class="eyebrow">${label}</span><span class="num">${num}</span><span class="sub">${sub}</span></div>`;
+  const none = (cols, t) => `<tbody><tr><td class="l muted" colspan="${cols}">${t}</td></tr></tbody>`, pc = (n, d) => d ? Math.round(n / d * 100) + '%' : '–';
+  const gs = seasonGoals(), own = gs.filter(g => g.type === 'og'), real = gs.filter(g => g.type !== 'og');
+  const withSc = ms.filter(m => m.homeScorers || m.awayScorers);
+  const full = m => [['home', m.homeGoals], ['away', m.awayGoals]].every(([s, n]) => parseScorers(m[s + 'Scorers']).goals.length === n);
+  const short = withSc.filter(m => !full(m)).length;
+  $('scNote').textContent = withSc.length ? `from ${withSc.length} game${withSc.length === 1 ? '' : 's'}${short ? ` · ${short} with fewer scorers than goals` : ''}` : '';
+  const P = new Map();
+  real.forEach(g => { const p = P.get(g.key) || { names: new Map(), clubs: new Map(), goals: 0, pens: 0, per: new Map() };
+    p.names.set(g.name, (p.names.get(g.name) || 0) + 1); p.clubs.set(g.club, (p.clubs.get(g.club) || 0) + 1); p.goals++; if (g.type === 'pen') p.pens++; p.per.set(g.m.id, (p.per.get(g.m.id) || 0) + 1); P.set(g.key, p); });
+  const players = [...P.values()].map(p => ({ ...p, name: [...p.names].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0], clubList: [...p.clubs].sort((a, b) => b[1] - a[1]).map(x => x[0]), games: p.per.size,
+    braces: [...p.per.values()].filter(n => n === 2).length, hats: [...p.per.values()].filter(n => n >= 3).length })).sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name));
+  const pens = real.filter(g => g.type === 'pen').length, braces = players.reduce((s, p) => s + p.braces, 0), hats = players.reduce((s, p) => s + p.hats, 0);
+  $('scTiles').innerHTML = gs.length ? [
+    tile('Scorers', players.length, `${real.length} goal${real.length === 1 ? '' : 's'} listed`), tile('Top scorer', players.length ? players[0].goals : '–', players.length ? esc(players[0].name) : ''),
+    tile('Braces', braces, 'two in a game'), tile('Hat-tricks', hats, 'three or more'), tile('Penalties', pens, pc(pens, real.length) + ' of goals'), tile('Own goals', own.length, own.length ? 'listed below' : 'none')
+  ].join('') : '<div class="muted" style="grid-column:1 / -1;font-size:14px">Paste the goal scorers under Details on Matchday to see this.</div>';
+  const cut = players.length > 15 ? players[14].goals : 0, shown = players.filter((p, i) => i < 15 || p.goals === cut);
+  let rk = 0;
+  $('topScorers').innerHTML = `<thead><tr><th class="l">#</th><th class="l">Player</th><th class="l">Club</th><th>Goals</th><th>Pens</th><th>Games</th></tr></thead>` + (shown.length
+    ? `<tbody>${shown.map((p, i) => { if (!i || p.goals !== shown[i - 1].goals) rk = i + 1; return `<tr><td class="l pos">${rk}</td><td class="l">${esc(p.name)}</td><td class="l club">${p.clubList.map(clubTag).join(' ')}</td><td class="pts">${p.goals}</td><td>${p.pens || '–'}</td><td>${p.games}</td></tr>`; }).join('')}</tbody>` : none(6, 'No scorers listed yet.'));
+  const og = new Map(); own.forEach(g => { const e = og.get(g.key) || { name: g.name, club: g.club, n: 0 }; e.n++; og.set(g.key, e); });
+  $('ogLine').innerHTML = og.size ? 'Own goals: ' + [...og.values()].map(e => `${esc(e.name)} ${clubTag(e.club)}${e.n > 1 ? ' ×' + e.n : ''}`).join(' · ') : '';
+
+  // who scores first: only games where the listed goals add up to the score and every goal has a minute
+  const ev = [];
+  ms.forEach(m => {
+    const H = parseScorers(m.homeScorers).goals, A = parseScorers(m.awayScorers).goals;
+    if (H.length !== m.homeGoals || A.length !== m.awayGoals || ![...H, ...A].every(g => g.min != null)) return;
+    if (!H.length && !A.length) { ev.push({ m, first: null }); return; }
+    const t = g => g.min + (g.extra || 0) / 100, h = H.length ? Math.min(...H.map(t)) : Infinity, a = A.length ? Math.min(...A.map(t)) : Infinity;
+    if (h === a) return;
+    ev.push({ m, first: h < a ? 'home' : 'away', t: Math.min(h, a) });
+  });
+  const fg = ev.filter(e => e.first), res = e => { const d = e.m.homeGoals - e.m.awayGoals; return (e.first === 'home' ? d : -d) > 0 ? 0 : (e.first === 'home' ? d : -d) < 0 ? 2 : 1; };
+  const rr = [0, 0, 0]; fg.forEach(e => rr[res(e)]++);
+  const earliest = fg.length ? fg.reduce((b, e) => e.t < b.t ? e : b) : null;
+  $('fgNote').textContent = ms.length ? `from ${ev.length} of ${ms.length} games (needs scorers with minutes)` : '';
+  $('fgTiles').innerHTML = ev.length ? [
+    tile('Scored first, won', rr[0], `of ${fg.length} games`), tile('Scored first, drew', rr[1], pc(rr[1], fg.length) + ' of games'), tile('Scored first, lost', rr[2], pc(rr[2], fg.length) + ' · comebacks'),
+    tile('Goalless', ev.length - fg.length, '0–0 draws'), tile('Average first goal', fg.length ? Math.round(fg.reduce((s, e) => s + Math.floor(e.t), 0) / fg.length) + "'" : '–', 'minute'),
+    tile('Earliest first goal', earliest ? Math.floor(earliest.t) + "'" : '–', earliest ? esc(earliest.m[earliest.first]) + ' v ' + esc(earliest.m[earliest.first === 'home' ? 'away' : 'home']) : '')
+  ].join('') : '<div class="muted" style="grid-column:1 / -1;font-size:14px">Paste scorers with their minutes for a game to see this.</div>';
+  const frec = code => { const r = { sf: [0, 0, 0], cf: [0, 0, 0], n: 0 }; fg.forEach(e => { const m = e.m, home = m.home === code; if (!home && m.away !== code) return; const mine = home ? m.homeGoals : m.awayGoals, theirs = home ? m.awayGoals : m.homeGoals; ((e.first === 'home') === home ? r.sf : r.cf)[mine > theirs ? 0 : mine < theirs ? 2 : 1]++; r.n++; }); return r; };
+  $('firstGoal').innerHTML = `<thead><tr><th class="l">Club</th><th>Games</th><th>Scored first</th><th>Conceded first</th></tr></thead><tbody>${currentLadder().map(r => {
+    const f = frec(r.code); return `<tr><td class="l club">${clubTag(r.code)}</td><td>${f.n || '–'}</td><td>${f.n ? f.sf.join('-') : '–'}</td><td>${f.n ? f.cf.join('-') : '–'}</td></tr>`; }).join('')}</tbody>`;
 }
 
 // Half-time record for one club over games that have both HT values (2nd half = full time minus half time).
@@ -880,10 +1035,16 @@ function showTeam(code) {
       <dt>Home / away</dt><dd>${r ? `${r.homePts} pts from ${r.homeP} · ${r.awayPts} pts from ${r.awayP}` : '–'}</dd>
       <dt>Home crowd</dt><dd>${homeCrowds.length ? fmt(Math.round(homeCrowds.reduce((s, m) => s + m.attendance, 0) / homeCrowds.length)) + ' average' : '–'}</dd>
       <dt>Red cards</dt><dd>${reds}</dd>
+      ${topScorerRow(code)}
       ${ht.n ? `<dt>Half-time</dt><dd>led ${htN(ht.led)} (won ${ht.led[0]}), trailed ${htN(ht.trl)} (came back ${ht.trl[0]})</dd>` : ''}
       <dt>Home ground</dt><dd>${esc(t.homeVenue || '–')}</dd></dl>
     <ul class="list">${list || '<li class="muted">No fixtures yet.</li>'}</ul>`;
   $('teamDlg').showModal();
+}
+function topScorerRow(code) {
+  const by = new Map(); seasonGoals().filter(g => g.club === code && g.type !== 'og').forEach(g => { const e = by.get(g.key) || { name: g.name, n: 0 }; e.n++; by.set(g.key, e); });
+  const best = [...by.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+  return best.length ? `<dt>Top scorer</dt><dd>${esc(best[0].name)} (${best[0].n})${best[1] && best[1].n === best[0].n ? ' and others' : ''}</dd>` : '';
 }
 const getOrdinal = n => (['th','st','nd','rd'][(n % 100 - 20) % 10] || ['th','st','nd','rd'][n % 100] || 'th');
 
@@ -1018,7 +1179,8 @@ async function saveResult(id, btn) {
   if (!state.live) { notice('Saving needs the live connection to your sheet. ' + connectHint(), 'error'); return; }
   const d = draftOf(m), fields = changedFields(m);
   if ((d.homeGoals == null) !== (d.awayGoals == null)) { notice('Enter both scores, or clear both to remove the result.', 'error'); return; }
-  const changes = {}; fields.forEach(f => changes[f] = d[f]);
+  if (SC_FIELDS.some(f => fields.includes(f) && parseScorers(d[f]).bad.length)) { notice("A line in the goal scorers box can't be read. Fix or remove it, then save again.", 'error'); return; }
+  const changes = {}; fields.forEach(f => changes[f] = SC_FIELDS.includes(f) ? scorerText(d[f]) : d[f]);
   state.busy = true; btn.disabled = true; btn.textContent = 'Saving…';
   try {
     await writeCells(id, changes);
@@ -1206,7 +1368,9 @@ document.addEventListener('click', e => {
 $('fixtures').addEventListener('input', e => {
   const inp = e.target.closest('[data-f]'); if (!inp) return;
   const card = inp.closest('.fx'), m = state.matches.find(x => x.id === card.dataset.id), d = draftOf(m), f = inp.dataset.f;
-  d[f] = f === 'extraTime' ? inp.value : (inp.value === '' ? null : toNum(inp.value));
+  d[f] = SC_FIELDS.includes(f) || f === 'extraTime' ? inp.value : (inp.value === '' ? null : toNum(inp.value));
+  if (SC_FIELDS.includes(f)) { const side = f.startsWith('home') ? 'home' : 'away'; card.querySelector(`.sc-prev[data-side="${side}"]`).innerHTML = scorerPreview(m, d, side); }
+  card.querySelector('.fx-warn').innerHTML = scorerWarn(m, d);
   const dirty = changedFields(m).length > 0;
   card.toggleAttribute('data-dirty', dirty);
   card.querySelector('[data-act="save"]').disabled = !dirty;
