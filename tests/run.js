@@ -123,11 +123,25 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
     const id = ids[i];
     await page.fill(`#hg-${id}`, String(scores[i][0]));
     await page.fill(`#ag-${id}`, String(scores[i][1]));
+    if (i === 0) {
+      // Details start folded away; the unsaved-changes dot shows once something inside is edited
+      check('Details start collapsed on every card', await page.$$eval('.fx[data-id] .fx-toggle', ts => ts.length > 0 && ts.every(t => t.getAttribute('aria-expanded') === 'false' && document.getElementById(t.getAttribute('aria-controls')).hidden)));
+      check('only teams, score and HT are visible while collapsed', !(await page.isVisible(`#at-${id}`)) && (await page.isVisible(`#hg-${id}`)) && (await page.isVisible(`#hh-${id}`)));
+    }
+    await page.click(`.fx[data-id="${id}"] .fx-toggle`);
+    if (i === 0) check('toggle opens Details and updates aria-expanded', (await page.isVisible(`#at-${id}`)) && (await page.getAttribute(`.fx[data-id="${id}"] .fx-toggle`, 'aria-expanded')) === 'true');
     await page.fill(`#at-${id}`, String(scores[i][2]));
     if (i === 3) await page.fill(`#hr-${id}`, '1');
     await page.click(`.fx[data-id="${id}"] [data-act="save"]`);
     await page.waitForFunction(id => !document.querySelector(`.fx[data-id="${id}"]`).hasAttribute('data-dirty'), id);
   }
+  check('opened Details stay open after saving and re-rendering', await page.$$eval('.fx .fx-toggle', ts => ts.filter(t => t.getAttribute('aria-expanded') === 'true').length >= 4));
+  // a hidden-field edit on a folded card shows the dot and enables Save
+  const fold = ids[4];
+  check('folded card has no unsaved dot', await page.$eval(`.fx[data-id="${fold}"] .fx-toggle .dot`, d => d.hidden));
+  await page.click(`.fx[data-id="${fold}"] .fx-toggle`); await page.fill(`#at-${fold}`, '12345'); await page.click(`.fx[data-id="${fold}"] .fx-toggle`);
+  check('editing inside a folded card shows the unsaved dot and enables Save', (await page.isVisible(`.fx[data-id="${fold}"] .fx-toggle .dot`)) && !(await page.isDisabled(`.fx[data-id="${fold}"] [data-act="save"]`)));
+  await page.fill(`#at-${fold}`, '').catch(async () => { await page.click(`.fx[data-id="${fold}"] .fx-toggle`); await page.fill(`#at-${fold}`, ''); });
   const sheet = await page.evaluate(() => window.__SHEET.Matches);
   console.log('Matches rows:'); sheet.forEach(r => console.log('  ' + JSON.stringify(r)));
   const calls = await page.evaluate(() => window.__CALLS.filter(c => c[0] !== 'get_values'));

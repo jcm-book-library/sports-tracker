@@ -75,7 +75,10 @@ let kickTests;
   for (const w of [1280, 390]) { const f = await fit(w); check(`"88" fits score input at ${w}px`, f.sw <= f.cw, JSON.stringify(f)); if (w === 1280) check('score input is 64px wide and Nunito 700', f.w === 64 && /Nunito/.test(f.ff) && f.fw === '700', JSON.stringify(f)); else check('phone score input is 58px wide', f.w === 58, f.w); }
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({ path: path.join(__dirname, 'wc-matchday-desktop.png'), fullPage: true });
+  const CORE = ['homeScore', 'awayScore', 'homeHT', 'awayHT'];
+  const openMore = async id => { if ((await page.getAttribute(`.fx[data-id="${id}"] .fx-toggle`, 'aria-expanded')) !== 'true') await page.click(`.fx[data-id="${id}"] .fx-toggle`); };
   const save = async (id, vals) => {
+    if (Object.keys(vals).some(f => !CORE.includes(f))) await openMore(id);
     for (const [f, v] of Object.entries(vals)) {
       const sel = `.fx[data-id="${id}"] [data-f="${f}"]`;
       if (f === 'goldenPoint') await page.selectOption(sel, v); else await page.fill(sel, String(v));
@@ -94,6 +97,11 @@ let kickTests;
     check('card has all 18 HT/kicking inputs', XH.every(f => have.includes(f)), XH.filter(f => !have.includes(f)).join(','));
     check('seeded HT/kicking values load into inputs', (await page.inputValue('.fx[data-id="M01"] [data-f="homeHT"]')) === '10' && (await page.inputValue('.fx[data-id="M01"] [data-f="awayConvAtt"]')) === '2');
     check('seeded game with right breakdown shows no warning', (await page.textContent('.fx[data-id="M01"] .fx-warn')).trim() === '');
+    // Details: only teams, score and HT show until the toggle is opened
+    check('Details start collapsed on every card', await page.$$eval('.fx .fx-toggle', ts => ts.length > 0 && ts.every(t => t.getAttribute('aria-expanded') === 'false' && document.getElementById(t.getAttribute('aria-controls')).hidden)));
+    check('only teams, score and HT are visible while collapsed', !(await page.isVisible('.fx[data-id="M01"] [data-f="homeConv"]')) && !(await page.isVisible('.fx[data-id="M01"] [data-f="attendance"]')) && (await page.isVisible('.fx[data-id="M01"] [data-f="homeScore"]')) && (await page.isVisible('.fx[data-id="M01"] [data-f="homeHT"]')));
+    await page.click('.fx[data-id="M01"] .fx-toggle');
+    check('toggle opens Details and updates aria-expanded', (await page.isVisible('.fx[data-id="M01"] [data-f="homeConv"]')) && (await page.getAttribute('.fx[data-id="M01"] .fx-toggle', 'aria-expanded')) === 'true');
     const labs = await page.$$eval('.fx[data-id="M01"] .sd-lab', ls => ls.map(l => l.textContent.trim()));
     check('scoring block rows in order', JSON.stringify(labs) === JSON.stringify(['Tries', 'Conversions', 'Penalty goals', 'Field goals 1 pt', 'Field goals 2 pt', 'Sin bins', 'Send-offs']), labs.join(','));
     // 2. symmetry: HT pair centred under score boxes, scoring rows mirrored about the card centre
@@ -120,7 +128,8 @@ let kickTests;
     console.log('  diff:', diff.join(','));
     check('sheet differs only in those cells', diff.length >= 4 && diff.every(d => d.endsWith('@' + m06) && /^(homeHT|awayHT|homeConv|homeConvAtt|updatedAt)@/.test(d)), diff.join(','));
     check('written values are numbers', await page.evaluate(m => { const r = window.__SHEET.Matches[m - 1], h = window.__SHEET.Matches[0]; return r[h.indexOf('homeConv')] === 5 && r[h.indexOf('homeHT')] === 18; }, m06));
-    // 4. breakdown warnings
+    // 4. breakdown warnings (they stay visible even while Details are folded away)
+    await openMore('M07');
     const warn = () => page.textContent('.fx[data-id="M07"] .fx-warn');
     await page.fill('.fx[data-id="M07"] [data-f="homeConv"]', '1');
     check('wrong breakdown shows mismatch message', /Papua New Guinea breakdown adds to 14, score is 16/.test(await warn()), await warn());
@@ -131,6 +140,10 @@ let kickTests;
     check('made > attempts warning', /conversions: 2 made from 1 attempted/.test(await warn()), await warn());
     await page.fill('.fx[data-id="M07"] [data-f="homeHT"]', '20');
     check('HT higher than full time warning', /half-time 20 is higher than full time 16/.test(await warn()), await warn());
+    await page.click('.fx[data-id="M07"] .fx-toggle');
+    check('warning and unsaved dot stay visible with Details folded', (await page.isVisible('.fx[data-id="M07"] .fx-warn')) && (await page.isVisible('.fx[data-id="M07"] .fx-toggle .dot')) && !(await page.isVisible('.fx[data-id="M07"] [data-f="homeConv"]')));
+    await page.click('.fx[data-id="M07"] .fx-toggle');
+    check('opened Details stay open across a re-render', await (async () => { await page.selectOption('#roundSel', '1'); await page.selectOption('#roundSel', '2'); return (await page.getAttribute('.fx[data-id="M07"] .fx-toggle', 'aria-expanded')) === 'true' && (await page.isVisible('.fx[data-id="M07"] [data-f="homeConv"]')); })());
     // 5. men's stats
     await page.click('#tab-stats'); await page.waitForTimeout(300);
     check('men stats: from 5 games', /from 5 games$/.test((await page.textContent('#htNote')).trim()), await page.textContent('#htNote'));

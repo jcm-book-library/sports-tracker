@@ -111,7 +111,14 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .ht{display:flex;justify-content:center;align-items:center;gap:8px}
 .ht input{width:40px;height:34px;text-align:center;font:700 16px/1 var(--score);font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:0}
 .htl{width:26px;text-align:center;font:700 11px/1 var(--display);letter-spacing:.08em;color:var(--muted)}
-.sd{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.fx-toggle{align-self:center;display:inline-flex;align-items:center;gap:7px;padding:4px 10px}
+.fx-toggle .chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.fx-toggle[aria-expanded="true"] .chev{transform:translateY(2px) rotate(-135deg)}
+.fx-toggle .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.fx-toggle[aria-expanded="true"] .dot{display:none}
+.fx-more{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:10px}
+@media (prefers-reduced-motion:reduce){.fx-toggle .chev{transition:none}}
+.sd{display:flex;flex-direction:column;gap:6px}
 .sd-row{display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);align-items:center;gap:6px}
 .sd-side{display:flex;align-items:center;justify-content:center;gap:3px;min-width:0}
 .sd-lab{text-align:center;font-size:12.5px;line-height:1.2;color:var(--muted)}
@@ -504,7 +511,7 @@ const state = {
   settings: { ...EXAMPLE.settings },
   teams: EXAMPLE.teams.map(t => ({ ...t })),
   venues: [], matches: EXAMPLE.matches.map(m => ({ ...m })),
-  round: null, roundPicked: false, tab: 'matchday', drafts: {}, chart: null,
+  round: null, roundPicked: false, tab: 'matchday', drafts: {}, chart: null, open: new Set(),
   base: { ...EXAMPLE.settings }, allTeams: EXAMPLE.teams.map(t => ({ ...t, comp: 'M' })), comp: 'M',
   comps: [{ comp: 'M', name: "Men's World Cup", short: 'Men' }, { comp: 'W', name: "Women's World Cup", short: 'Women' }]
 };
@@ -689,6 +696,14 @@ function draftOf(m) {
 }
 const changedFields = m => { const d = draftOf(m); return DRAFT_FIELDS.filter(f => (d[f] ?? '') !== (m[f] ?? '')); };
 
+// Only the score and half-time sit on the card; the scoring breakdown, discipline and match details fold into Details.
+const CORE_FIELDS = ['homeScore', 'awayScore', 'homeHT', 'awayHT'];
+const detailDirty = m => changedFields(m).some(f => !CORE_FIELDS.includes(f));
+function toggleMore(card, id) {
+  const open = !state.open.has(id); open ? state.open.add(id) : state.open.delete(id);
+  card.querySelector('.fx-more').hidden = !open;
+  card.querySelector('.fx-toggle').setAttribute('aria-expanded', String(open));
+}
 function renderFixtures() {
   const ms = tourMatches().filter(m => inRound(m, state.round))
     .sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.kickoff).localeCompare(String(b.kickoff)));
@@ -696,7 +711,7 @@ function renderFixtures() {
   if (!ms.length) { box.innerHTML = `<div class="empty"><strong style="color:var(--fg)">No fixtures in ${esc(roundLabel(state.round))}</strong></div>`; return; }
   const v = x => x == null ? '' : x;
   box.innerHTML = ms.map(m => {
-    const d = draftOf(m), dirty = changedFields(m).length > 0, ko = isKO(m);
+    const d = draftOf(m), dirty = changedFields(m).length > 0, ko = isKO(m), open = state.open.has(m.id);
     const h = sideInfo(m, 'home'), a = sideInfo(m, 'away');
     const inp = (f, s, what, ph) => `<input data-f="${f}" type="number" min="0" inputmode="numeric" value="${v(d[f])}" aria-label="${esc(s.label)} ${what}" title="${what}" placeholder="${ph}">`;
     const row = (label, l, r) => `<div class="sd-row"><div class="sd-side">${l}</div><span class="sd-lab">${label}</span><div class="sd-side">${r}</div></div>`;
@@ -719,6 +734,8 @@ function renderFixtures() {
         <div class="side away">${name(a)}${a.code ? crest(a.code) : ''}</div>
       </div>
       <div class="ht">${inp('homeHT', h, 'half-time points', '')}<span class="htl">HT</span>${inp('awayHT', a, 'half-time points', '')}</div>
+      <button class="link fx-toggle" type="button" data-act="more" aria-expanded="${open}" aria-controls="more-${esc(m.id)}">Details<span class="dot" title="Unsaved changes inside"${detailDirty(m) ? '' : ' hidden'}></span><i class="chev" aria-hidden="true"></i></button>
+      <div class="fx-more" id="more-${esc(m.id)}"${open ? '' : ' hidden'}>
       <div class="sd">
         ${one('Tries', 'Tries', '')}${two('Conversions', 'Conv')}${two('Penalty goals', 'PG')}${two('Field goals 1 pt', 'FG1')}${two('Field goals 2 pt', 'FG2')}${one('Sin bins', 'SinBins')}${one('Send-offs', 'SendOffs')}
       </div>
@@ -726,6 +743,7 @@ function renderFixtures() {
         <label>Golden point<select data-f="goldenPoint"><option value="">No</option><option value="Y"${d.goldenPoint === 'Y' ? ' selected' : ''}>Yes</option></select></label>
         <label>Attendance<input data-f="attendance" type="number" min="0" inputmode="numeric" value="${v(d.attendance)}"></label>
         <label>Referee<input data-f="referee" type="text" value="${esc(d.referee)}" autocomplete="off"></label>
+      </div>
       </div>
       <div class="fx-warn" aria-live="polite">${warnHtml(m)}</div>
       <div class="fx-foot"><button class="link" type="button" data-act="edit">Edit fixture</button><span class="fx-msg">${dirty ? 'Unsaved changes' : res}</span>
@@ -1137,6 +1155,7 @@ document.addEventListener('click', e => {
   const card = act.closest('[data-id]'), id = card && card.dataset.id;
   if (act.dataset.act === 'edit') openFixture(state.matches.find(m => m.id === id));
   else if (act.dataset.act === 'save') saveResult(id, act);
+  else if (act.dataset.act === 'more') toggleMore(card, id);
 });
 function onDraft(e) {
   const inp = e.target.closest('[data-f]'); if (!inp) return;
@@ -1145,6 +1164,7 @@ function onDraft(e) {
   const dirty = changedFields(m).length > 0;
   card.toggleAttribute('data-dirty', dirty);
   card.querySelector('[data-act="save"]').disabled = !dirty;
+  card.querySelector('.fx-toggle .dot').hidden = !detailDirty(m);
   card.querySelector('.fx-msg').textContent = dirty ? 'Unsaved changes' : '';
   card.querySelector('.fx-warn').innerHTML = warnHtml(m);
 }
