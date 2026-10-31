@@ -26,7 +26,7 @@ const SHEET = {
     ['PER','Perth Glory FC','Perth Glory FC','#4B2A7B','#F37021','HBF Park','Y'],['SYD','Sydney FC','Sydney FC','#4B9CD3','#1C2C5B','Allianz Stadium','Y','Sydney FC.png'],
     ['WEL','Wellington Phoenix FC','Wellington Phoenix FC','#FFD700','#1A1A1A','Sky Stadium','Y'],['WSW','Western Sydney Wanderers FC','Western Sydney Wanderers FC','#C8102E','#1A1A1A','CommBank Stadium','Y']],
   'Venues': [['venue','city'],['Allianz Stadium','Sydney'],['AAMI Park','Melbourne']],
-  'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status','homeHT','awayHT']],
+  'Matches': [['id','season','round','stage','date','kickoff','home','away','homeGoals','awayGoals','homeReds','awayReds','venue','attendance','extraTime','homePens','awayPens','notes','updatedAt','playedRound','status','homeHT','awayHT','homeScorers','awayScorers']],
   '2025/26': [[],['2025/26','','','','','','PTS','+/-','P','W','L','D','F','A'],['1','','Newcastle Jets','','','','48','17','26','15','8','3'],['2','','Adelaide United','','','','43','10','26','12','7','7']]
 };
 SHEET.Matches.push(...${JSON.stringify(seedRows)});
@@ -165,6 +165,81 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   const srow = await page.evaluate(id => window.__SHEET.Matches.findIndex(r => r[0] === id) + 1, sid);
   check('saving HT writes only homeHT, awayHT and updatedAt', JSON.stringify(wr.sort()) === JSON.stringify([`S${srow}`, `V${srow}`, `W${srow}`]), wr);
   check('HT cells hold 1 and 0', JSON.stringify(await page.evaluate(id => window.__SHEET.Matches.find(r => r[0] === id).slice(21, 23), sid)) === '[1,0]');
+
+  // ---- goal scorers (inside Details): reading a paste, preview, soft checks, saving only the scorer cells, and the stats built from them ----
+  const SP = await page.evaluate(() => {
+    const one = t => parseScorers(t).goals.map(x => [x.name, x.min, x.extra, x.type]);
+    return {
+      sample: one("B. Borrello 43'\nL. Gillion 46'\nN. Milanović 50'\nM. Di Pizio 86'\nA. Waraga 89'"),
+      multi: one("Borrello 43', 67'"), stoppage: one("N. Milanović 45+2' (pen)"), og: one("B. Borrello (OG) 12'"), messy: one("⚽ 1. L. Gillion 46'"), nameOnly: one('Borrello'),
+      skipped: parseScorers("Goals\nSydney FC\nB. Borrello 43'").goals.length, bad: parseScorers("43'").bad.length,
+      keys: [nameKey('N. Milanović') === nameKey('Nikola Milanovic'), nameKey('M. Di Pizio') === nameKey('Marco Di Pizio'), nameKey('B. Borrello') !== nameKey('K. Borrello')],
+      text: scorerText("B. Borrello 43'\nL. Gillion 45+2'\nN. Milanović 50' (pen)")
+    };
+  });
+  const J = JSON.stringify;
+  check('reads the pasted A-League list (5 scorers with minutes)', J(SP.sample) === J([['B. Borrello', 43, 0, 'goal'], ['L. Gillion', 46, 0, 'goal'], ['N. Milanović', 50, 0, 'goal'], ['M. Di Pizio', 86, 0, 'goal'], ['A. Waraga', 89, 0, 'goal']]), SP.sample);
+  check('several minutes on one line become separate goals', J(SP.multi) === J([['Borrello', 43, 0, 'goal'], ['Borrello', 67, 0, 'goal']]), SP.multi);
+  check('stoppage time and (pen) are understood', J(SP.stoppage) === J([['N. Milanović', 45, 2, 'pen']]), SP.stoppage);
+  check('own goal marker is understood wherever it sits', J(SP.og) === J([['B. Borrello', 12, 0, 'og']]), SP.og);
+  check('icons and list numbers from a web page are ignored', J(SP.messy) === J([['L. Gillion', 46, 0, 'goal']]), SP.messy);
+  check('names without minutes are fine', J(SP.nameOnly) === J([['Borrello', null, 0, 'goal']]), SP.nameOnly);
+  check('headings and club names are skipped; a line with no name is unreadable', SP.skipped === 1 && SP.bad === 1, [SP.skipped, SP.bad]);
+  check('names match ignoring accents and full v initial names', SP.keys.every(Boolean), SP.keys);
+  check('saved text is one tidy line', SP.text === "B. Borrello 43'; L. Gillion 45+2'; N. Milanović 50' (pen)", SP.text);
+
+  const g0 = ids[0], tog = id => `.fx[data-id="${id}"] .fx-toggle`;
+  const openDetails = async id => { if ((await page.getAttribute(tog(id), 'aria-expanded')) !== 'true') await page.click(tog(id)); };
+  await openDetails(g0);
+  check('scorer boxes sit inside Details, home left and away right, mirrored', await page.evaluate(id => { const c = document.querySelector(`.fx[data-id="${id}"]`), h = c.querySelector('#hs-' + id).getBoundingClientRect(), a = c.querySelector('#as-' + id).getBoundingClientRect(), cc = c.getBoundingClientRect();
+    return c.querySelector('.fx-more').contains(c.querySelector('#hs-' + id)) && h.right < a.left && Math.abs(h.width - a.width) < 1.5 && Math.abs((h.left - cc.left) - (cc.right - a.right)) < 2; }, g0));
+  await page.fill(`#hs-${g0}`, "B. Borrello 43'\nL. Gillion 78'"); await page.fill(`#as-${g0}`, "N. Milanović 50'");
+  check('preview shows one chip per scorer', J(await page.$$eval(`.fx[data-id="${g0}"] .sc-prev[data-side]`, ps => ps.map(p => p.querySelectorAll('.sc-chip').length))) === '[2,1]');
+  check('scorers that match the score and half-time give no warning', (await page.textContent(`.fx[data-id="${g0}"] .fx-warn`)).trim() === '');
+  await page.fill(`#hs-${g0}`, "B. Borrello 43'\nL. Gillion 78'\nX. Extra 80'");
+  await page.click(tog(g0));
+  check('too many scorers warns, and the warning stays visible with Details folded', /3 scorers listed, score is 2/.test(await page.textContent(`.fx[data-id="${g0}"] .fx-warn`)) && (await page.isVisible(`.fx[data-id="${g0}"] .fx-warn`)) && !(await page.isVisible(`#hs-${g0}`)));
+  await openDetails(g0);
+  await page.fill(`#hs-${g0}`, "B. Borrello 43'\nL. Gillion 78'\n43'");
+  check('an unreadable line is flagged in red', (await page.isVisible(`.fx[data-id="${g0}"] .sc-bad`)) && /can't be read/.test(await page.textContent(`.fx[data-id="${g0}"] .fx-warn`)));
+  const wBefore = await page.evaluate(() => window.__CALLS.filter(c => c[0] === 'update_values').length);
+  await page.click(`.fx[data-id="${g0}"] [data-act="save"]`); await page.waitForTimeout(250);
+  check('an unreadable line blocks the save and nothing is written', (await page.evaluate(() => window.__CALLS.filter(c => c[0] === 'update_values').length)) === wBefore && /can't be read/.test(await page.textContent('#notice')));
+  await page.fill(`#hs-${g0}`, "B. Borrello 43'\nL. Gillion 78'");
+  await page.fill(`#hh-${g0}`, '0');
+  check('goals up to 45 minutes are checked against the half-time score', /Goals up to 45' add to 1–0, half-time score is 0–0/.test(await page.textContent(`.fx[data-id="${g0}"] .fx-warn`)), await page.textContent(`.fx[data-id="${g0}"] .fx-warn`));
+  await page.fill(`#hh-${g0}`, '1');
+  const mk = await page.evaluate(() => window.__CALLS.length);
+  await page.click(`.fx[data-id="${g0}"] [data-act="save"]`);
+  await page.waitForFunction(id => !document.querySelector(`.fx[data-id="${id}"]`).hasAttribute('data-dirty'), g0);
+  const sw = await page.evaluate(m => window.__CALLS.slice(m).filter(c => c[0] === 'update_values').map(c => c[1].replace('Matches!', '')), mk);
+  const g0row = await page.evaluate(id => window.__SHEET.Matches.findIndex(r => r[0] === id) + 1, g0);
+  check('saving scorers writes only homeScorers, awayScorers and updatedAt', J(sw.sort()) === J([`S${g0row}`, `X${g0row}`, `Y${g0row}`]), sw);
+  check('the sheet holds one tidy line per side', J(await page.evaluate(id => window.__SHEET.Matches.find(r => r[0] === id).slice(23, 25), g0)) === J(["B. Borrello 43'; L. Gillion 78'", "N. Milanović 50'"]));
+  check('saved scorers come back as one per line, and Details stay open', (await page.inputValue(`#hs-${g0}`)) === "B. Borrello 43'\nL. Gillion 78'" && (await page.getAttribute(tog(g0), 'aria-expanded')) === 'true');
+  const saveScorers = async (id, h, a) => { await openDetails(id); await page.fill(`#hs-${id}`, h); await page.fill(`#as-${id}`, a);
+    await page.click(`.fx[data-id="${id}"] [data-act="save"]`); await page.waitForFunction(id => !document.querySelector(`.fx[data-id="${id}"]`).hasAttribute('data-dirty'), id); };
+  await saveScorers(ids[1], "J. Smith 10'", "K. Jones 60'");
+  await saveScorers(ids[2], "S. Hat 5'\nS. Hat 30'\nS. Hat 70' (pen)", '');
+  await saveScorers(ids[3], '', "Nikola Milanovic 20'\nB. Other 33'");
+  await page.click('#tab-results'); await page.waitForTimeout(200);
+  check('Results lists the scorers under each game', /Goals: .*B\. Borrello 43'.*L\. Gillion 78'/.test(await page.textContent('#results')));
+  await page.click('#tab-stats'); await page.waitForTimeout(300);
+  const flat = sel => page.$eval(sel, e => e.innerText.replace(/\s+/g, ' ').trim());
+  const tiles = await flat('#scTiles');
+  check('scorer tiles: 7 scorers, top scorer 3, 1 hat-trick, 1 penalty, 0 own goals', /Scorers 7 10 goals listed/i.test(tiles) && /Top scorer 3 S\. Hat/i.test(tiles) && /Hat-tricks 1/i.test(tiles) && /Penalties 1/i.test(tiles) && /Own goals 0/i.test(tiles) && /Braces 0/i.test(tiles), tiles);
+  const rows = await page.$$eval('#topScorers tbody tr', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ').trim()));
+  check('top scorers table: S. Hat first on 3 goals with 1 penalty', /^1 S\. Hat \S+ 3 1 1$/.test(rows[0]), rows[0]);
+  check('a player who moved clubs is counted once, with both clubs shown', /Milanovi/.test(rows[1]) && /2 – 2$|2 – 1$|2 – 2/.test(rows[1]) && (await page.$$eval('#topScorers tbody tr:nth-child(2) .ctag', t => t.length)) === 2, rows[1]);
+  check('scorer note counts games', /from 4 games/.test(await flat('#scNote')), await flat('#scNote'));
+  const ft = await flat('#fgTiles');
+  check('who scores first: won 3, drew 1, lost 0; earliest 5; average 20', /Scored first, won 3 of 4 games/i.test(ft) && /Scored first, drew 1/i.test(ft) && /Scored first, lost 0/i.test(ft) && /Earliest first goal 5'/i.test(ft) && /Average first goal 20'/i.test(ft), ft);
+  check('who scores first note says 4 of 10 games have usable scorers', /from 4 of 10 games/.test(await flat('#fgNote')), await flat('#fgNote'));
+  const fr = await page.$$eval('#firstGoal tbody tr', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ').trim()));
+  check('per-club first-goal record: SYD scored first and won; WSW conceded first and lost', fr.some(r => /^SYD 1 1-0-0 0-0-0$/.test(r)) && fr.some(r => /^WSW 1 0-0-0 0-0-1$/.test(r)), fr);
+  const hints = await page.evaluate(() => [suggestName('n milanovik', 'NEW', 'x'), suggestName('milanovic', 'NEW', 'x'), suggestName('n milanovic', 'NEW', 'x'), suggestName('k milanovic', 'NEW', 'x')]);
+  check('near-miss names are suggested; exact and different-initial names are not', hints[0] === 'Nikola Milanovic' && hints[1] === 'Nikola Milanovic' && hints[2] === null && hints[3] === null, hints);
+  await page.click('#tab-matchday'); await page.waitForTimeout(150);
 
   // edit a fixture: change venue of first
   await page.click(`.fx[data-id="${ids[0]}"] [data-act="edit"]`);
