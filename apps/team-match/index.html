@@ -88,6 +88,13 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .score input:focus{border-color:var(--accent);outline:none}
 .score .dash{color:var(--muted);font-weight:700}
 .fx-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:13px}
+.fx-toggle{align-self:center;display:inline-flex;align-items:center;gap:7px;padding:4px 10px}
+.fx-toggle .chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.fx-toggle[aria-expanded="true"] .chev{transform:translateY(2px) rotate(-135deg)}
+.fx-toggle .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.fx-toggle[aria-expanded="true"] .dot{display:none}
+.fx-more{border-top:1px solid var(--line);padding-top:10px}
+@media (prefers-reduced-motion:reduce){.fx-toggle .chev{transition:none}}
 .fx-extra label{display:flex;flex-direction:column;gap:4px;color:var(--muted)}
 .fx-extra input,.fx-extra select{font:inherit;font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:100%;font-variant-numeric:tabular-nums}
 .fx-extra input:focus{border-color:var(--accent);outline:none}
@@ -489,7 +496,7 @@ const state = {
   teams: EXAMPLE.teams.map(t => ({ ...t })),
   venues: [...new Set(EXAMPLE.teams.map(t => t.homeVenue))],
   matches: EXAMPLE.matches.map(m => ({ ...m })),
-  round: null, roundPicked: false, tab: 'matchday', drafts: {}, history: { tabs: [], cache: {} }, chart: null, logos: {}
+  round: null, roundPicked: false, tab: 'matchday', drafts: {}, history: { tabs: [], cache: {} }, chart: null, logos: {}, open: new Set()
 };
 const team = code => state.teams.find(t => t.code === code) || { code, name: code || '?', short: code || '?', colour1: '#888888', colour2: '#444444' };
 const crest = code => { const t = team(code); if (state.logos[code]) return `<img class="logo" src="${state.logos[code]}" alt="" aria-hidden="true">`; return `<span class="crest" style="background:linear-gradient(135deg,${esc(t.colour1)} 50%,${esc(t.colour2)} 50%)" aria-hidden="true"></span>`; };
@@ -599,6 +606,14 @@ function renderHeld() {
   box.innerHTML = list.length ? `<span class="eyebrow" style="color:var(--accent-2)">Waiting for a new date · ${list.length}</span>` + list.map(m =>
     `<div class="row" data-id="${esc(m.id)}"><span>${crest(m.home)} ${esc(team(m.home).short)} v ${esc(team(m.away).short)} ${crest(m.away)} <span class="muted">· matchday ${esc(m.round)} · was ${niceDate(m.date)}</span></span><button class="btn" type="button" data-act="edit">Set new date</button></div>`).join('') : '';
 }
+// Only the score and half-time sit on the card; everything else folds into Details.
+const CORE_FIELDS = ['homeGoals', 'awayGoals', 'homeHT', 'awayHT'];
+const detailDirty = m => changedFields(m).some(f => !CORE_FIELDS.includes(f));
+function toggleMore(card, id) {
+  const open = !state.open.has(id); open ? state.open.add(id) : state.open.delete(id);
+  card.querySelector('.fx-more').hidden = !open;
+  card.querySelector('.fx-toggle').setAttribute('aria-expanded', String(open));
+}
 function renderFixtures() {
   renderHeld();
   const ms = seasonMatches().filter(m => onMatchday(m, state.round))
@@ -619,7 +634,7 @@ function renderFixtures() {
     </article>`;
     const d = draftOf(m), dirty = changedFields(m).length > 0, fin = isFinal(m);
     const res = played(m) ? (m.homeGoals > m.awayGoals ? `${esc(team(m.home).short)} win` : m.homeGoals < m.awayGoals ? `${esc(team(m.away).short)} win` : 'Draw') : '';
-    const v = x => x == null ? '' : x, warn = htWarn(m, d), [hb, ab] = htBad(d);
+    const v = x => x == null ? '' : x, warn = htWarn(m, d), [hb, ab] = htBad(d), open = state.open.has(m.id);
     return `<article class="fx" data-id="${esc(m.id)}"${dirty ? ' data-dirty' : ''}>
       ${moved(m) ? `<div class="moved">${String(m.round) === state.round ? `Moved to ${niceDate(m.date)} · played with Round ${esc(m.playedRound)}` : `Matchday ${esc(m.round)} game, rescheduled`}</div>` : ''}
       <div class="fx-meta"><span>${niceDate(m.date)}${m.kickoff ? ' · ' + niceTime(m.kickoff) : ''}${m.venue ? ' · ' + esc(m.venue) : ''}</span></div>
@@ -633,11 +648,14 @@ function renderFixtures() {
         <div class="side away"><span class="nm">${esc(team(m.away).short)}</span>${crest(m.away)}</div>
       </div>
       <div class="fx-ht"><input id="hh-${esc(m.id)}" data-f="homeHT" type="number" min="0" inputmode="numeric" value="${v(d.homeHT)}" aria-label="${esc(team(m.home).short)} half-time goals"${hb ? ' data-bad' : ''}><span class="lb">HT</span><input id="ah-${esc(m.id)}" data-f="awayHT" type="number" min="0" inputmode="numeric" value="${v(d.awayHT)}" aria-label="${esc(team(m.away).short)} half-time goals"${ab ? ' data-bad' : ''}></div>
+      <button class="link fx-toggle" type="button" data-act="more" aria-expanded="${open}" aria-controls="more-${esc(m.id)}">Details<span class="dot" title="Unsaved changes inside"${detailDirty(m) ? '' : ' hidden'}></span><i class="chev" aria-hidden="true"></i></button>
+      <div class="fx-more" id="more-${esc(m.id)}"${open ? '' : ' hidden'}>
       <div class="fx-extra">
         <label>Red cards<span class="pair"><input id="hr-${esc(m.id)}" data-f="homeReds" type="number" min="0" inputmode="numeric" value="${v(d.homeReds)}" aria-label="${esc(team(m.home).short)} red cards" placeholder="0"><input id="ar-${esc(m.id)}" data-f="awayReds" type="number" min="0" inputmode="numeric" value="${v(d.awayReds)}" aria-label="${esc(team(m.away).short)} red cards" placeholder="0"></span></label>
         <label>Attendance<input id="at-${esc(m.id)}" data-f="attendance" type="number" min="0" inputmode="numeric" value="${v(d.attendance)}"></label>
         ${fin ? `<label>Extra time<select id="et-${esc(m.id)}" data-f="extraTime"><option value="">No</option><option value="Y"${d.extraTime === 'Y' ? ' selected' : ''}>Yes</option></select></label>
         <label>Penalties<span class="pair"><input id="hp-${esc(m.id)}" data-f="homePens" type="number" min="0" inputmode="numeric" value="${v(d.homePens)}" aria-label="${esc(team(m.home).short)} penalties"><input id="ap-${esc(m.id)}" data-f="awayPens" type="number" min="0" inputmode="numeric" value="${v(d.awayPens)}" aria-label="${esc(team(m.away).short)} penalties"></span></label>` : ''}
+      </div>
       </div>
       <div class="fx-foot"><button class="link" type="button" data-act="edit">Edit fixture</button><span class="fx-msg${warn ? ' warn' : ''}">${warn ? esc(warn) : dirty ? 'Unsaved changes' : res ? `<span class="res" data-r="${m.homeGoals === m.awayGoals ? 'D' : 'W'}">${res}</span>` : 'Not played yet'}</span>
         <button class="btn btn-primary" type="button" data-act="save"${dirty ? '' : ' disabled'}>Save result</button></div>
@@ -1183,6 +1201,7 @@ document.addEventListener('click', e => {
   else if (act.dataset.act === 'paste') openPaste();
   else if (act.dataset.act === 'edit') openFixture(state.matches.find(m => m.id === id));
   else if (act.dataset.act === 'save') saveResult(id, act);
+  else if (act.dataset.act === 'more') toggleMore(card, id);
 });
 $('fixtures').addEventListener('input', e => {
   const inp = e.target.closest('[data-f]'); if (!inp) return;
@@ -1191,6 +1210,7 @@ $('fixtures').addEventListener('input', e => {
   const dirty = changedFields(m).length > 0;
   card.toggleAttribute('data-dirty', dirty);
   card.querySelector('[data-act="save"]').disabled = !dirty;
+  card.querySelector('.fx-toggle .dot').hidden = !detailDirty(m);
   const warn = htWarn(m, d), [hb, ab] = htBad(d), msg = card.querySelector('.fx-msg');
   msg.textContent = warn || (dirty ? 'Unsaved changes' : ''); msg.classList.toggle('warn', !!warn);
   card.querySelector('[data-f="homeHT"]').toggleAttribute('data-bad', hb); card.querySelector('[data-f="awayHT"]').toggleAttribute('data-bad', ab);

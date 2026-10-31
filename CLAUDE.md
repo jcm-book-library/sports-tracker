@@ -26,6 +26,16 @@ Add a row for each new competition and update it when the user says a folder is 
 
 Google accounts: the logo folders and sports sheets belong to the owner's main Google account. The Google Drive connector in Claude is signed in as the owner's second Google account, so each logo folder must be shared with that second account (Editor) before Claude or the claude.ai artifacts can read it. The GitHub Pages apps read Drive with the user's own Google sign-in (drive.readonly scope).
 
+## Matchday card convention (all competitions)
+
+The owner keeps adding detail to each sport, so every matchday/round card follows one pattern:
+
+- **Always visible:** the teams, the score, the half-time pair, the date/time/venue line, and the footer (Edit fixture left, result or status centre, Save result right).
+- **Folded under a centred "Details" toggle:** everything else (cards, attendance, referee, tries, kicking, discipline, extra time and so on). New fields go in there.
+- Warnings about hidden fields (for example "breakdown adds to 18, score is 20") stay visible outside the fold, and the toggle shows a dot when there are unsaved changes inside it.
+- Which cards are open is remembered while the page is open (`state.open`), so saving never snaps them shut.
+- Keep layouts symmetrical (home left, away right, labels centred) and test at 360px, 390px and 1280px with no sideways scrolling.
+
 ## Shipping changes
 
 `main` is the live GitHub Pages site. Work on a branch, run `python3 tools/build_pages.py` after any app change, and open a pull request into `main` for the user to merge.
