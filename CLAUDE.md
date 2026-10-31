@@ -36,6 +36,15 @@ The owner keeps adding detail to each sport, so every matchday/round card follow
 - Which cards are open is remembered while the page is open (`state.open`), so saving never snaps them shut.
 - Keep layouts symmetrical (home left, away right, labels centred) and test at 360px, 390px and 1280px with no sideways scrolling.
 
+## Goal scorers and other event lists (A-League first, NRL next)
+
+- Scorers are kept as plain text on the Matches row (`homeScorers`, `awayScorers`), one tidy line per side, pasted from the competition website. The app reads them with `parseScorers()`; saving writes the cleaned-up text, so one cell edit fixes a mistake and nothing is ever deleted.
+- Players are matched by name only (`nameKey()`: initial + surname, accents ignored). The same name at two clubs counts as one player. If a real clash ever turns up, add a small exceptions tab rather than a full player list.
+- Soft checks only: scorer count v score, first-half goals v half-time score, and near-miss name hints. Only an unreadable line blocks a save.
+- If the list ever needs pivoting in Sheets, convert the text into a Goals tab (one row per goal) in one safe pass; the text is the source, so nothing is lost.
+- For NRL, reuse the same reader for try scorers and goal kickers (for example `Walsh 2/4`), and use the tries and kicking totals already entered as the check.
+- The World Cup apps deliberately have no scorer lists: the owner doesn't want that level of detail for a one-off event.
+
 ## Shipping changes
 
 `main` is the live GitHub Pages site. Work on a branch, run `python3 tools/build_pages.py` after any app change, and open a pull request into `main` for the user to merge.
