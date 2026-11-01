@@ -10,6 +10,7 @@ Personal sports results tracker. Each competition has its own Google Sheet, whic
 | `apps/team-match/index.html` | App source for team-v-team competitions (pilot: A-League Men 2026/27). Published as a private claude.ai artifact. |
 | `apps/tournament/index.html` | App source for pool-and-knockout tournaments (Rugby League World Cup 2026, men's and women's). Published as a private claude.ai artifact. |
 | `index.html`, `a-league/`, `world-cup/` | GitHub Pages copies, built by `python3 tools/build_pages.py`. Don't edit them directly. Outside claude.ai the apps sign in to Google with your OAuth Client ID. |
+| `docs/START-HERE.md`, `docs/handoff-*.md` | The map for new sessions, and what each competition's last session knew. |
 | `manifest.webmanifest`, `*/manifest.webmanifest`, `icons/` | Let a phone save the hub, or any single app, to its home screen. |
 
 ## Branches
