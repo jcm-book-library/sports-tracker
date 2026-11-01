@@ -3,3 +3,4 @@ tests/page.html
 node_modules/
 tests/page-wc.html
 tests/page-race.html
+tools/icon-preview.png

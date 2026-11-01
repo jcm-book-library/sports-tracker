@@ -41,7 +41,7 @@ Each app is one file with no `<head>`: the same file is published as a private c
 2. **The owner creates a blank Google Sheet and sends the link.** Claude can create files in Drive but cannot write to a sheet it created itself (permission denied), and the sheet must be shared with the account the Google connector is signed in as.
 3. Create the tabs and headers (`Matches`/`Races`, `Teams`, `Venues`, `App Settings`, and so on) following `README.md`. Add new columns at the end only.
 4. Build the app in `apps/<shape>/index.html`, starting from the closest existing app.
-5. Add it to `tools/build_pages.py` (source, output folder, title, theme colour) and create `<folder>/manifest.webmanifest` (copy `world-cup/manifest.webmanifest`, change the names and colours).
+5. Give it its own icon: add a line to `tools/make_icons.py` (2–3 letters, its own colours) and run it. Add it to `tools/build_pages.py` (source, output folder, title, theme colour) and create `<folder>/manifest.webmanifest` (copy `world-cup/manifest.webmanifest`, change the names and colours).
 6. Set the competition's `href` in the hub's `COMPS` list.
 7. Write or extend the Playwright test; save screenshots to `tests/`.
 8. Publish the artifact: first publish with the Google Sheets connector (`get_values`, `append_values`, `update_values`, `get_spreadsheet`), plus Google Drive (`search_files`, `download_file_content`) once logos are wired. Republish later with the artifact's `url`.
