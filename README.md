@@ -10,6 +10,7 @@ Personal sports results tracker. Each competition has its own Google Sheet, whic
 | `apps/team-match/index.html` | App source for team-v-team competitions (pilot: A-League Men 2026/27). Published as a private claude.ai artifact. |
 | `apps/tournament/index.html` | App source for pool-and-knockout tournaments (Rugby League World Cup 2026, men's and women's). Published as a private claude.ai artifact. |
 | `index.html`, `a-league/`, `world-cup/` | GitHub Pages copies, built by `python3 tools/build_pages.py`. Don't edit them directly. Outside claude.ai the apps sign in to Google with your OAuth Client ID. |
+| `docs/START-HERE.md`, `docs/handoff-*.md` | The map for new sessions, and what each competition's last session knew. |
 | `manifest.webmanifest`, `*/manifest.webmanifest`, `icons/` | Let a phone save the hub, or any single app, to its home screen. |
 
 ## Branches
@@ -44,18 +45,25 @@ Planned shapes: `team-match` (football, rugby league, AFL, NFL…), `race` (F1 a
 
 ## Race shape (Formula E first, then F1 and other motorsport)
 
-Sheet: the Formula E tracker. The original season tabs (`14/15` … `27`) and `Records` are left as they are; the app only reads them.
+`apps/race/index.html` is the app source; `formula-e/index.html` is the GitHub Pages copy. The sheet id is not in the code: the app asks for the sheet link on first use and keeps it in the browser (`race_settings`). Everything competition-specific (points, bonuses, team and manufacturer rules) comes from the sheet, so F1 can reuse the app with its own sheet.
 
-- `Races`: `id | season | round | date | country | flag | city | circuit | name | heat | status | notes`. `id` like `2627-R01`. `heat` is 1 or 2 for double-headers. `status` is blank, `Postponed` or `Cancelled`.
-- `Results`: one row per driver per race. `id | season | raceId | driver | team | qualiPos | grid | finish | status | pole | fastestLap | pointsAdj | notes | updatedAt | groupFastest`. `id` is `raceId-driver` (e.g. `2627-R01-ROW`). `finish` is the classified position; `status` is blank, `DNF`, `DNS`, `DSQ` or `NC`. `pole`, `fastestLap` and `groupFastest` (fastest in a qualifying group, 2019/20–2020/21) are `Y`. `pointsAdj` is only for stewards' deductions or half points. Points are worked out by the app from the `Points` tab and the bonuses in `App Settings`; they are never typed.
+Sheet: the Formula E tracker. The original season tabs (`14/15` … `27`) and `Records` are left as they are; the app does not touch them.
+
+- `Races`: `id | season | round | date | country | flag | city | circuit | name | heat | status | notes`. `id` like `2627-R01`. `heat` is 1 or 2 for double-headers (blank for a single race). From 2026/27 the first race of a double-header is the short "E-Prix Unleashed" race, and its `name` says so. `status` is blank, `Postponed` or `Cancelled`.
+- `Results`: one row per driver per race. `id | season | raceId | driver | team | qualiPos | grid | finish | status | pole | fastestLap | pointsAdj | notes | updatedAt | groupFastest`. `id` is `raceId-driver` (e.g. `2627-R01-ROW`). `finish` is the classified position; `status` is blank, `DNF`, `DNS`, `DSQ` or `NC`. `pole`, `fastestLap` and `groupFastest` (fastest in a qualifying group, 2019/20–2020/21) are `Y`. `pointsAdj` is only for stewards' deductions or half points. Points are worked out by the app; they are never typed.
 - `Drivers`: `code | name | flag | nationality | active | notes`. Codes are permanent (three letters, as on timing screens).
-- `Teams`: `team | short | powertrain | colour1 | colour2 | active | notes`. `powertrain` feeds the manufacturers' table.
-- `Lineups`: who drove for whom each season: `season | driver | team | number | fromRound | toRound | notes`. A mid-season swap is a second row with `fromRound`.
+- `Teams` (current season): `team | short | powertrain | colour1 | colour2 | active | notes`. The 2026/27 colours are placeholders until the liveries are known.
+- `Lineups`: who drove for whom each season: `season | driver | team | number | fromRound | toRound | notes`. A mid-season swap is a second row with `fromRound`. History notes hold the full entrant name (`Entrant: … · car`), which the app shows as a team's previous names.
+- `Team Lineage`: `team | lineage | fromSeason | toSeason | notes`. Links every team name to its line's current (or last) name, e.g. Virgin → Envision, Dragon → DS Penske → Fortescue, Venturi → Maserati → Citroën. Used for team history and all-time team stats. Reusable for F1.
+- `Powertrains`: `season | team | powertrain | notes`, 2023/24 onwards (the Manufacturers' Trophy era). Citroën, DS and Maserati (and, assumed, Opel) count as Stellantis.
 - `Circuits`: `circuit | city | country | flag | type | notes`, reused across seasons for circuit records.
-- `Points`: `system | position | points | notes`.
-- `App Settings`: competition, season, points system, pole and fastest-lap bonuses, team and manufacturer rules.
-- `Seasons`: bonus rules per season, because they changed over the years: `season | poleBonus | fastestLapBonus | fastestLapTop10Only | groupFastestBonus | notes`.
-- History (2014/15–2025/26) was imported from Wikipedia into `Races`, `Results`, `Lineups`, `Drivers` and `Circuits`, and every season's points totals were checked against the official standings. Two known adjustments are in `Results` notes (Rowland 2024/25 R8, Cassidy 2024/25 R11: pole points not awarded). One open mismatch: Mitch Evans 2024/25 works out at 77, while Wikipedia says 74.
+- `Points`: `system | position | points | notes`. `FE` is the race table (25-18-15-12-10-8-6-4-2-1); `FEQ` is qualifying points from 2026/27 (4-3-2-2-1-1-1-1).
+- `App Settings`: competition, current season, points system, default bonuses, `teamPoints`, `manufacturerRule` (`best2`: each powertrain's two best-placed cars score, re-ranked, race points only), `manufacturersFrom` (`2023/24`), `logoFolder` (blank until the logos are ready).
+- `Seasons`: rules per season, because they changed over the years: `season | poleBonus | fastestLapBonus | fastestLapTop10Only | groupFastestBonus | notes | qualiPoints`. `qualiPoints` names the Points system for qualifying positions (`FEQ` from 2026/27, when pole itself is worth 1).
+- History (2014/15–2025/26) was imported from Wikipedia, and every season's points totals were checked against the official standings. Three known adjustments are in `Results` notes, all pole points not awarded in 2024/25: Rowland R8, Cassidy R11 and Evans R13 (qualifying cut short by weather).
+- Backups made before the 2026-11-01 changes: `Races`, `Teams`, `Lineups` and `Seasons` `backup 2026-11-01` tabs. Never write to them.
+
+Test: `node tests/race.js` runs the app against an in-memory sheet and checks the points engine, the manufacturers' rule, saving results, read-only past seasons and phone layout.
 
 ## Tournament app (Rugby League World Cup 2026)
 

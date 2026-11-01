@@ -1,0 +1,1165 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#13171e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Formula E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<!-- Built from apps/race/index.html by tools/build_pages.py. Edit the source, not this file. -->
+<title>Formula E Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Michroma&family=Nunito:wght@700;800&display=swap">
+<style>
+/* Race shape (Formula E first, F1 later): everything competition-specific comes from the sheet.
+   Look taken from fiaformulae.com: near-black page, thin grey borders, square corners, purple tabs,
+   lime eyebrow labels, light grey header bars. Medal and result colours are fixed. */
+:root{
+  --bg:#13171e; --surface:#1a1f27; --raise:#222833; --line:#3a3f47;
+  --fg:#e8e8e8; --muted:#9aa0a6; --accent:#5b2ee6; --violet:#a27bff; --lime:#c6f432;
+  --bar:#c9c9c9; --bar-ink:#14171c; --gold:#e8c547; --silver:#c0c6cc; --bronze:#c98b50;
+  --red:#ef6b73; --green:#3cc878;
+  --display:"Michroma",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --num:"Nunito",ui-rounded,system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 48px;min-width:0}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-transform:uppercase;margin:0;letter-spacing:.03em}
+h1{font-size:clamp(17px,4.6vw,24px);line-height:1.25}
+h2{font-size:14px;line-height:1.3}
+h3{font-size:12.5px}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:700;color:var(--lime)}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+select,input,textarea{font:inherit;font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:2px;padding:7px 9px;min-width:0}
+select:focus,input:focus,textarea:focus{border-color:var(--violet);outline:none}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 14px;margin-bottom:12px}
+.brand{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hd-right select{font-weight:700;font-family:var(--num);font-size:15px}
+.chip-ro{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:3px 8px}
+
+.status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:14px}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.status[data-state="live"] .dot{background:var(--lime)}
+.status[data-state="error"] .dot{background:var(--red)}
+.status[data-state="loading"] .dot{background:var(--violet);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.status[data-state="loading"] .dot{animation:none}}
+.status .sp{flex:1 1 auto}
+.btn{border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:2px;padding:6px 12px;font-weight:700;font-size:13px;min-height:34px}
+.btn:hover{border-color:var(--muted)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{border-color:var(--violet);filter:brightness(1.1)}
+.btn:disabled{opacity:.4;cursor:default}
+.notice{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--violet);padding:10px 14px;margin-bottom:14px;font-size:14px}
+.notice[data-kind="error"]{border-left-color:var(--red)}
+
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:16px}
+.tab{border:1px solid var(--accent);background:transparent;color:var(--fg);border-radius:2px;padding:9px 2px;font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;min-width:0}
+.tab[aria-selected="true"]{background:var(--accent);color:#fff}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.subtabs .btn[aria-pressed="true"],.seg .btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.subtabs .sp{flex:1 1 auto}
+.panel-head{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+
+.card{background:var(--surface);border:1px solid var(--line);padding:16px;min-width:0}
+.empty{border:1px dashed var(--line);padding:22px 16px;text-align:center;color:var(--muted);font-size:14px}
+.setup{max-width:560px;margin:10px auto;display:flex;flex-direction:column;gap:12px}
+.setup input{width:100%}
+.setup p{margin:0;font-size:14px;color:var(--muted)}
+
+/* round strip */
+.strip{display:flex;gap:6px;overflow-x:auto;border:1px solid var(--line);background:var(--surface);padding:6px;margin-bottom:14px;max-width:100%;scrollbar-width:thin}
+.rchip{flex:none;width:94px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:2px;padding:6px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px}
+.rchip .fl{font-size:16px;line-height:1.2}
+.rchip .rd{font:800 11px var(--num);color:var(--lime);letter-spacing:.1em}
+.rchip .ct{font-weight:700;font-size:11px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:86px}
+.rchip .dt{font-size:11px;color:var(--muted);white-space:nowrap}
+.rchip[data-next]{border-color:var(--violet);background:color-mix(in srgb,var(--accent) 30%,var(--bg))}
+.rchip[data-x]{opacity:.5}
+.rchip[data-done] .rd{color:var(--muted)}
+
+/* race cards (matchday card convention) */
+.rcs{display:flex;flex-direction:column;gap:12px}
+.rc{border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:10px;padding:14px 12px;min-width:0;scroll-margin-top:10px}
+.rc[data-dirty]{border-color:var(--accent)}
+.rc[data-x] .rc-ttl{opacity:.7}
+.rc-ttl{display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;min-width:0}
+.rc-ttl h2{font-size:15px;overflow-wrap:anywhere}
+.rc-name{font-weight:700;font-size:14px}
+.rc-meta{font-size:12.5px;color:var(--muted)}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+.pod{border:1px solid var(--line);background:var(--bg);text-align:center;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.pod .medal{font:800 15px var(--num)}
+.pod .fl{font-size:16px;line-height:1.2}
+.pod .nm{font-size:12.5px;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+.pod.p1{padding-top:18px;padding-bottom:12px;border-color:var(--gold)}
+.pod.p1 .medal{color:var(--gold)} .pod.p2 .medal{color:var(--silver)} .pod.p3 .medal{color:var(--bronze)}
+.pod.p2{padding-top:12px} .pod.p3{padding-top:8px}
+.pod.none{opacity:.35}
+.rc-pf{text-align:center;font-size:13px;color:var(--muted)}
+.rc-pf b{color:var(--fg);font-weight:600}
+.rc-warn{display:flex;flex-direction:column;gap:2px;text-align:center;font-size:12.5px;color:var(--lime)}
+.rc-warn:empty{display:none}
+.rc-toggle{align-self:center;display:inline-flex;align-items:center;gap:7px;padding:4px 12px;min-height:30px}
+.rc-toggle .chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.rc-toggle[aria-expanded="true"] .chev{transform:translateY(2px) rotate(-135deg)}
+.rc-toggle .udot{width:7px;height:7px;border-radius:50%;background:var(--lime);flex:none}
+.rc-toggle[aria-expanded="true"] .udot{display:none}
+@media (prefers-reduced-motion:reduce){.rc-toggle .chev{transition:none}}
+.more{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.rc-foot{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.rc-foot > :first-child{justify-self:start}
+.rc-foot > :last-child{justify-self:end}
+.rc-msg{font-size:12.5px;color:var(--muted);text-align:center}
+.rc-msg[data-ok]{color:var(--lime)}
+
+/* tables */
+.tbox{overflow-x:auto;border:1px solid var(--line);max-width:100%;background:var(--surface)}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+.t th{background:var(--bar);color:var(--bar-ink);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;padding:7px 8px;white-space:nowrap;text-align:center}
+.t td{padding:6px 8px;border-top:1px solid var(--line);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t th.l,.t td.l{text-align:left}
+.t td.pos{font:800 14px var(--num)}
+.t tr.x td{background:rgba(239,107,115,.09)}
+.t tr.x td.pos{color:var(--red)}
+.t tr[data-open]{cursor:pointer} .t tr[data-open]:hover td{background:var(--raise)}
+.badge{display:inline-block;font:800 9px/1.35 var(--num);padding:0 4px;margin-left:4px;vertical-align:middle}
+.badge.p{background:var(--lime);color:#111} .badge.f{background:var(--violet);color:#150b3a}
+.tm{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:none;vertical-align:middle}
+.tm .dot{display:block;width:12px;height:12px;border-radius:50%}
+.tm img{width:20px;height:20px;object-fit:contain}
+.dn{display:inline-flex;align-items:center;gap:6px}
+
+/* entry (tap in order) */
+.ent{display:flex;flex-direction:column;gap:10px}
+.ent-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.ent h3{color:var(--lime);letter-spacing:.1em}
+.hint{margin:0;font-size:12.5px;color:var(--muted);text-align:center}
+.placed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.pr{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid var(--line);background:var(--bg);padding:4px 6px;min-width:0}
+.pr .pn{font:800 14px var(--num);width:26px;text-align:center;flex:none}
+.pr .pnm{flex:1 1 110px;min-width:0;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr .ctl,.pr .tg{display:flex;gap:3px;flex:none}
+.pr .ib{width:32px;height:32px;padding:0;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:2px;font-size:12px}
+.pr .ib[aria-pressed="true"]{font-weight:800}
+.pr .ib[data-act="pole"][aria-pressed="true"]{background:var(--lime);color:#111;border-color:var(--lime)}
+.pr .ib[data-act="fl"][aria-pressed="true"]{background:var(--violet);color:#150b3a;border-color:var(--violet)}
+.pr .pt{font:700 12.5px var(--num);color:var(--muted);width:48px;text-align:right;flex:none}
+.pr .stt{font:800 10px var(--num);color:var(--red);border:1px solid var(--red);padding:1px 4px;background:transparent}
+.unp{display:flex;flex-direction:column;gap:4px}
+.unp.chips{flex-direction:row;flex-wrap:wrap}
+.ur{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.chipb{border:1px solid var(--line);background:var(--raise);color:var(--fg);border-radius:2px;padding:5px 9px;min-height:34px;font-weight:600;font-size:13px;text-align:left;display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+.chipb:hover{border-color:var(--violet)}
+.chipb span.nmx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sts{display:flex;gap:3px}
+@media (max-width:440px){.ur{grid-template-columns:minmax(0,1fr)}.sts .sb{flex:1}}
+.sts .sb{height:32px;min-width:40px;padding:0 5px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:2px;font:800 10.5px var(--num)}
+.sts .sb[aria-pressed="true"]{background:rgba(239,107,115,.2);color:var(--red);border-color:var(--red)}
+
+/* standings grids */
+.legend{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:11.5px;color:var(--muted);margin-bottom:8px;align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:4px;border:1px solid var(--line)}
+.gbox{overflow-x:auto;border:1px solid var(--line);background:var(--surface);max-width:100%}
+table.g{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12.5px}
+.g th,.g td{padding:0;border-bottom:1px solid var(--line);border-right:1px solid color-mix(in srgb,var(--line) 55%,transparent);text-align:center;min-width:38px}
+.g thead th{background:var(--bar);color:var(--bar-ink);height:42px;font-weight:700}
+.g thead th .hf{display:block;font-size:13px;line-height:1.1}
+.g thead th .hn{display:block;font:800 10px var(--num)}
+.g .sticky{position:sticky;left:0;z-index:2;background:var(--surface);text-align:left;border-right:1px solid var(--line)}
+.g thead .sticky{background:var(--bar);z-index:3;padding:0 8px;font:700 10.5px var(--body);text-transform:uppercase;letter-spacing:.07em}
+.who{display:flex;align-items:center;gap:6px;padding:0 8px;height:34px;width:178px}
+.who .ps{font:800 13px var(--num);width:20px;text-align:center;flex:none}
+.who .fl{flex:none;font-size:14px}
+.who .cd{font-weight:700;font-size:12.5px;flex:none}
+.who .fn{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px;min-width:0}
+.who .nmt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;min-width:0;flex:1 1 auto}
+.who .tot{margin-left:auto;font:800 14px var(--num);flex:none;padding-left:4px}
+@media (min-width:760px){.who{width:270px}.who .fn{display:block;flex:1 1 auto}}
+.cell{position:relative;display:flex;align-items:center;justify-content:center;height:34px;font:700 13px var(--num);font-variant-numeric:tabular-nums}
+.c1{background:var(--gold);color:#1a1405}.c2{background:var(--silver);color:#12161a}.c3{background:var(--bronze);color:#1c1005}
+.cp{background:rgba(60,200,120,.17)}
+.cx{background:rgba(239,107,115,.15);color:var(--red);font-size:10.5px}
+.bp,.bf{position:absolute;font:800 7.5px/1.2 var(--num);padding:0 2px}
+.bp{top:1px;left:1px;background:var(--lime);color:#111}
+.bf{bottom:1px;right:1px;background:var(--violet);color:#150b3a}
+table.st{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:13px}
+.st th,.st td{padding:0 9px;height:36px;text-align:center;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+.st thead th{background:var(--bar);color:var(--bar-ink);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+.st thead th button{all:unset;cursor:pointer;display:block;padding:10px 4px;width:100%;box-sizing:border-box}
+.st thead th button:focus-visible{outline:2px solid var(--accent)}
+.st .sticky{position:sticky;left:0;z-index:2;background:var(--surface);text-align:left;border-right:1px solid var(--line);min-width:150px}
+.st thead .sticky{background:var(--bar);z-index:3}
+.st tbody tr{cursor:pointer} .st tbody tr:hover td{background:var(--raise)}
+.st td.pk{font-weight:800;font-family:var(--num);color:var(--lime)}
+.st td.sorted{background:rgba(91,46,230,.14)}
+
+/* history */
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:12px}
+.hc{text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:14px;display:flex;flex-direction:column;gap:6px;border-radius:2px;min-width:0}
+.hc:hover{border-color:var(--violet)}
+.hc .big{font:400 16px var(--display)}
+.hc .ln{font-size:13.5px;display:flex;gap:6px;flex-wrap:wrap}
+.hc .ln b{color:var(--muted);font-weight:600;min-width:90px}
+.hc ol{margin:2px 0 0;padding-left:20px;font-size:13px;color:var(--muted)}
+.foot{margin-top:14px;font-size:13px;color:var(--muted)}
+
+/* dialogs */
+dialog{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:2px;padding:0;width:min(600px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+dialog::backdrop{background:rgba(5,7,10,.7)}
+dialog[open]{display:flex;flex-direction:column}
+.dlg-head,.dlg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px}
+.dlg-head{border-bottom:1px solid var(--line)}
+.dlg-foot{border-top:1px solid var(--line);flex-wrap:wrap}
+.dlg-body{padding:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;overflow-y:auto;min-height:0}
+.dlg-body.one{grid-template-columns:minmax(0,1fr)}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.field.full{grid-column:1 / -1}
+.field input,.field select,.field textarea{width:100%}
+.field textarea{min-height:70px;resize:vertical}
+.kv{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px}
+.kv b{color:var(--muted);font-weight:600}
+.plist{margin:0;padding-left:18px;font-size:13.5px}
+.plist li{margin-bottom:2px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="eyebrow" id="eyebrow">Season tracker</div>
+      <h1 id="comp">Formula E</h1>
+    </div>
+    <div class="hd-right">
+      <span class="chip-ro" id="roChip" hidden>Read-only: past season</span>
+      <label><span class="sr">Season</span><select id="seasonSel" aria-label="Season"></select></label>
+    </div>
+  </header>
+
+  <div class="status" id="status" data-state="loading">
+    <span class="dot"></span><span id="statusText">Connecting to your sheet…</span><span class="sp"></span>
+    <button class="btn" id="refreshBtn" type="button">Refresh</button>
+    <button class="btn" id="settingsBtn" type="button">Settings</button>
+  </div>
+  <div class="notice" id="notice" hidden></div>
+
+  <section class="card setup" id="setup" hidden aria-labelledby="setupTtl">
+    <div class="eyebrow">First time</div>
+    <h2 id="setupTtl">Paste your Formula E sheet link</h2>
+    <p>Open your Formula E Google Sheet, copy the address from the browser bar and paste it here. It is kept on this device only.</p>
+    <input id="setupLink" type="url" placeholder="https://docs.google.com/spreadsheets/d/…" autocomplete="off" aria-label="Google Sheet link">
+    <div class="rc-msg" id="setupMsg"></div>
+    <button class="btn btn-primary" id="setupGo" type="button">Use this sheet</button>
+  </section>
+
+  <div id="app" hidden>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-races" data-tab="races" aria-selected="true">Races</button>
+      <button class="tab" role="tab" id="tab-standings" data-tab="standings" aria-selected="false">Standings</button>
+      <button class="tab" role="tab" id="tab-stats" data-tab="stats" aria-selected="false">Stats</button>
+      <button class="tab" role="tab" id="tab-history" data-tab="history" aria-selected="false">History</button>
+    </nav>
+
+    <section id="p-races" role="tabpanel" aria-labelledby="tab-races">
+      <div class="strip" id="strip" aria-label="Rounds"></div>
+      <div class="rcs" id="raceList"></div>
+      <div id="addRow" style="margin-top:12px;text-align:center" hidden><button class="btn" id="addRaceBtn" type="button">Add race</button></div>
+    </section>
+
+    <section id="p-standings" role="tabpanel" aria-labelledby="tab-standings" hidden>
+      <div class="panel-head"><div class="eyebrow">Standings</div><h2 id="stTitle">Drivers</h2></div>
+      <div class="subtabs" id="stSub"></div>
+      <div class="legend" id="stLegend"></div>
+      <div class="gbox" id="stGrid"></div>
+    </section>
+
+    <section id="p-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+      <div class="panel-head"><div class="eyebrow">Stats</div><h2 id="sTitle">Drivers</h2></div>
+      <div class="subtabs" id="sCtl"></div>
+      <div class="tbox" id="sTable"></div>
+      <p class="foot" id="sNote"></p>
+    </section>
+
+    <section id="p-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+      <div class="panel-head"><div class="eyebrow">History</div><h2>Completed seasons</h2></div>
+      <div class="hgrid" id="hGrid"></div>
+      <p class="foot">Your original season tabs stay in the sheet untouched.</p>
+    </section>
+  </div>
+</div>
+
+<!-- edit / add race -->
+<dialog id="rdDlg" aria-labelledby="rdTitle">
+  <form id="rdForm">
+    <div class="dlg-head"><h2 id="rdTitle">Edit race</h2><button class="btn" type="button" id="rdClose">Close</button></div>
+    <div class="dlg-body">
+      <label class="field">Date<input id="rdDate" type="date"></label>
+      <label class="field">City<input id="rdCity" autocomplete="off"></label>
+      <label class="field full">Circuit<input id="rdCircuit" list="circuitList" autocomplete="off"></label>
+      <label class="field full">Race name<input id="rdName" autocomplete="off"></label>
+      <label class="field">Heat (double-headers only)<select id="rdHeat"><option value="">Single race</option><option value="1">Heat 1</option><option value="2">Heat 2</option></select></label>
+      <label class="field">Status<select id="rdStatus"><option value="">Scheduled</option><option>Postponed</option><option>Cancelled</option></select></label>
+      <label class="field full">Notes<textarea id="rdNotes"></textarea></label>
+    </div>
+    <div class="dlg-foot"><span class="rc-msg" id="rdMsg"></span><button class="btn btn-primary" type="submit" id="rdSave">Save race</button></div>
+  </form>
+</dialog>
+<datalist id="circuitList"></datalist>
+
+<!-- profile (driver / team) -->
+<dialog id="pDlg" aria-labelledby="pTitle">
+  <div class="dlg-head"><h2 id="pTitle">Profile</h2><button class="btn" type="button" id="pClose">Close</button></div>
+  <div class="dlg-body one" id="pBody"></div>
+</dialog>
+
+<!-- settings: which sheet -->
+<dialog id="sDlg" aria-labelledby="sTitleD">
+  <form id="sForm">
+    <div class="dlg-head"><h2 id="sTitleD">Settings</h2><button class="btn" type="button" id="sClose">Close</button></div>
+    <div class="dlg-body one">
+      <label class="field">Formula E sheet link<input id="sLink" type="url" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/…"></label>
+      <p class="rc-msg" id="sCur" style="text-align:left"></p>
+    </div>
+    <div class="dlg-foot"><span class="rc-msg" id="sMsg"></span><button class="btn btn-primary" type="submit">Use this sheet</button></div>
+  </form>
+</dialog>
+
+<!-- Google sign-in (only when hosted outside claude.ai) -->
+<dialog id="gDlg" aria-labelledby="gTitle">
+  <form id="gForm" method="dialog">
+    <div class="dlg-head"><h2 id="gTitle">Connect Google Sheets</h2><button class="btn" type="button" id="gClose">Close</button></div>
+    <div class="dlg-body one">
+      <p style="margin:0;font-size:14px">Paste the OAuth Client ID from your Google Cloud project (the one your other trackers use works, once this site's address is added to it).</p>
+      <label class="field">Client ID<input id="gClient" autocomplete="off"></label>
+    </div>
+    <div class="dlg-foot"><span class="rc-msg" id="gMsg"></span><button class="btn btn-primary" type="submit">Connect</button></div>
+  </form>
+</dialog>
+
+<script>
+const SERVER = 'Google Sheets';
+let SHEET_ID = '';                       // never hard-coded: pasted by the owner and kept in this browser
+const SETTINGS_KEY = 'race_settings';
+const RES_NUM = ['qualiPos', 'grid', 'finish', 'pointsAdj'];
+const STATUSES = ['DNF', 'DNS', 'DSQ', 'NC'];
+const FIELDS = ['qualiPos', 'finish', 'status', 'pole', 'fastestLap'];   // the cells the entry UI is allowed to change
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => iso(new Date());
+const toNum = v => { const s = String(v ?? '').replace(/,/g, '').trim(); if (s === '') return null; const n = Number(s); return Number.isFinite(n) ? n : null; };
+const toDate = v => {
+  const s = String(v ?? '').trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if (m) return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${pad(+m[2])}-${pad(+m[1])}`;
+  return null;
+};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const yes = v => /^(y|yes|true|1)$/i.test(String(v ?? '').trim());
+const str = v => String(v ?? '').trim();
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const fmtDate = s => { if (!s) return 'Date TBC'; const [y, m, d] = s.split('-').map(Number); return `${d} ${MONTHS[m - 1]} ${String(y).slice(2)}`; };
+const pf = n => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+const colLetter = i => { let s = ''; i++; while (i) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; };
+const stamp = () => { const d = new Date(); return `${iso(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const LS = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  json(k) { try { return JSON.parse(localStorage.getItem(k) || 'null') || {}; } catch (e) { return {}; } }
+};
+const hashColour = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 55% 55%)`; };
+const safeColour = c => /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20})$/.test(str(c)) ? str(c) : '';
+const sheetIdFrom = s => { const t = str(s); const m = t.match(/\/d\/([A-Za-z0-9_-]{15,})/); if (m) return m[1]; return /^[A-Za-z0-9_-]{25,}$/.test(t) ? t : ''; };
+const quote = tab => /[^A-Za-z0-9_]/.test(tab) ? `'${tab.replace(/'/g, "''")}'` : tab;
+
+/* ---------- state ---------- */
+const state = {
+  mcp: null, live: false, busy: false, google: false,
+  settings: { competition: 'Formula E', season: '', pointsSystem: 'FE', poleBonus: '', fastestLapBonus: '', fastestLapTop10Only: '', teamPoints: 'sum', manufacturerRule: 'best2', manufacturersFrom: '', logoFolder: '' },
+  seasonRows: {}, points: {}, races: [], results: [], drivers: {}, teams: [], lineups: [], circuits: [], lineage: new Map(), lineageRows: [], powertrains: new Map(),
+  season: '', tab: 'races', stTab: 'drivers', stView: 'pos', sWho: 'drivers', sScope: 'cur', sGroup: 'lineage',
+  sSort: { drivers: { key: 'PTS', dir: -1 }, teams: { key: 'PTS', dir: -1 } },
+  open: new Set(), drafts: {}, cache: {}, rdMode: 'edit', rdId: ''
+};
+const isEditable = () => state.live && state.season === state.settings.season;
+const raceById = id => state.races.find(r => r.id === id);
+const raceOrder = (a, b) => (a.round ?? 999) - (b.round ?? 999) || (a.heat || 0) - (b.heat || 0) || a.id.localeCompare(b.id);
+const seasonList = () => [...new Set([...state.races.map(r => r.season), state.settings.season].filter(Boolean))].sort().reverse();
+
+/* ---------- people and teams ---------- */
+const drv = code => state.drivers[code] || { code, name: code || '?', flag: '', nationality: '' };
+const dName = code => drv(code).name || code;
+const dFlag = code => drv(code).flag || '';
+const teamRow = name => state.teams.find(t => t.team === name || t.short === name);
+const lineageOf = name => state.lineage.get(name) || name;
+function teamColour(name) {
+  let t = teamRow(name) || teamRow(lineageOf(name));
+  return (t && safeColour(t.colour1)) || hashColour(name || '?');
+}
+const logoFor = team => null;               // logos arrive later (Drive folder `formula-e`); the slot is ready
+function teamMark(team) {
+  const l = logoFor(team);
+  return `<span class="tm" title="${esc(team)}">${l ? `<img src="${esc(l)}" alt="">` : `<i class="dot" style="background:${esc(teamColour(team))}"></i>`}</span>`;
+}
+const driverTag = code => `<span class="dn"><span class="fl" aria-hidden="true">${esc(dFlag(code))}</span>${esc(dName(code))}</span>`;
+function powertrainOf(season, team) {
+  const p = state.powertrains.get(season + '|' + team); if (p) return p;
+  if (season === state.settings.season) { const t = teamRow(team); if (t && t.powertrain) return t.powertrain; }
+  return '';
+}
+
+/* ---------- points engine ---------- */
+function rulesFor(season) {
+  const s = state.settings, o = state.seasonRows[season] || {};
+  const pick = k => (o[k] !== undefined && str(o[k]) !== '') ? o[k] : s[k];
+  return {
+    pointsSystem: str(pick('pointsSystem')) || 'FE', poleBonus: toNum(pick('poleBonus')) || 0, flBonus: toNum(pick('fastestLapBonus')) || 0,
+    fl10: yes(pick('fastestLapTop10Only')), groupBonus: toNum(pick('groupFastestBonus')) || 0, qualiPoints: str(pick('qualiPoints'))
+  };
+}
+function resultCalc(r, rules) {
+  const sys = state.points[rules.pointsSystem] || {};
+  const race = (r.finish != null && r.status !== 'DSQ') ? (sys[r.finish] || 0) : 0;
+  const pole = r.pole ? rules.poleBonus : 0;
+  const qsys = rules.qualiPoints ? (state.points[rules.qualiPoints] || {}) : null;
+  const quali = (qsys && r.qualiPos != null) ? (qsys[r.qualiPos] || 0) : 0;
+  const fl = (r.fastestLap && (!rules.fl10 || (r.finish != null && r.finish <= 10))) ? rules.flBonus : 0;
+  const grp = r.groupFastest ? rules.groupBonus : 0;
+  const adj = r.pointsAdj || 0;
+  return { race, pole, quali, fl, grp, adj, total: race + pole + quali + fl + grp + adj };
+}
+const classified = r => r.finish != null && r.status !== 'DSQ';
+const cmpCount = (a, b) => { for (let i = 1; i < 40; i++) if (a.counts[i] !== b.counts[i]) return b.counts[i] - a.counts[i]; return 0; };
+const bump = (o, r) => { if (classified(r)) o.counts[Math.min(r.finish, 39)]++; };
+
+function seasonData(season) {
+  if (state.cache[season]) return state.cache[season];
+  const rules = rulesFor(season);
+  const races = state.races.filter(r => r.season === season).sort(raceOrder);
+  const byRace = new Map(races.map(r => [r.id, []]));
+  for (const r of state.results) { const l = byRace.get(r.raceId); if (l) { r.calc = resultCalc(r, rules); l.push(r); } }
+  const ran = {};
+  races.forEach(rc => { ran[rc.id] = byRace.get(rc.id).some(x => x.finish != null || x.status); });
+  const dm = new Map(), tm = new Map();
+  for (const rc of races) for (const r of byRace.get(rc.id)) {
+    if (!r.driver) continue;
+    let d = dm.get(r.driver); if (!d) { d = { code: r.driver, total: 0, per: {}, counts: new Array(40).fill(0), team: '', teams: [] }; dm.set(r.driver, d); }
+    d.per[rc.id] = r; d.total += r.calc.total; bump(d, r);
+    if (r.team) {
+      d.team = r.team; if (!d.teams.includes(r.team)) d.teams.push(r.team);
+      let t = tm.get(r.team); if (!t) { t = { team: r.team, total: 0, per: {}, counts: new Array(40).fill(0), drivers: new Set() }; tm.set(r.team, t); }
+      t.total += r.calc.total; t.per[rc.id] = (t.per[rc.id] || 0) + r.calc.total; t.drivers.add(r.driver); bump(t, r);
+    }
+  }
+  const drivers = [...dm.values()].sort((a, b) => b.total - a.total || cmpCount(a, b) || dName(a.code).localeCompare(dName(b.code)));
+  drivers.forEach((d, i) => d.pos = i + 1);
+  const teams = [...tm.values()].sort((a, b) => b.total - a.total || cmpCount(a, b) || a.team.localeCompare(b.team));
+  teams.forEach((t, i) => t.pos = i + 1);
+  // manufacturers: best two cars of each powertrain per race, re-numbered, then the normal points table
+  let manus = null;
+  const from = str(state.settings.manufacturersFrom);
+  if (!from || season >= from) {
+    const mm = new Map();
+    for (const t of tm.values()) { const p = powertrainOf(season, t.team); if (p && !mm.has(p)) mm.set(p, { name: p, total: 0, per: {} }); }
+    if (mm.size) {
+      const sys = state.points[rules.pointsSystem] || {};
+      for (const rc of races) {
+        if (!ran[rc.id]) continue;
+        mm.forEach(m => { m.per[rc.id] = 0; });
+        const cars = byRace.get(rc.id).filter(classified).sort((a, b) => a.finish - b.finish);
+        const seen = new Map(); let n = 0;
+        for (const c of cars) {
+          const p = powertrainOf(season, c.team); if (!p) continue;
+          const k = seen.get(p) || 0; if (k >= 2) continue;
+          seen.set(p, k + 1); n++;
+          const m = mm.get(p), pts = sys[n] || 0; m.per[rc.id] += pts; m.total += pts;
+        }
+      }
+      manus = [...mm.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+      manus.forEach((m, i) => m.pos = i + 1);
+    }
+  }
+  const counted = races.filter(r => r.status !== 'Cancelled');
+  const complete = counted.length > 0 && counted.every(r => ran[r.id]);
+  return state.cache[season] = { season, rules, races, byRace, ran, drivers, teams, manus, complete, rows: [...byRace.values()].flat() };
+}
+
+/* ---------- sheet access ---------- */
+function setStatus(kind, text) { $('status').dataset.state = kind; $('statusText').textContent = text; }
+function notice(text, kind) { const n = $('notice'); if (!text) { n.hidden = true; return; } n.textContent = text; n.dataset.kind = kind || ''; n.hidden = false; }
+function explain(err) {
+  switch (err && err.code) {
+    case 'server_not_connected': return 'Google Sheets isn\'t connected for your account. Add it in claude.ai Settings → Connectors, then press Refresh.';
+    case 'google_signin': return 'Your Google sign-in has expired. Press Connect to sign in again.';
+    case 'needs_reauth': return 'Your Google Sheets connection has expired. Reconnect it in claude.ai Settings → Connectors, then press Refresh.';
+    case 'selection_required': return 'You have more than one Google Sheets connector. Choose one when Claude asks, then press Refresh.';
+    case 'not_in_manifest': case 'consent_required': return 'This page isn\'t allowed to use Google Sheets yet. Allow it from the page\'s permissions, then press Refresh.';
+    case 'approval_required': return 'Google Sheets needs your approval for this page. Press Refresh and choose Allow.';
+    case 'blocked_by_policy': return 'Your organisation blocks Google Sheets for this page.';
+    case 'server_unavailable': return 'Google Sheets didn\'t answer in time. Press Refresh to try again.';
+    case 'tool_error': return 'Google Sheets reported a problem: ' + (err.message || 'unknown error') + '.';
+    case 'not_granted': case 'capability_disabled': case 'capability_removed': return 'This view can\'t reach your connectors. Open the page in Claude to connect your sheet.';
+    default: return 'Couldn\'t reach your sheet' + (err && err.message ? ': ' + err.message : '') + '. Press Refresh to try again.';
+  }
+}
+async function readRange(range) {
+  const res = await state.mcp.callTool(SERVER, 'get_values', { spreadsheetId: SHEET_ID, range }, { cache: false });
+  const p = res.payload;
+  return (p && Array.isArray(p.values)) ? p.values : [];
+}
+const readTab = tab => readRange(`${quote(tab)}!A:Z`);
+async function readOpt(tab) {               // tabs that may not exist yet
+  try { return await readTab(tab); } catch (e) { if (e && e.code === 'tool_error') return []; throw e; }
+}
+const byHeader = rows => { const h = (rows[0] || []).map(x => str(x)); return rows.slice(1).map((r, i) => { const o = { _row: i + 2 }; h.forEach((k, j) => { if (k) o[k] = r[j] ?? ''; }); return o; }); };
+const connectHint = () => state.google ? 'Press Connect at the top to sign in to Google.' : 'Open this page in Claude to connect it.';
+
+function normaliseResults(rows) {
+  return byHeader(rows).filter(r => str(r.id)).map(r => ({
+    _row: r._row, id: str(r.id), season: str(r.season), raceId: str(r.raceId), driver: str(r.driver), team: str(r.team),
+    qualiPos: toNum(r.qualiPos), grid: toNum(r.grid), finish: toNum(r.finish), status: str(r.status).toUpperCase(),
+    pole: yes(r.pole), fastestLap: yes(r.fastestLap), groupFastest: yes(r.groupFastest), pointsAdj: toNum(r.pointsAdj) || 0, notes: str(r.notes)
+  }));
+}
+function normaliseRaces(rows) {
+  return byHeader(rows).filter(r => str(r.id)).map(r => ({
+    _row: r._row, id: str(r.id), season: str(r.season), round: toNum(r.round), date: toDate(r.date), country: str(r.country), flag: str(r.flag),
+    city: str(r.city), circuit: str(r.circuit), name: str(r.name), heat: toNum(r.heat), status: str(r.status), notes: str(r.notes)
+  }));
+}
+
+async function refresh() {
+  if (!state.mcp || !SHEET_ID) return;
+  setStatus('loading', 'Loading from your sheet…');
+  $('refreshBtn').disabled = true;
+  try {
+    const [settings, seasons, points, races, results, drivers, teams, lineups, circuits, lineage, powertrains] = await Promise.all(
+      ['App Settings', 'Seasons', 'Points', 'Races', 'Results', 'Drivers', 'Teams', 'Lineups', 'Circuits'].map(readTab).concat([readOpt('Team Lineage'), readOpt('Powertrains')]));
+    const s = { ...state.settings };
+    for (const r of settings.slice(1)) { const k = str(r[0]); if (k) s[k] = str(r[1]); }
+    state.settings = s;
+    state.seasonRows = {}; byHeader(seasons).forEach(r => { if (str(r.season)) state.seasonRows[str(r.season)] = r; });
+    state.points = {};
+    byHeader(points).forEach(r => { const sys = str(r.system), pos = toNum(r.position), pt = toNum(r.points); if (sys && pos != null) (state.points[sys] = state.points[sys] || {})[pos] = pt || 0; });
+    state.races = normaliseRaces(races);
+    state.results = normaliseResults(results);
+    state.drivers = {}; byHeader(drivers).forEach(r => { const c = str(r.code); if (c) state.drivers[c] = { code: c, name: str(r.name) || c, flag: str(r.flag), nationality: str(r.nationality), active: str(r.active) }; });
+    state.teams = byHeader(teams).filter(t => str(t.team)).map(t => ({ team: str(t.team), short: str(t.short), powertrain: str(t.powertrain), colour1: str(t.colour1), colour2: str(t.colour2), active: str(t.active) }));
+    state.lineups = byHeader(lineups).filter(l => str(l.driver)).map(l => {
+      const notes = str(l.notes), em = notes.match(/Entrant:\s*(.*?)(?:\s+·\s+|$)/), rm = notes.match(/Rounds?\s+([\d,\s]+?)\s*(?:;|$)/i);
+      return { season: str(l.season), driver: str(l.driver), team: str(l.team), number: str(l.number), fromRound: toNum(l.fromRound), toRound: toNum(l.toRound), notes,
+        entrant: em ? em[1].trim() : '', rounds: rm ? rm[1].split(',').map(x => toNum(x)).filter(x => x != null) : null };
+    });
+    state.circuits = byHeader(circuits).filter(c => str(c.circuit)).map(c => ({ circuit: str(c.circuit), city: str(c.city), country: str(c.country), flag: str(c.flag) }));
+    state.lineageRows = byHeader(lineage).filter(l => str(l.team));
+    state.lineage = new Map(state.lineageRows.map(l => [str(l.team), str(l.lineage) || str(l.team)]));
+    state.powertrains = new Map(); byHeader(powertrains).forEach(p => { if (str(p.season) && str(p.team) && str(p.powertrain)) state.powertrains.set(str(p.season) + '|' + str(p.team), str(p.powertrain)); });
+    state.cache = {}; state.drafts = {}; state.live = true;
+    const list = seasonList(), saved = LS.get('race_season');
+    if (!list.includes(state.season)) state.season = list.includes(saved) ? saved : (list.includes(state.settings.season) ? state.settings.season : (list[0] || ''));
+    notice('');
+    setStatus('live', 'Live from your sheet · ' + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
+    renderAll();
+  } catch (err) {
+    setStatus('error', state.live ? 'Showing the last data loaded' : 'Not connected');
+    notice(explain(err), 'error');
+  } finally { $('refreshBtn').disabled = false; }
+}
+async function reloadResults() {
+  state.results = normaliseResults(await readTab('Results')); state.cache = {};
+}
+
+/* writes: always find the row by id right before writing, change only what changed */
+async function sheetHeader(tab) { return ((await readRange(`${quote(tab)}!A1:Z1`))[0] || []).map(h => str(h)); }
+async function rowsOfIds(tab, header) {
+  const i = header.indexOf('id'); if (i < 0) throw { code: 'tool_error', message: `${tab} has no id column` };
+  const L = colLetter(i), ids = await readRange(`${quote(tab)}!${L}:${L}`);
+  return id => ids.map((r, n) => str(r[0]) === id ? n + 1 : 0).filter(Boolean);
+}
+function cellValue(tab, k, v) {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number') return v;
+  if (k === 'date') return v;                        // yyyy-mm-dd becomes a real date in the sheet
+  return "'" + String(v);                             // text stays text
+}
+async function writeChanges(tab, header, row, changes) {
+  const cols = Object.keys(changes).map(k => { const i = header.indexOf(k); if (i < 0) throw { code: 'tool_error', message: `${tab} has no ${k} column` }; return { k, i }; }).sort((a, b) => a.i - b.i);
+  const groups = [];
+  for (const c of cols) { const g = groups[groups.length - 1]; if (g && g[g.length - 1].i === c.i - 1) g.push(c); else groups.push([c]); }
+  for (const g of groups) {
+    const a = colLetter(g[0].i), b = colLetter(g[g.length - 1].i);
+    await state.mcp.callTool(SERVER, 'update_values', { spreadsheetId: SHEET_ID, range: `${quote(tab)}!${a}${row}${g.length > 1 ? ':' + b + row : ''}`, values: [g.map(c => cellValue(tab, c.k, changes[c.k]))] }, { cache: false });
+  }
+}
+
+/* ---------- entry drafts (tap in order) ---------- */
+const lineupFor = (season, round, code) => state.lineups.find(l => l.season === season && l.driver === code && lineupIn(l, round));
+function lineupIn(l, round) {
+  if (l.rounds && l.rounds.length) return l.rounds.includes(round);
+  return (l.fromRound == null || round >= l.fromRound) && (l.toRound == null || round <= l.toRound);
+}
+function eligible(race) {
+  const out = [], seen = new Set();
+  for (const l of state.lineups) if (l.season === race.season && lineupIn(l, race.round) && !seen.has(l.driver)) { seen.add(l.driver); out.push({ code: l.driver, team: l.team, number: l.number }); }
+  for (const r of (seasonData(race.season).byRace.get(race.id) || [])) if (r.driver && !seen.has(r.driver)) { seen.add(r.driver); out.push({ code: r.driver, team: r.team, number: '' }); }
+  return out;
+}
+function freshDraft(race) {
+  const rows = seasonData(race.season).byRace.get(race.id) || [];
+  const by = (k, f) => rows.filter(f).sort((a, b) => a[k] - b[k]).map(r => r.driver);
+  const d = { mode: 'race', race: by('finish', r => r.finish != null), quali: by('qualiPos', r => r.qualiPos != null), status: {}, pole: '', fl: '', poleManual: false };
+  rows.forEach(r => { if (r.status) d.status[r.driver] = r.status; if (r.pole && !d.pole) d.pole = r.driver; if (r.fastestLap && !d.fl) d.fl = r.driver; });
+  return d;
+}
+const getDraft = race => state.drafts[race.id] || (state.drafts[race.id] = freshDraft(race));
+// what the draft would change in the sheet, compared with the results loaded
+function plan(race) {
+  const d = state.drafts[race.id]; if (!d) return { items: [], count: 0 };
+  const rows = seasonData(race.season).byRace.get(race.id) || [], ex = new Map(rows.map(r => [r.driver, r]));
+  const codes = new Set([...d.race, ...d.quali, ...Object.keys(d.status), d.pole, d.fl, ...ex.keys()].filter(Boolean));
+  const items = [];
+  for (const code of codes) {
+    const fin = d.race.indexOf(code), q = d.quali.indexOf(code);
+    const vals = { qualiPos: q >= 0 ? q + 1 : '', finish: fin >= 0 ? fin + 1 : '', status: d.status[code] || '', pole: d.pole === code ? 'Y' : '', fastestLap: d.fl === code ? 'Y' : '' };
+    const e = ex.get(code);
+    if (e) {
+      const cur = { qualiPos: e.qualiPos ?? '', finish: e.finish ?? '', status: e.status, pole: e.pole ? 'Y' : '', fastestLap: e.fastestLap ? 'Y' : '' };
+      const changes = {}; FIELDS.forEach(k => { if (cur[k] !== vals[k]) changes[k] = vals[k]; });
+      if (Object.keys(changes).length) items.push({ code, existing: e, vals, changes });
+    } else if (FIELDS.some(k => vals[k] !== '')) {
+      const l = lineupFor(race.season, race.round, code);
+      items.push({ code, existing: null, vals, changes: { ...vals }, team: l ? l.team : '' });
+    }
+  }
+  return { items, count: items.length };
+}
+const isDirty = race => !!state.drafts[race.id] && plan(race).count > 0;
+function previewPts(race, d, code) {
+  const ex = (seasonData(race.season).byRace.get(race.id) || []).find(r => r.driver === code) || {};
+  const f = d.race.indexOf(code), q = d.quali.indexOf(code);
+  return resultCalc({ finish: f >= 0 ? f + 1 : null, qualiPos: q >= 0 ? q + 1 : null, status: d.status[code] || '', pole: d.pole === code, fastestLap: d.fl === code, groupFastest: !!ex.groupFastest, pointsAdj: ex.pointsAdj || 0 }, rulesFor(race.season)).total;
+}
+
+/* ---------- Races tab ---------- */
+function nextRace(sd) {
+  if (state.season !== state.settings.season) return null;
+  return sd.races.find(r => !sd.ran[r.id] && r.status !== 'Cancelled' && r.status !== 'Postponed') || null;
+}
+function renderStrip(sd) {
+  const nx = nextRace(sd);
+  $('strip').innerHTML = sd.races.length ? sd.races.map(r => `<button type="button" class="rchip" data-race="${esc(r.id)}"${nx && nx.id === r.id ? ' data-next' : ''}${r.status === 'Cancelled' ? ' data-x' : ''}${sd.ran[r.id] ? ' data-done' : ''}>
+    <span class="fl" aria-hidden="true">${esc(r.flag)}</span><span class="rd">RD${r.round ?? '?'}${r.heat ? '·' + r.heat : ''}</span><span class="ct">${esc(r.city || 'TBC')}</span><span class="dt">${esc(fmtDate(r.date))}</span></button>`).join('')
+    : '<span class="muted" style="padding:6px">No races yet.</span>';
+}
+function podiumHTML(rows) {
+  const by = n => rows.find(r => r.finish === n && r.status !== 'DSQ');
+  const pod = n => { const r = by(n); return r
+    ? `<div class="pod p${n}"><span class="medal">P${n}</span><span class="fl" aria-hidden="true">${esc(dFlag(r.driver))}</span><span class="nm">${esc(dName(r.driver))}</span>${teamMark(r.team)}</div>`
+    : `<div class="pod p${n} none"><span class="medal">P${n}</span><span class="nm">–</span></div>`; };
+  return `<div class="podium">${pod(2)}${pod(1)}${pod(3)}</div>`;
+}
+function warnings(race, rows, sd) {
+  const w = [];
+  if (rows.filter(r => r.pole).length > 1) w.push('More than one pole is recorded for this race.');
+  if (rows.filter(r => r.fastestLap).length > 1) w.push('More than one fastest lap is recorded for this race.');
+  const d = state.drafts[race.id];
+  if (d && d.fl && sd.rules.fl10) { const f = d.race.indexOf(d.fl); if (f < 0 || f + 1 > 10) w.push(`Fastest lap point isn't awarded: ${dName(d.fl)} is outside the top 10.`); }
+  return w;
+}
+function classificationHTML(rows) {
+  if (!rows.length) return '<p class="muted" style="margin:0;text-align:center;font-size:13px">No results entered yet.</p>';
+  const order = { DNF: 1, NC: 2, DSQ: 3, DNS: 4 };
+  const sorted = [...rows].sort((a, b) => (a.finish ?? 999) - (b.finish ?? 999) || (order[a.status] || 9) - (order[b.status] || 9));
+  return `<div class="tbox"><table class="t"><thead><tr><th>Pos</th><th class="l">Driver</th><th class="l">Team</th><th>Quali</th><th>Status</th><th>Pts</th></tr></thead><tbody>${sorted.map(r => {
+    const c = r.calc, bad = r.status === 'DSQ' || r.status === 'DNF' || r.status === 'DNS' || r.status === 'NC';
+    const tip = `Race ${pf(c.race)}${c.pole ? ' · pole ' + pf(c.pole) : ''}${c.quali ? ' · quali ' + pf(c.quali) : ''}${c.fl ? ' · fastest lap ' + pf(c.fl) : ''}${c.grp ? ' · group ' + pf(c.grp) : ''}${c.adj ? ' · adjustment ' + pf(c.adj) : ''}`;
+    return `<tr${bad && r.finish == null || r.status === 'DSQ' ? ' class="x"' : ''}><td class="pos">${r.finish ?? '–'}</td><td class="l">${driverTag(r.driver)}${r.pole ? '<span class="badge p" title="Pole">P</span>' : ''}${r.fastestLap ? '<span class="badge f" title="Fastest lap">FL</span>' : ''}</td><td class="l"><span class="dn">${teamMark(r.team)}${esc(r.team)}</span></td><td>${r.qualiPos ?? ''}</td><td>${esc(r.status)}</td><td title="${esc(tip)}"><b>${pf(c.total)}</b></td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+function entryHTML(race) {
+  const d = getDraft(race), sd = seasonData(race.season), q = d.mode === 'quali', key = q ? 'quali' : 'race', list = d[key];
+  const el = eligible(race), un = el.filter(e => !list.includes(e.code));
+  const placed = list.map((code, i) => {
+    const pt = previewPts(race, d, code), st = d.status[code];
+    return `<li class="pr" data-code="${esc(code)}"><span class="pn">${i + 1}</span><span class="pnm">${esc(dFlag(code))} ${esc(dName(code))}${st ? ` <span class="stt">${esc(st)}</span>` : ''}</span>
+      <span class="ctl"><button type="button" class="ib" data-act="up" aria-label="Move ${esc(dName(code))} up"${i === 0 ? ' disabled' : ''}>▲</button><button type="button" class="ib" data-act="down" aria-label="Move ${esc(dName(code))} down"${i === list.length - 1 ? ' disabled' : ''}>▼</button><button type="button" class="ib" data-act="rm" aria-label="Remove ${esc(dName(code))}">✕</button></span>
+      <span class="tg"><button type="button" class="ib" data-act="pole" aria-pressed="${d.pole === code}" title="Pole">P</button><button type="button" class="ib" data-act="fl" aria-pressed="${d.fl === code}" title="Fastest lap">FL</button></span><span class="pt">${pf(pt)} pts</span></li>`;
+  }).join('');
+  const unp = un.map(e => q
+    ? `<button type="button" class="chipb" data-act="place" data-code="${esc(e.code)}">${teamMark(e.team)}<span class="nmx">${esc(dFlag(e.code))} ${esc(dName(e.code))}</span></button>`
+    : `<div class="ur" data-code="${esc(e.code)}"><button type="button" class="chipb" data-act="place">${teamMark(e.team)}<span class="nmx">${esc(dFlag(e.code))} ${esc(dName(e.code))}</span></button>
+      <span class="sts">${STATUSES.map(s => `<button type="button" class="sb" data-act="status" data-status="${s}" aria-pressed="${d.status[e.code] === s}">${s}</button>`).join('')}</span></div>`).join('');
+  return `<div class="ent"><h3>Enter result</h3>
+    <div class="ent-bar"><div class="seg"><button type="button" class="btn" data-act="mode" data-mode="race" aria-pressed="${!q}">Race order</button><button type="button" class="btn" data-act="mode" data-mode="quali" aria-pressed="${q}">Qualifying order</button></div>
+      <div class="seg"><button type="button" class="btn" data-act="revert"${isDirty(race) ? '' : ' disabled'}>Revert</button><button type="button" class="btn" data-act="clear">Clear</button></div></div>
+    <p class="hint">${q ? 'Tap drivers in qualifying order, fastest first.' : 'Tap drivers in finishing order. Drivers who didn\'t finish get a status button.'}${sd.rules.qualiPoints ? ' Qualifying positions score ' + esc(sd.rules.qualiPoints) + ' points.' : ''}</p>
+    ${list.length ? `<ol class="placed">${placed}</ol>` : ''}
+    ${un.length ? `<div class="unp${q ? ' chips' : ''}">${unp}</div>` : '<p class="hint">Everyone is placed.</p>'}
+    ${el.length ? '' : '<p class="hint">No drivers are listed in Lineups for this round yet.</p>'}</div>`;
+}
+function cardHTML(race) {
+  const sd = seasonData(race.season), rows = sd.byRace.get(race.id) || [], ed = isEditable(), open = state.open.has(race.id);
+  const cancelled = race.status === 'Cancelled', postponed = race.status === 'Postponed', ran = sd.ran[race.id];
+  const dirty = ed && isDirty(race), entry = ed && !cancelled && !postponed;
+  const stTxt = cancelled ? 'Cancelled' : postponed ? 'Postponed' : ran ? 'Results entered' : 'Not run yet';
+  const pole = rows.find(r => r.pole), fl = rows.find(r => r.fastestLap);
+  const pf_ = (pole || fl) ? `<div class="rc-pf">${pole ? `Pole: <b>${esc(dName(pole.driver))}</b>` : ''}${pole && fl ? ' · ' : ''}${fl ? `Fastest lap: <b>${esc(dName(fl.driver))}</b>` : ''}</div>` : '';
+  const w = warnings(race, rows, sd);
+  const body = open ? `<div class="more" id="m-${esc(race.id)}">${classificationHTML(rows)}${entry ? entryHTML(race) : ''}</div>` : '';
+  return `<article class="rc" data-id="${esc(race.id)}"${dirty ? ' data-dirty' : ''}${cancelled ? ' data-x' : ''}>
+    <div class="rc-ttl"><div class="eyebrow">Round ${race.round ?? '?'}${race.heat ? ' · Heat ' + race.heat : ''}</div>
+      <h2><span aria-hidden="true">${esc(race.flag)}</span> ${esc(race.city || 'City TBC')}</h2>
+      <div class="rc-name">${esc(race.name || 'Race name TBC')}</div>
+      <div class="rc-meta">${esc(fmtDate(race.date))}${race.circuit ? ' · ' + esc(race.circuit) : ''}</div></div>
+    ${ran ? podiumHTML(rows) : ''}${pf_}
+    <div class="rc-warn">${w.map(x => `<span>${esc(x)}</span>`).join('')}</div>
+    <button type="button" class="btn rc-toggle" data-act="toggle" aria-expanded="${open}" aria-controls="m-${esc(race.id)}">Details<span class="udot"${dirty ? '' : ' hidden'}></span><span class="chev" aria-hidden="true"></span></button>
+    ${body}
+    <div class="rc-foot">${ed ? '<button type="button" class="btn" data-act="edit">Edit race</button>' : '<span></span>'}<span class="rc-msg"${ran ? ' data-ok' : ''}>${esc(stTxt)}</span>${ed && entry ? `<button type="button" class="btn btn-primary" data-act="save"${dirty ? '' : ' disabled'}>Save</button>` : '<span></span>'}</div>
+  </article>`;
+}
+function renderRaces() {
+  const sd = seasonData(state.season);
+  renderStrip(sd);
+  $('raceList').innerHTML = sd.races.length ? sd.races.map(cardHTML).join('') : '<div class="empty">No races in this season yet.</div>';
+  $('addRow').hidden = !isEditable();
+}
+function rerenderCard(id) {
+  const el = document.querySelector(`.rc[data-id="${CSS.escape(id)}"]`), race = raceById(id); if (!el || !race) return;
+  const t = document.createElement('div'); t.innerHTML = cardHTML(race); el.replaceWith(t.firstElementChild);
+}
+function entryAct(race, act, code, btn) {
+  const d = getDraft(race), key = d.mode === 'quali' ? 'quali' : 'race', list = d[key];
+  const syncPole = () => { if (key === 'quali' && !d.poleManual) d.pole = d.quali[0] || ''; };
+  const i = list.indexOf(code);
+  switch (act) {
+    case 'mode': d.mode = btn.dataset.mode; break;
+    case 'place': if (i < 0) { list.push(code); if (key === 'race') delete d.status[code]; syncPole(); } break;
+    case 'rm': if (i >= 0) { list.splice(i, 1); syncPole(); } break;
+    case 'up': if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; syncPole(); } break;
+    case 'down': if (i >= 0 && i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; syncPole(); } break;
+    case 'pole': d.pole = d.pole === code ? '' : code; d.poleManual = true; break;
+    case 'fl': d.fl = d.fl === code ? '' : code; break;
+    case 'status': if (d.status[code] === btn.dataset.status) delete d.status[code]; else d.status[code] = btn.dataset.status; break;
+    case 'clear': Object.assign(d, { race: [], quali: [], status: {}, pole: '', fl: '', poleManual: false }); break;
+    case 'revert': { const f = freshDraft(race); f.mode = d.mode; state.drafts[race.id] = f; break; }
+  }
+  rerenderCard(race.id);
+  const again = code && document.querySelector(`.rc[data-id="${CSS.escape(race.id)}"] [data-code="${CSS.escape(code)}"] [data-act="${act}"]:not([disabled])`);
+  if (again) again.focus();
+}
+
+async function saveRace(id, btn) {
+  if (state.busy) return;
+  const race = raceById(id); if (!race) return;
+  if (!state.live) { notice('Saving needs the live connection to your sheet. ' + connectHint(), 'error'); return; }
+  const p = plan(race); if (!p.count) return;
+  state.busy = true; btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const header = await sheetHeader('Results'), rowsOf = await rowsOfIds('Results', header), now = stamp();
+    const updates = [], appends = [];
+    for (const it of p.items) {                                         // check every row first: nothing is written if one is wrong
+      const rid = `${race.id}-${it.code}`, hits = rowsOf(rid);
+      if (hits.length > 1) throw { code: 'tool_error', message: `${rid} appears ${hits.length} times in Results. Fix the sheet, then save again` };
+      if (hits.length === 1) {
+        const ch = it.existing ? it.changes : Object.fromEntries(FIELDS.filter(k => it.vals[k] !== '').map(k => [k, it.vals[k]]));
+        if (Object.keys(ch).length) updates.push({ row: hits[0], ch });
+      } else {
+        appends.push({ rid, it });
+      }
+    }
+    if (appends.length) {
+      const rows = appends.map(({ rid, it }) => {
+        const v = { id: rid, season: race.season, raceId: race.id, driver: it.code, team: it.team || (it.existing && it.existing.team) || '', ...it.vals, updatedAt: now };
+        return header.map(k => k in v ? cellValue('Results', k, v[k]) : '');
+      });
+      await state.mcp.callTool(SERVER, 'append_values', { spreadsheetId: SHEET_ID, range: 'Results!A1', values: rows }, { cache: false });
+    }
+    for (const u of updates) await writeChanges('Results', header, u.row, { ...u.ch, updatedAt: now });
+    delete state.drafts[race.id];
+    await reloadResults();
+    notice(''); setStatus('live', `Saved ${race.city || 'round ' + race.round} · ` + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
+    renderAll();
+  } catch (err) {
+    const unsure = err && ['server_unavailable', 'upstream_error', 'cancelled'].includes(err.code);
+    notice(unsure ? 'The save may or may not have gone through. Reloading your sheet so you can check before saving again.' : explain(err), 'error');
+    if (unsure) await refresh(); else { btn.disabled = false; btn.textContent = 'Save'; }
+  } finally { state.busy = false; }
+}
+
+/* edit / add a race */
+function openRaceDlg(mode, race) {
+  state.rdMode = mode; state.rdId = race ? race.id : '';
+  $('rdTitle').textContent = mode === 'add' ? 'Add race' : 'Edit race';
+  $('rdSave').textContent = mode === 'add' ? 'Add race' : 'Save race';
+  const r = race || { date: '', city: '', circuit: '', name: '', heat: '', status: '', notes: '' };
+  $('rdDate').value = r.date || ''; $('rdCity').value = r.city || ''; $('rdCircuit').value = r.circuit || ''; $('rdName').value = r.name || '';
+  $('rdHeat').value = r.heat ? String(r.heat) : ''; $('rdStatus').value = r.status || ''; $('rdNotes').value = r.notes || ''; $('rdMsg').textContent = '';
+  $('circuitList').innerHTML = state.circuits.map(c => `<option value="${esc(c.circuit)}">${esc(c.city)}</option>`).join('');
+  $('rdDlg').showModal();
+}
+async function saveRaceDlg() {
+  if (state.busy) return;
+  if (!state.live) { $('rdMsg').textContent = 'Saving needs the live connection. ' + connectHint(); return; }
+  const v = { date: $('rdDate').value || '', city: str($('rdCity').value), circuit: str($('rdCircuit').value), name: str($('rdName').value), heat: $('rdHeat').value ? Number($('rdHeat').value) : '', status: $('rdStatus').value, notes: str($('rdNotes').value) };
+  state.busy = true; $('rdSave').disabled = true; $('rdMsg').textContent = 'Saving…';
+  try {
+    const header = await sheetHeader('Races'), rowsOf = await rowsOfIds('Races', header);
+    if (state.rdMode === 'edit') {
+      const race = raceById(state.rdId), hits = rowsOf(state.rdId);
+      if (hits.length !== 1) throw { code: 'tool_error', message: hits.length ? `race ${state.rdId} appears ${hits.length} times in Races` : `race ${state.rdId} isn't in Races any more` };
+      const cur = { date: race.date || '', city: race.city, circuit: race.circuit, name: race.name, heat: race.heat ?? '', status: race.status, notes: race.notes };
+      const ch = {}; Object.keys(v).forEach(k => { if (cur[k] !== v[k]) ch[k] = v[k]; });
+      if (Object.keys(ch).length) {
+        await writeChanges('Races', header, hits[0], ch);
+        Object.assign(race, { date: v.date || null, city: v.city, circuit: v.circuit, name: v.name, heat: v.heat === '' ? null : v.heat, status: v.status, notes: v.notes });
+      }
+      state.cache = {};
+    } else {
+      const season = state.season, m = season.match(/^\d{2}(\d{2})\/(\d{2})$/), pre = (m ? m[1] + m[2] : season.replace(/\D/g, '')) + '-R';
+      const ids = await readRange(`Races!${colLetter(header.indexOf('id'))}:${colLetter(header.indexOf('id'))}`);
+      const max = ids.reduce((n, r) => { const k = str(r[0]).startsWith(pre) ? parseInt(str(r[0]).slice(pre.length), 10) : NaN; return Number.isFinite(k) && k > n ? k : n; }, 0);
+      const nn = max + 1, id = pre + pad(nn), c = state.circuits.find(x => x.circuit === v.circuit) || state.circuits.find(x => x.city && x.city === v.city) || {};
+      const row = { id, season, round: nn, ...v, country: c.country || '', flag: c.flag || '' };
+      await state.mcp.callTool(SERVER, 'append_values', { spreadsheetId: SHEET_ID, range: 'Races!A1', values: [header.map(k => k in row ? cellValue('Races', k, row[k]) : '')] }, { cache: false });
+      state.races.push({ id, season, round: nn, date: v.date || null, country: row.country, flag: row.flag, city: v.city, circuit: v.circuit, name: v.name, heat: v.heat === '' ? null : v.heat, status: v.status, notes: v.notes });
+      state.cache = {}; state.open.add(id);
+    }
+    $('rdDlg').close(); renderAll();
+  } catch (err) { $('rdMsg').textContent = explain(err); }
+  finally { state.busy = false; $('rdSave').disabled = false; }
+}
+
+/* ---------- Standings tab ---------- */
+function driverCell(d, rc, sd, view) {
+  if (!sd.ran[rc.id]) return '<td><div class="cell"></div></td>';
+  const r = d.per[rc.id]; if (!r) return '<td><div class="cell"></div></td>';
+  let cls = '', txt = '';
+  if (classified(r)) { txt = view === 'pts' ? pf(r.calc.total) : r.finish; cls = r.finish === 1 ? 'c1' : r.finish === 2 ? 'c2' : r.finish === 3 ? 'c3' : r.finish <= 10 ? 'cp' : ''; }
+  else if (r.status) { txt = view === 'pts' && r.calc.total ? pf(r.calc.total) : r.status; cls = 'cx'; }
+  const tip = `${dName(d.code)} · ${r.finish != null ? 'P' + r.finish : r.status || 'no result'} · ${pf(r.calc.total)} pts`;
+  return `<td><div class="cell ${cls}" title="${esc(tip)}">${txt}${r.pole ? '<b class="bp" title="Pole">P</b>' : ''}${r.fastestLap ? '<b class="bf" title="Fastest lap">FL</b>' : ''}</div></td>`;
+}
+function headCols(races) {
+  return races.map(rc => { const dup = races.filter(x => x.round === rc.round).length > 1; return `<th title="${esc((rc.city || '') + ' ' + (rc.name || ''))}"><span class="hf" aria-hidden="true">${esc(rc.flag)}</span><span class="hn">${rc.round ?? '?'}${dup && rc.heat ? 'abc'[rc.heat - 1] || '' : ''}</span></th>`; }).join('');
+}
+function renderStandings() {
+  const sd = seasonData(state.season), races = sd.races.filter(r => r.status !== 'Cancelled'), manu = !!sd.manus;
+  if (state.stTab === 'manu' && !manu) state.stTab = 'drivers';
+  $('stSub').innerHTML = [['drivers', 'Drivers'], ['teams', 'Teams'], ...(manu ? [['manu', 'Manufacturers']] : [])].map(([k, l]) => `<button type="button" class="btn" data-st="${k}" aria-pressed="${state.stTab === k}">${l}</button>`).join('')
+    + (state.stTab === 'drivers' ? `<span class="sp"></span><button type="button" class="btn" data-sv="pos" aria-pressed="${state.stView === 'pos'}">Positions</button><button type="button" class="btn" data-sv="pts" aria-pressed="${state.stView === 'pts'}">Points</button>` : '');
+  $('stTitle').textContent = { drivers: "Drivers' championship", teams: "Teams' championship", manu: "Manufacturers' championship" }[state.stTab];
+  $('stLegend').innerHTML = state.stTab === 'drivers'
+    ? '<span><i style="background:var(--gold)"></i>1st</span><span><i style="background:var(--silver)"></i>2nd</span><span><i style="background:var(--bronze)"></i>3rd</span><span><i style="background:rgba(60,200,120,.3)"></i>4th to 10th</span><span><i style="background:rgba(239,107,115,.3)"></i>DNF / DNS / DSQ / NC</span><span><span class="badge p" style="margin:0">P</span> pole</span><span><span class="badge f" style="margin:0">FL</span> fastest lap</span>'
+    : '<span>Points scored in each round.</span>' + (state.stTab === 'manu' ? '<span>Best two cars of each powertrain count; points are re-awarded to the next eligible car.</span>' : '');
+  if (!races.length) { $('stGrid').innerHTML = '<div class="empty" style="border:0">No races in this season yet.</div>'; return; }
+  let body = '';
+  if (state.stTab === 'drivers') {
+    body = sd.drivers.length ? sd.drivers.map(d => `<tr data-drv="${esc(d.code)}" style="cursor:pointer"><td class="sticky"><div class="who"><span class="ps">${d.pos}</span><span class="fl" aria-hidden="true">${esc(dFlag(d.code))}</span><span class="cd">${esc(d.code)}</span><span class="fn">${esc(dName(d.code))}</span>${teamMark(d.team)}<span class="tot">${pf(d.total)}</span></div></td>${races.map(rc => driverCell(d, rc, sd, state.stView)).join('')}</tr>`).join('') : '';
+  } else {
+    const list = state.stTab === 'teams' ? sd.teams.map(t => ({ pos: t.pos, name: t.team, total: t.total, per: t.per, mark: teamMark(t.team) })) : sd.manus.map(m => ({ pos: m.pos, name: m.name, total: m.total, per: m.per, mark: '' }));
+    body = list.map(t => `<tr><td class="sticky"><div class="who"><span class="ps">${t.pos}</span>${t.mark}<span class="nmt">${esc(t.name)}</span><span class="tot">${pf(t.total)}</span></div></td>${races.map(rc => `<td><div class="cell">${sd.ran[rc.id] && t.per[rc.id] != null ? pf(t.per[rc.id]) : ''}</div></td>`).join('')}</tr>`).join('');
+  }
+  $('stGrid').innerHTML = body ? `<table class="g"><thead><tr><th class="sticky">Pos · ${state.stTab === 'drivers' ? 'Driver' : state.stTab === 'teams' ? 'Team' : 'Maker'} · Pts</th>${headCols(races)}</tr></thead><tbody>${body}</tbody></table>` : '<div class="empty" style="border:0">No results entered yet.</div>';
+}
+
+/* ---------- Stats tab ---------- */
+function scopeSeasons() {
+  const all = seasonList();
+  if (state.sScope === 'cur') return [state.season];
+  if (state.sScope === 'all') return all;
+  return all.includes(state.sScope) ? [state.sScope] : [state.season];
+}
+function aggDrivers(seasons) {
+  const m = new Map(), get = c => { let o = m.get(c); if (!o) { o = { code: c, S: 0, W: 0, P: 0, PP: 0, FL: 0, DNF: 0, T10: 0, PTS: 0, C: 0, seasons: new Set() }; m.set(c, o); } return o; };
+  for (const s of seasons) {
+    const sd = seasonData(s);
+    for (const d of sd.drivers) {
+      const o = get(d.code); o.seasons.add(s); o.PTS += d.total;
+      for (const rc of sd.races) {
+        const r = d.per[rc.id]; if (!r) continue;
+        if (sd.ran[rc.id] && r.status !== 'DNS') o.S++;
+        if (classified(r)) { if (r.finish === 1) o.W++; if (r.finish <= 3) o.P++; if (r.finish <= 10) o.T10++; }
+        if (r.pole) o.PP++; if (r.fastestLap) o.FL++; if (r.status === 'DNF') o.DNF++;
+      }
+    }
+    if (sd.complete && sd.drivers[0]) get(sd.drivers[0].code).C++;
+  }
+  return [...m.values()];
+}
+const groupKey = n => state.sGroup === 'lineage' ? lineageOf(n) : n;
+function aggTeams(seasons) {
+  const m = new Map(), get = k => { let o = m.get(k); if (!o) { o = { key: k, Se: 0, S: 0, W: 0, P: 0, PP: 0, FL: 0, PTS: 0, T: 0, seasons: new Set() }; m.set(k, o); } return o; };
+  for (const s of seasons) {
+    const sd = seasonData(s);
+    for (const rc of sd.races) for (const r of sd.byRace.get(rc.id)) {
+      if (!r.team) continue;
+      const o = get(groupKey(r.team)); o.seasons.add(s); o.PTS += r.calc.total;
+      if (sd.ran[rc.id] && r.status !== 'DNS') o.S++;
+      if (classified(r)) { if (r.finish === 1) o.W++; if (r.finish <= 3) o.P++; }
+      if (r.pole) o.PP++; if (r.fastestLap) o.FL++;
+    }
+    if (sd.complete && sd.teams[0]) get(groupKey(sd.teams[0].team)).T++;
+  }
+  m.forEach(o => { o.Se = o.seasons.size; });
+  return [...m.values()];
+}
+function renderStats() {
+  const w = state.sWho, seasons = scopeSeasons();
+  $('sTitle').textContent = w === 'drivers' ? 'Driver records' : 'Team records';
+  const opts = [['cur', `This season (${state.season})`], ['all', 'All-time'], ...seasonList().map(s => [s, s])];
+  $('sCtl').innerHTML = `<button type="button" class="btn" data-sw="drivers" aria-pressed="${w === 'drivers'}">Drivers</button><button type="button" class="btn" data-sw="teams" aria-pressed="${w === 'teams'}">Teams</button><span class="sp"></span>`
+    + (w === 'teams' ? `<button type="button" class="btn" data-sg="lineage" aria-pressed="${state.sGroup === 'lineage'}">By lineage</button><button type="button" class="btn" data-sg="name" aria-pressed="${state.sGroup === 'name'}">By name</button>` : '')
+    + `<label><span class="sr">Scope</span><select id="sScope" aria-label="Scope">${opts.map(([v, l]) => `<option value="${esc(v)}"${state.sScope === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  const cols = w === 'drivers'
+    ? [['S', 'Starts'], ['W', 'Wins'], ['P', 'Podiums'], ['PP', 'Poles'], ['FL', 'Fastest laps'], ['DNF', 'Retirements'], ['T10', 'Top 10 (points finishes)'], ['PTS', 'Points'], ['C', 'Championships']]
+    : [['Se', 'Seasons'], ['S', 'Starts (race entries)'], ['W', 'Wins'], ['P', 'Podiums'], ['PP', 'Poles'], ['FL', 'Fastest laps'], ['PTS', 'Points'], ['T', 'Team titles']];
+  const labels = { T10: 'Top 10', Se: 'Seasons', S: w === 'drivers' ? 'S' : 'Starts', T: 'Titles' };
+  const so = state.sSort[w];
+  const name = r => w === 'drivers' ? dName(r.code) : r.key;
+  const rows = (w === 'drivers' ? aggDrivers(seasons) : aggTeams(seasons)).filter(r => w === 'teams' || r.S || r.PTS || r.PP || r.W || r.C);
+  rows.sort((a, b) => (b[so.key] - a[so.key]) * -so.dir || name(a).localeCompare(name(b)));
+  $('sTable').innerHTML = rows.length ? `<table class="st"><thead><tr><th class="sticky" style="text-align:left;padding:0 10px">${w === 'drivers' ? 'Driver' : 'Team'}</th>${cols.map(([k, t]) => `<th aria-sort="${so.key === k ? (so.dir < 0 ? 'descending' : 'ascending') : 'none'}"><button type="button" data-sort="${k}" title="${esc(t)}">${labels[k] || k}${so.key === k ? (so.dir < 0 ? ' ▼' : ' ▲') : ''}</button></th>`).join('')}</tr></thead><tbody>${rows.map(r =>
+    `<tr data-open="${esc(w === 'drivers' ? r.code : r.key)}"><td class="sticky">${w === 'drivers' ? driverTag(r.code) : `<span class="dn">${teamMark(r.key)}${esc(r.key)}</span>`}</td>${cols.map(([k]) => `<td class="${k === 'PTS' ? 'pk' : ''}${so.key === k ? ' sorted' : ''}">${pf(r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    : '<div class="empty" style="border:0">Nothing to show for this scope yet.</div>';
+  $('sNote').textContent = `${w === 'drivers' ? 'S starts, W wins, P podiums, PP poles, FL fastest laps, DNF retirements, Top 10 points finishes, C championships (completed seasons only).' : 'Starts are race entries (one per car). Titles count completed seasons only.'} Tap a header to sort, tap a row for the profile.`;
+}
+const span = set => { const a = [...set].sort(); return !a.length ? '' : a[0] === a[a.length - 1] ? a[0] : `${a[0]}–${a[a.length - 1]}`; };
+function showDriver(code) {
+  const per = [];
+  for (const s of seasonList()) {
+    const sd = seasonData(s), d = sd.drivers.find(x => x.code === code); if (!d) continue;
+    let W = 0, P = 0, PP = 0; sd.races.forEach(rc => { const r = d.per[rc.id]; if (!r) return; if (classified(r) && r.finish === 1) W++; if (classified(r) && r.finish <= 3) P++; if (r.pole) PP++; });
+    per.push({ s, d, W, P, PP, champ: sd.complete && d.pos === 1 });
+  }
+  const a = aggDrivers(seasonList()).find(x => x.code === code) || {}, teams = [...new Set(per.flatMap(p => p.d.teams))];
+  let best = null, bestN = 0;
+  for (const s of seasonList()) { const sd = seasonData(s); sd.races.forEach(rc => { const r = (sd.byRace.get(rc.id) || []).find(x => x.driver === code); if (r && classified(r)) { if (best == null || r.finish < best) { best = r.finish; bestN = 1; } else if (r.finish === best) bestN++; } }); }
+  $('pTitle').textContent = dName(code);
+  $('pBody').innerHTML = `<div class="kv"><span><b>Code</b> ${esc(code)}</span><span><b>Nationality</b> ${esc(dFlag(code))} ${esc(drv(code).nationality)}</span><span><b>Best finish</b> ${best == null ? '–' : 'P' + best + (bestN > 1 ? ' ×' + bestN : '')}</span><span><b>Titles</b> ${a.C || 0}</span></div>
+    <div class="kv"><span><b>Starts</b> ${a.S || 0}</span><span><b>Wins</b> ${a.W || 0}</span><span><b>Podiums</b> ${a.P || 0}</span><span><b>Poles</b> ${a.PP || 0}</span><span><b>Points</b> ${pf(a.PTS || 0)}</span></div>
+    <div class="kv"><span><b>Teams driven for</b></span>${teams.map(t => `<span class="dn">${teamMark(t)}${esc(t)}</span>`).join('') || '–'}</div>
+    <div class="tbox"><table class="t"><thead><tr><th class="l">Season</th><th class="l">Team</th><th>Pos</th><th>Pts</th><th>W</th><th>P</th><th>PP</th></tr></thead><tbody>${per.map(p =>
+      `<tr><td class="l">${esc(p.s)}</td><td class="l"><span class="dn">${p.d.teams.map(t => teamMark(t)).join('')}${esc(p.d.teams.join(' / '))}</span></td><td>${p.d.pos}${p.champ ? ' <span class="badge p">C</span>' : ''}</td><td><b>${pf(p.d.total)}</b></td><td>${p.W}</td><td>${p.P}</td><td>${p.PP}</td></tr>`).join('')}</tbody></table></div>`;
+  $('pDlg').showModal();
+}
+function showTeam(key) {
+  const names = new Set(), seasonsOf = new Map(), drivers = new Map(), entrants = new Map();
+  const add = (n, s) => { if (groupKey(n) !== key) return; names.add(n); if (s) { if (!seasonsOf.has(n)) seasonsOf.set(n, new Set()); seasonsOf.get(n).add(s); } };
+  for (const s of seasonList()) { const sd = seasonData(s); for (const r of sd.rows) if (r.team) { add(r.team, s); if (groupKey(r.team) === key && r.driver) { if (!drivers.has(s)) drivers.set(s, new Set()); drivers.get(s).add(r.driver); } } }
+  if (state.sGroup === 'lineage') state.lineageRows.forEach(l => { if (str(l.lineage || l.team) === key || lineageOf(str(l.team)) === key) { add(str(l.team), ''); if (!seasonsOf.has(str(l.team))) seasonsOf.set(str(l.team), new Set([str(l.fromSeason), str(l.toSeason)].filter(Boolean))); } });
+  state.lineups.forEach(l => { if (l.team && groupKey(l.team) === key && l.entrant) { if (!entrants.has(l.entrant)) entrants.set(l.entrant, new Set()); entrants.get(l.entrant).add(l.season); } });
+  const all = aggTeams(seasonList()).find(x => x.key === key) || {};
+  const nameList = [...names].sort((a, b) => (span(seasonsOf.get(a) || []) || 'z').localeCompare(span(seasonsOf.get(b) || []) || 'z'));
+  $('pTitle').textContent = key;
+  $('pBody').innerHTML = `<div class="kv"><span><b>Seasons</b> ${all.Se || 0}</span><span><b>Starts</b> ${all.S || 0}</span><span><b>Wins</b> ${all.W || 0}</span><span><b>Podiums</b> ${all.P || 0}</span><span><b>Poles</b> ${all.PP || 0}</span><span><b>Fastest laps</b> ${all.FL || 0}</span><span><b>Points</b> ${pf(all.PTS || 0)}</span><span><b>Titles</b> ${all.T || 0}</span></div>
+    <div><h3>Previous names</h3><ul class="plist">${nameList.map(n => `<li><span class="dn">${teamMark(n)}<b>${esc(n)}</b></span> <span class="muted">${esc(span(seasonsOf.get(n) || []))}</span></li>`).join('') || '<li class="muted">None</li>'}
+      ${[...entrants].map(([e, s]) => `<li>${esc(e)} <span class="muted">entrant · ${esc(span(s))}</span></li>`).join('')}</ul></div>
+    <div><h3>Drivers by season</h3><div class="tbox"><table class="t"><tbody>${[...drivers].sort((a, b) => b[0].localeCompare(a[0])).map(([s, set]) => `<tr><td class="l">${esc(s)}</td><td class="l">${[...set].map(c => esc(dFlag(c) + ' ' + dName(c))).join(', ')}</td></tr>`).join('')}</tbody></table></div></div>`;
+  $('pDlg').showModal();
+}
+
+/* ---------- History tab ---------- */
+function renderHistory() {
+  const done = seasonList().filter(s => seasonData(s).complete);
+  $('hGrid').innerHTML = done.length ? done.map(s => {
+    const sd = seasonData(s), d = sd.drivers, t = sd.teams[0], m = sd.manus && sd.manus[0];
+    return `<button type="button" class="hc" data-season="${esc(s)}"><span class="eyebrow">${esc(s)}</span><span class="big">${sd.races.filter(r => r.status !== 'Cancelled').length} races</span>
+      <span class="ln"><b>Drivers</b> ${d[0] ? driverTag(d[0].code) + ' · ' + pf(d[0].total) + ' pts' : '–'}</span>
+      <span class="ln"><b>Teams</b> ${t ? `<span class="dn">${teamMark(t.team)}${esc(t.team)}</span> · ${pf(t.total)} pts` : '–'}</span>
+      ${m ? `<span class="ln"><b>Manufacturers</b> ${esc(m.name)} · ${pf(m.total)} pts</span>` : ''}
+      <ol>${d.slice(0, 3).map(x => `<li>${esc(dFlag(x.code))} ${esc(dName(x.code))} · ${pf(x.total)}</li>`).join('')}</ol></button>`;
+  }).join('') : '<div class="empty">No season is complete yet. A season appears here once every race has results.</div>';
+}
+
+/* ---------- shell ---------- */
+function renderHeader() {
+  $('comp').textContent = state.settings.competition || 'Formula E';
+  $('eyebrow').textContent = state.season ? `Season ${state.season}` : 'Season tracker';
+  const list = seasonList();
+  $('seasonSel').innerHTML = list.map(s => `<option value="${esc(s)}"${s === state.season ? ' selected' : ''}>${esc(s)}</option>`).join('');
+  $('roChip').hidden = !state.live || isEditable() || !state.season;
+}
+function renderAll() {
+  renderHeader();
+  $('app').hidden = !SHEET_ID;
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === state.tab)));
+  ['races', 'standings', 'stats', 'history'].forEach(k => { $('p-' + k).hidden = k !== state.tab; });
+  if (!state.live) { $('raceList').innerHTML = '<div class="empty">Nothing loaded yet. ' + esc(connectHint()) + '</div>'; $('strip').innerHTML = ''; $('addRow').hidden = true; return; }
+  if (state.tab === 'races') renderRaces();
+  else if (state.tab === 'standings') renderStandings();
+  else if (state.tab === 'stats') renderStats();
+  else renderHistory();
+}
+function setTab(t) { state.tab = t; LS.set('race_tab', t); renderAll(); }
+function setSeason(s) { state.season = s; LS.set('race_season', s); renderAll(); }
+
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+$('seasonSel').addEventListener('change', e => setSeason(e.target.value));
+$('refreshBtn').addEventListener('click', () => state.google && !google_.valid() ? googleConnect() : refresh());
+$('strip').addEventListener('click', e => {
+  const b = e.target.closest('[data-race]'); if (!b) return;
+  state.open.add(b.dataset.race); rerenderCard(b.dataset.race);
+  const c = document.querySelector(`.rc[data-id="${CSS.escape(b.dataset.race)}"]`); if (c) c.scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+$('raceList').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const card = b.closest('.rc'), race = card && raceById(card.dataset.id); if (!race) return;
+  const act = b.dataset.act;
+  if (act === 'toggle') { if (state.open.has(race.id)) state.open.delete(race.id); else { state.open.add(race.id); if (isEditable() && race.status !== 'Cancelled' && race.status !== 'Postponed') getDraft(race); } rerenderCard(race.id); }
+  else if (act === 'edit') openRaceDlg('edit', race);
+  else if (act === 'save') saveRace(race.id, b);
+  else { const row = b.closest('[data-code]'); entryAct(race, act, row ? row.dataset.code : '', b); }
+});
+$('addRaceBtn').addEventListener('click', () => openRaceDlg('add', null));
+$('rdForm').addEventListener('submit', e => { e.preventDefault(); saveRaceDlg(); });
+$('rdClose').addEventListener('click', () => $('rdDlg').close());
+$('pClose').addEventListener('click', () => $('pDlg').close());
+$('stSub').addEventListener('click', e => {
+  const a = e.target.closest('[data-st]'), v = e.target.closest('[data-sv]');
+  if (a) state.stTab = a.dataset.st; else if (v) state.stView = v.dataset.sv; else return;
+  renderStandings();
+});
+$('stGrid').addEventListener('click', e => { const r = e.target.closest('[data-drv]'); if (r) showDriver(r.dataset.drv); });
+$('sCtl').addEventListener('click', e => {
+  const w = e.target.closest('[data-sw]'), g = e.target.closest('[data-sg]');
+  if (w) state.sWho = w.dataset.sw; else if (g) state.sGroup = g.dataset.sg; else return;
+  renderStats();
+});
+$('sCtl').addEventListener('change', e => { if (e.target.id === 'sScope') { state.sScope = e.target.value; renderStats(); } });
+$('sTable').addEventListener('click', e => {
+  const h = e.target.closest('[data-sort]'), r = e.target.closest('[data-open]');
+  if (h) { const so = state.sSort[state.sWho]; if (so.key === h.dataset.sort) so.dir = -so.dir; else { so.key = h.dataset.sort; so.dir = -1; } renderStats(); }
+  else if (r) { if (state.sWho === 'drivers') showDriver(r.dataset.open); else showTeam(r.dataset.open); }
+});
+$('hGrid').addEventListener('click', e => { const b = e.target.closest('[data-season]'); if (!b) return; state.season = b.dataset.season; LS.set('race_season', state.season); setTab('standings'); });
+
+/* ---------- which sheet ---------- */
+function useSheetLink(text, msgEl) {
+  const id = sheetIdFrom(text);
+  if (!id) { msgEl.textContent = 'That doesn\'t look like a Google Sheet link. Copy the whole address from the browser bar.'; return false; }
+  const changed = id !== SHEET_ID;
+  SHEET_ID = id; LS.set(SETTINGS_KEY, JSON.stringify({ ...LS.json(SETTINGS_KEY), sheetId: id }));
+  msgEl.textContent = '';
+  if (changed) { state.live = false; state.races = []; state.results = []; state.cache = {}; state.drafts = {}; state.season = ''; }
+  boot();
+  return true;
+}
+$('setupGo').addEventListener('click', () => useSheetLink($('setupLink').value, $('setupMsg')));
+$('setupLink').addEventListener('keydown', e => { if (e.key === 'Enter') useSheetLink($('setupLink').value, $('setupMsg')); });
+$('settingsBtn').addEventListener('click', () => {
+  $('sLink').value = ''; $('sMsg').textContent = '';
+  $('sCur').textContent = SHEET_ID ? `Current sheet: …${SHEET_ID.slice(-6)}` : 'No sheet chosen yet.';
+  $('sDlg').showModal();
+});
+$('sForm').addEventListener('submit', e => { e.preventDefault(); if (useSheetLink($('sLink').value, $('sMsg'))) $('sDlg').close(); });
+$('sClose').addEventListener('click', () => $('sDlg').close());
+
+/* ---------- Google Sheets direct (GitHub Pages and other hosts outside claude.ai) ---------- */
+const google_ = {
+  cfgKey: 'race_config', tokKey: 'race_google_token', client: null,
+  own() { return LS.json(this.cfgKey); },
+  // falls back to a Client ID already saved by the other trackers on this site
+  cfg() { const own = this.own(), other = LS.json('mbl_config').clientId || LS.json('st_config').clientId; return { ...own, clientId: own.clientId || other }; },
+  saveCfg(c) { LS.set(this.cfgKey, JSON.stringify({ ...this.own(), ...c })); },
+  tok() { try { return JSON.parse(localStorage.getItem(this.tokKey) || 'null'); } catch (e) { return null; } },
+  valid() { const t = this.tok(); return !!(t && t.exp > Date.now()); },
+  async callTool(server, tool, input) {
+    if (!this.valid()) { googleSignedOut(); throw { code: 'google_signin' }; }
+    const root = `https://sheets.googleapis.com/v4/spreadsheets/${input.spreadsheetId}`;
+    const base = `${root}/values/${encodeURIComponent(input.range || '')}`;
+    const url = tool === 'get_spreadsheet' ? `${root}?fields=${encodeURIComponent((input.fields || []).join(','))}`
+      : tool === 'get_values' ? base
+      : tool === 'append_values' ? base + ':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS'
+      : base + '?valueInputOption=USER_ENTERED';
+    const read = tool === 'get_values' || tool === 'get_spreadsheet';
+    const opts = { method: read ? 'GET' : tool === 'append_values' ? 'POST' : 'PUT', headers: { Authorization: 'Bearer ' + this.tok().t } };
+    if (!read) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify({ values: input.values }); }
+    const res = await fetch(url, opts);
+    if (res.status === 401) { try { localStorage.removeItem(this.tokKey); } catch (e) {} googleSignedOut(); throw { code: 'google_signin' }; }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw { code: 'tool_error', message: (body.error && body.error.message) || 'HTTP ' + res.status };
+    return { payload: body };
+  }
+};
+function googleSignedOut() { setStatus('error', state.live ? 'Signed out · showing the last data loaded' : 'Not connected'); $('refreshBtn').textContent = 'Connect'; }
+function loadGis() {
+  return new Promise((ok, fail) => {
+    if (window.google && google.accounts && google.accounts.oauth2) return ok();
+    const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+    s.onload = () => ok(); s.onerror = () => fail(new Error('Google sign-in didn\'t load')); document.head.appendChild(s);
+  });
+}
+function googleConnect() {
+  const id = google_.cfg().clientId;
+  if (!id) { $('gClient').value = ''; $('gMsg').textContent = ''; $('gDlg').showModal(); return; }
+  if (!(window.google && google.accounts && google.accounts.oauth2)) { loadGis().then(googleConnect, err => notice(err.message, 'error')); return; }
+  try {
+    if (!google_.client) google_.client = google.accounts.oauth2.initTokenClient({
+      client_id: id, scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly',
+      callback: r => {
+        if (r.error) { notice('Google sign-in failed: ' + r.error, 'error'); return; }
+        LS.set(google_.tokKey, JSON.stringify({ t: r.access_token, exp: Date.now() + (r.expires_in - 120) * 1000 }));
+        $('refreshBtn').textContent = 'Refresh'; refresh();
+      },
+      error_callback: e => notice('Google sign-in was closed or blocked' + (e && e.type ? ' (' + e.type + ')' : '') + '. Press Connect to try again.', 'error')
+    });
+    google_.client.requestAccessToken({ prompt: '' });
+  } catch (err) { notice(err.message, 'error'); }
+}
+function googleBoot() {
+  state.google = true; state.mcp = google_;
+  loadGis().catch(() => {});
+  if (google_.valid()) { refresh(); return; }
+  googleSignedOut();
+  notice(google_.cfg().clientId ? 'Press Connect to sign in to Google and load your sheet.' : 'Press Connect to link Google. You\'ll need the OAuth Client ID from your Google Cloud project.', 'example');
+}
+$('gClose').addEventListener('click', () => $('gDlg').close());
+$('gForm').addEventListener('submit', e => {
+  const v = $('gClient').value.trim();
+  if (!/\.apps\.googleusercontent\.com$/.test(v)) { e.preventDefault(); $('gMsg').textContent = 'That doesn\'t look like a Client ID.'; return; }
+  google_.saveCfg({ clientId: v }); google_.client = null; googleConnect();
+});
+
+/* ---------- boot ---------- */
+function boot() {
+  $('setup').hidden = !!SHEET_ID;
+  if (!SHEET_ID) { $('app').hidden = true; setStatus('idle', 'Waiting for your sheet link'); return; }
+  $('app').hidden = false;
+  if (state.mcp) { refresh(); return; }
+  setStatus('loading', 'Connecting to your sheet…');
+  (async () => {
+    if (!(window.claude && window.claude.use)) { googleBoot(); return; }
+    const mcp = await window.claude.use('mcp');
+    if (!mcp) { setStatus('error', 'Not connected'); notice('Open this page in Claude to load your sheet and save results.', 'example'); return; }
+    state.mcp = mcp; refresh();
+  })();
+}
+SHEET_ID = str(LS.json(SETTINGS_KEY).sheetId);
+{ const t = LS.get('race_tab'); if (['races', 'standings', 'stats', 'history'].includes(t)) state.tab = t; }
+renderAll();
+boot();
+</script>
+
+</body>
+</html>
