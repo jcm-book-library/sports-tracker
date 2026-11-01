@@ -15,11 +15,11 @@ Live site (GitHub Pages, from `main`): https://jcm-book-library.github.io/sports
 | `apps/hub/index.html` | Home page. Add each competition to its `COMPS` list (set `href` once the app exists). |
 | `apps/team-match/index.html` | Team-v-team competitions. Live: A-League Men. Next: NRL, AFL, European football. |
 | `apps/tournament/index.html` | Pool-and-knockout tournaments. Live: Rugby League World Cup (men and women). |
-| `apps/race/` (planned) | Motorsport: Formula E first, then F1. See `docs/handoff-formula-e.md`. |
+| `apps/race/index.html` | Motorsport. Live: Formula E. Next: F1 (same app, its own sheet). See `docs/handoff-formula-e.md`. |
 | `apps/cricket/` (planned) | Tests, BBL, World Test Championship. |
 | `tools/build_pages.py` | Builds the GitHub Pages copy of every app. Run it after any app change. |
-| `index.html`, `a-league/`, `world-cup/` | Built output. Never edit by hand. Each folder has its own `manifest.webmanifest` so it can be saved to a phone home screen. |
-| `tests/run.js`, `tests/tournament.js` | Headless Playwright tests with a stubbed `window.claude` and an in-memory sheet. |
+| `index.html`, `a-league/`, `world-cup/`, `formula-e/` | Built output. Never edit by hand. Each folder has its own `manifest.webmanifest` so it can be saved to a phone home screen. |
+| `tests/run.js`, `tests/tournament.js`, `tests/race.js` | Headless Playwright tests with a stubbed `window.claude` and an in-memory sheet. |
 | `README.md` | Sheet tab layouts per shape. |
 | `docs/` | This guide and the per-competition handoffs. |
 
@@ -84,5 +84,5 @@ One session per sport or league works well, as long as sessions don't step on ea
 |---|---|---|
 | A-League Men 2026/27 | `apps/team-match` | Live: fixtures, ladder, results, stats, half-time scores, goal scorers, club logos from Drive. |
 | Rugby League World Cup 2026 | `apps/tournament` | Live: men's and women's, goal kicking, half-time. No scorer lists, by design. Finishes 15 Nov. |
-| Formula E | `apps/race` | Sheet history imported; app not started. See `docs/handoff-formula-e.md`. |
+| Formula E | `apps/race` | Built (Stage 1): race cards with tap-in entry, standings grids, stats, history. Season starts 18 Dec 26. See `docs/handoff-formula-e.md`. |
 | Cricket, AFL, NRL, F1, European football | | Planned, in that rough order. See the hub for dates. |

@@ -3,6 +3,7 @@
 index.html            <- apps/hub/index.html (home page listing every competition)
 a-league/index.html   <- apps/team-match/index.html (A-League)
 world-cup/index.html  <- apps/tournament/index.html (Rugby League World Cup)
+formula-e/index.html  <- apps/race/index.html (Formula E; the sheet link is pasted in the app, never stored here)
 Each app folder has its own manifest.webmanifest so it can be saved to a phone home screen on its own.
 
 
@@ -33,7 +34,8 @@ HEAD = """<!doctype html>
 """
 for src, out, title, up, theme in [("apps/hub/index.html", "index.html", "Sports", "", "#16141f"),
                                    ("apps/team-match/index.html", "a-league/index.html", "A-League", "../", "#2121b8"),
-                                   ("apps/tournament/index.html", "world-cup/index.html", "World Cup", "../", "#061633")]:
+                                   ("apps/tournament/index.html", "world-cup/index.html", "World Cup", "../", "#061633"),
+                                   ("apps/race/index.html", "formula-e/index.html", "Formula E", "../", "#13171e")]:
     app = (root / src).read_text(encoding="utf-8")
     head = HEAD.replace("@TITLE@", title).replace("@UP@", up).replace("@SRC@", src).replace("@THEME@", theme)
     (root / out).parent.mkdir(parents=True, exist_ok=True)
