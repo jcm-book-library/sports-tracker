@@ -28,6 +28,10 @@ Add a row for each new competition and update it when the user says a folder is 
 
 Google accounts: the logo folders and sports sheets belong to the owner's main Google account. The Google Drive connector in Claude is signed in as the owner's second Google account, so each logo folder must be shared with that second account (Editor) before Claude or the claude.ai artifacts can read it. The GitHub Pages apps read Drive with the user's own Google sign-in (drive.readonly scope).
 
+## Every app gets its own icon
+
+So the owner can tell 20-30 trackers apart in tabs, the browser sidebar and on the phone, each app has its own icon: two or three letters (FE, NRL, AFL) in a ring, on the competition's colours. Add a line to `APPS` in `tools/make_icons.py` for each new competition, run it, check `tools/icon-preview.png`, then run `tools/build_pages.py`. Pick a background and ring colour that differ from the existing apps. No official logos in icons (the site is public). After a new icon goes live, the owner re-adds that app to their browser sidebar or home screen, since those keep the icon they first saw.
+
 ## Matchday card convention (all competitions)
 
 The owner keeps adding detail to each sport, so every matchday/round card follows one pattern:

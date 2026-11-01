@@ -4,7 +4,8 @@ index.html            <- apps/hub/index.html (home page listing every competitio
 a-league/index.html   <- apps/team-match/index.html (A-League)
 world-cup/index.html  <- apps/tournament/index.html (Rugby League World Cup)
 formula-e/index.html  <- apps/race/index.html (Formula E; the sheet link is pasted in the app, never stored here)
-Each app folder has its own manifest.webmanifest so it can be saved to a phone home screen on its own.
+Each app folder has its own manifest.webmanifest and its own icons/ (made by tools/make_icons.py), so it can be saved to a phone
+home screen on its own and is easy to tell apart in tabs and sidebars. The hub uses the shared star icons in /icons.
 
 
 The app sources are the claude.ai artifact sources: page content only, no <html>/<head>.
@@ -25,8 +26,8 @@ HEAD = """<!doctype html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="@TITLE@">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="@UP@icons/icon-192.png">
-<link rel="apple-touch-icon" href="@UP@icons/apple-touch-icon.png">
+@FAVICON@<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -37,7 +38,8 @@ for src, out, title, up, theme in [("apps/hub/index.html", "index.html", "Sports
                                    ("apps/tournament/index.html", "world-cup/index.html", "World Cup", "../", "#061633"),
                                    ("apps/race/index.html", "formula-e/index.html", "Formula E", "../", "#13171e")]:
     app = (root / src).read_text(encoding="utf-8")
-    head = HEAD.replace("@TITLE@", title).replace("@UP@", up).replace("@SRC@", src).replace("@THEME@", theme)
+    fav = '<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">\n' if (root / out).parent.joinpath("icons", "favicon-32.png").exists() else ""
+    head = HEAD.replace("@FAVICON@", fav).replace("@TITLE@", title).replace("@UP@", up).replace("@SRC@", src).replace("@THEME@", theme)
     (root / out).parent.mkdir(parents=True, exist_ok=True)
     (root / out).write_text(head + app + "\n</body>\n</html>\n", encoding="utf-8")
     print("wrote", out)
