@@ -20,7 +20,7 @@ Club, league and team logos are kept privately in the user's Google Drive, never
 |---|---|---|
 | A-League Men | `a-league` (folder id `1XQnuJ0VcjqrCoDRR3_lkkQtDQ7uA5BMB`) | Done, wired up. Files are named by club (`Melbourne City.png`); the Teams tab's `logo` column holds each file name and App Settings `logoFolder` holds the folder id |
 | Rugby League World Cup 2026 (men's and women's) | `world-cup` | Not yet (flags already built in; logos optional) |
-| Formula E | `formula-e` | Not yet |
+| Formula E | `formula-e` (folder id in the sheet's App Settings `logoFolder`) | Done for 10 teams, wired up. Files are WebP wordmarks on a dark slate square; the app removes the background. The `logo` column of the `Team Lineage` tab maps each team name to its file (`Cupra Kiro` → `Kiro.webp`). Still missing: Opel, Fortescue |
 | Cricket (BBL and Tests) | `cricket` | Not yet |
 | English football (Premier League down to League Two, cups) | `england-football` (shared pool) | Not yet (planned for August 2027) |
 
