@@ -40,7 +40,7 @@ addResults('2324', '2023/24', 3, [['ROW', 1, { inv: 1, pits: 2 }], ['BIR', 2], [
 const FE = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], FEQ = [4, 3, 2, 2, 1, 1, 1, 1];
 const sheet = {
   'App Settings': [['key', 'value', 'what it does'], ['competition', 'Formula E'], ['season', '2026/27'], ['pointsSystem', 'FE'], ['poleBonus', 3], ['fastestLapBonus', 1], ['fastestLapTop10Only', 'Y'],
-    ['teamPoints', 'sum'], ['manufacturerRule', 'best2'], ['manufacturersFrom', '2023/24'], ['logoFolder', '']],
+    ['teamPoints', 'sum'], ['manufacturerRule', 'best2'], ['manufacturersFrom', '2023/24'], ['logoFolder', 'LOGOFOLDER123']],
   Seasons: [['season', 'poleBonus', 'fastestLapBonus', 'fastestLapTop10Only', 'groupFastestBonus', 'notes', 'qualiPoints'],
     ['2019/20', 3, 1, 'Y', 1, '', ''], ['2023/24', 3, 1, 'Y', '', '', ''], ['2026/27', 3, 1, 'Y', '', 'check regulations', 'FEQ']],
   Points: [['system', 'position', 'points', 'notes'], ...FE.map((p, i) => ['FE', i + 1, p, '']), ...FEQ.map((p, i) => ['FEQ', i + 1, p, ''])],
@@ -55,7 +55,8 @@ const sheet = {
     ['2023/24', 'BIR', 'Envision', 4, '', '', 'Entrant: Envision Racing · Jaguar I-TYPE 6'], ['2019/20', 'BIR', 'Virgin', 4, '', '', 'Entrant: Envision Virgin Racing · Audi e-tron FE06'],
     ['2023/24', 'EVA', 'Jaguar', 9, '', '', ''], ['2019/20', 'EVA', 'Jaguar', 9, '', '', '']],
   Circuits: [['circuit', 'city', 'country', 'flag', 'type', 'notes'], ['Riyadh', 'Diriyah', 'Saudi Arabia', '🇸🇦', 'Street', ''], ['Mexico City', 'Mexico City', 'Mexico', '🇲🇽', 'Permanent', '']],
-  'Team Lineage': [['team', 'lineage', 'fromSeason', 'toSeason', 'notes'], ['Virgin', 'Envision', '2018/19', '2019/20', ''], ['Envision', 'Envision', '2020/21', '', '']],
+  'Team Lineage': [['team', 'lineage', 'fromSeason', 'toSeason', 'notes', 'logo'], ['Virgin', 'Envision', '2018/19', '2019/20', '', ''], ['Envision', 'Envision', '2020/21', '', '', 'Envision.webp'],
+    ['Jaguar', 'Jaguar', '', '', '', 'jaguar'], ['Porsche', 'Porsche', '', '', '', 'Porsche.webp'], ['Nissan', 'Nissan', '', '', '', 'Nissan.webp']],
   Powertrains: [['season', 'team', 'powertrain', 'notes'], ['2023/24', 'Jaguar', 'Jaguar', ''], ['2023/24', 'Envision', 'Jaguar', ''], ['2023/24', 'Porsche', 'Porsche', ''], ['2023/24', 'Nissan', 'Nissan', '']]
 };
 
@@ -70,8 +71,28 @@ function parse(range) {
   return { tab: m[1].replace(/''/g, "'"), c1: col(m[2]), r1: m[3] ? +m[3] - 1 : 0, c2: m[4] ? col(m[4]) : col(m[2]), r2: m[5] ? +m[5] - 1 : (m[4] || !m[3] ? Infinity : +m[3] - 1) };
 }
 const store = v => typeof v === 'string' && v.startsWith("'") ? v.slice(1) : v;
+/* Drive stub: 7 files over two pages (5 then 2); each download is a small slate PNG with a white block */
+window.__DRIVE = { search: [], dl: [] };
+const DFILES = [['f1', 'Kiro.webp'], ['f2', 'Citroen.webp'], ['f3', 'DS_penske.webp'], ['f4', 'Envision.webp'], ['f5', 'notes.txt'], ['f6', 'Jaguar.PNG'], ['f7', 'Porsche.webp']];
+function slatePng() {
+  const c = document.createElement('canvas'); c.width = c.height = 88; const g = c.getContext('2d');
+  g.fillStyle = 'rgb(43,49,56)'; g.fillRect(0, 0, 88, 88); g.fillStyle = '#fff'; g.fillRect(14, 36, 60, 16);
+  return c.toDataURL('image/png').split(',')[1];
+}
+async function driveTool(tool, input) {
+  await new Promise(r => setTimeout(r, 3));
+  if (tool === 'search_files') {
+    window.__DRIVE.search.push(input);
+    if (!/LOGOFOLDER123/.test(input.query || '')) return { payload: { files: [] } };
+    const second = input.pageToken === 'PAGE2';
+    return { payload: { files: DFILES.slice(second ? 5 : 0, second ? 7 : 5).map(([id, title]) => ({ id, title, mimeType: 'image/webp', modifiedTime: '2026-10-01T00:00:00Z' })), ...(second ? {} : { nextPageToken: 'PAGE2' }) } };
+  }
+  if (tool === 'download_file_content') { window.__DRIVE.dl.push(input.fileId); return { payload: { mimeType: 'image/png', content: slatePng() } }; }
+  throw { code: 'tool_error', message: 'stub has no ' + tool };
+}
 const mcp = {
   async callTool(server, tool, input) {
+    if (server === 'Google Drive') return driveTool(tool, input);
     window.__CALLS.push([tool, input.range || '', JSON.stringify(input.values || '')]);
     await new Promise(r => setTimeout(r, 3));
     const p = parse(input.range), t = SHEET[p.tab];
@@ -710,6 +731,97 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   await page.selectOption('#seasonSel', '2023/24');
   check('past season: Driver change is hidden everywhere', !(await page.isVisible('#dcBtn')) && (await page.$$eval('#raceList [data-act="dchange"]', b => b.length)) === 0);
   await page.selectOption('#seasonSel', '2026/27');
+
+  // ---------- team logos (Drive stub: two pages of files, slate PNGs) ----------
+  await page.waitForFunction(() => Object.keys(state.logos).length >= 3, null, { timeout: 15000 });
+  const drv0 = await page.evaluate(() => ({ s: window.__DRIVE.search.map(i => i.pageToken || ''), dl: window.__DRIVE.dl.slice().sort().join(), logos: Object.keys(state.logos).sort().join() }));
+  check('Drive listing followed nextPageToken: page 1 then PAGE2, folder id read from App Settings', drv0.s.length === 2 && drv0.s[0] === '' && drv0.s[1] === 'PAGE2', drv0);
+  check('logos found on page 2 (Porsche) were downloaded; exact, no-extension and case-insensitive names match; Nissan (no file) and the notes file are not', drv0.dl === 'f4,f6,f7' && drv0.logos === 'Envision.webp,Porsche.webp,jaguar', drv0);
+  const kb = await page.evaluate(() => {
+    const px = [[43, 49, 56, 255], [103, 109, 116, 255], [43, 49, 56, 255], [43, 49, 56, 255], [255, 255, 255, 255], [43, 49, 56, 255], [43, 49, 56, 255], [43, 49, 56, 255], [43, 49, 56, 255]];
+    const im = { width: 3, height: 3, data: new Uint8ClampedArray(px.flat()) }; keyOutBackground(im);
+    const at = i => Array.from(im.data.slice(i * 4, i * 4 + 4));
+    const odd = { width: 2, height: 1, data: new Uint8ClampedArray([43, 49, 56, 255, 200, 0, 0, 255]) }; keyOutBackground(odd);
+    const near = { width: 2, height: 2, data: new Uint8ClampedArray([43, 49, 56, 254, 43, 49, 54, 255, 43, 49, 56, 254, 42, 47, 55, 255]) }; keyOutBackground(near);
+    return { corner: at(0), white: at(4), half: at(1), odd: Array.from(odd.data), near: near.data[3] };
+  });
+  check('keyOutBackground: real logo files with corners at alpha 254 are still keyed out', kb.near === 0, kb.near);
+  check('keyOutBackground: corner pixel becomes transparent, the white pixel stays opaque white', kb.corner[3] === 0 && kb.white.join() === '255,255,255,255', kb);
+  check('keyOutBackground: a half-blended edge pixel gets partial alpha and a lighter colour; mismatched corners leave the image as is', kb.half[3] > 0 && kb.half[3] < 255 && kb.half[0] > 103 && kb.odd.join() === '43,49,56,255,200,0,0,255', kb);
+  const px0 = await page.evaluate(async () => { const src = state.logos['Envision.webp']; const im = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; }); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+    return { w: im.width, h: im.height, corner: Array.from(g.getImageData(1, 1, 1, 1).data), mid: Array.from(g.getImageData(44, 44, 1, 1).data), pngs: /^data:image\/png/.test(src) }; });
+  check('the cached logo is a PNG at 88px with a transparent background and a white wordmark', px0.pngs && px0.w === 88 && px0.h === 88 && px0.corner[3] === 0 && px0.mid.join() === '255,255,255,255', px0);
+  check('logos are cached under race_logos with the file modifiedTime', await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('race_logos') || '{}'); const k = Object.keys(c); return k.length === 3 && k.every(x => x.startsWith('LOGOFOLDER123/')) && c['LOGOFOLDER123/Envision.webp'].mod === '2026-10-01T00:00:00Z'; }));
+
+  // podium + classification (2023/24, race 1: EVA Jaguar, CAS Jaguar, BIR Envision)
+  await page.selectOption('#seasonSel', '2023/24'); await page.click('#tab-races');
+  if ((await page.textContent('#foldAll')) === 'Expand all') await page.click('#foldAll');
+  const podImgs = await page.$$eval('.rc[data-id="2324-R01"] .pod img', i => i.map(x => [x.title, x.getAttribute('alt'), Math.round(x.getBoundingClientRect().height), getComputedStyle(x).objectFit]));
+  check('podium shows team logos 40px tall (alt empty, title = team, contain)', podImgs.length === 3 && podImgs.every(x => x[1] === '' && x[2] === 40 && x[3] === 'contain') && podImgs.map(x => x[0]).join() === 'Jaguar,Jaguar,Envision', podImgs);
+  const clsNow = await page.$$eval('.rc[data-id="2324-R01"] .t tbody tr', rs => rs.map(r => { const td = r.querySelectorAll('td')[2]; return [td.querySelectorAll('img').length, td.querySelectorAll('.dot').length, Math.round((td.querySelector('img') || { getBoundingClientRect: () => ({ height: 0 }) }).getBoundingClientRect().height), td.textContent.trim()]; }));
+  check('classification Team column: logo 26px for Jaguar, Envision and Porsche; dot + name for Nissan', clsNow.length === 6 && clsNow.filter(x => x[0] === 1).length === 5 && clsNow.filter(x => x[0] === 1).every(x => x[2] === 26 && x[1] === 0) && clsNow.filter(x => x[1] === 1 && x[3] === 'Nissan').length === 1, clsNow);
+  check('classification: short team name beside the logo on a wide screen', clsNow.some(x => x[3] === 'Jaguar'), clsNow.map(x => x[3]).join());
+  await page.setViewportSize({ width: 390, height: 844 });
+  check('classification: logo only on a phone (name hidden, still in the title)', (await page.$$eval('.rc[data-id="2324-R01"] .t td .tn', n => n.every(x => getComputedStyle(x).display === 'none'))) && (await page.$$eval('.rc[data-id="2324-R01"] .t td img', n => n.every(x => !!x.title))));
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  await page.click('#tab-standings'); await page.click('[data-st="teams"]');
+  const stT = await page.$$eval('#stGrid tbody tr', rs => rs.map(r => [r.querySelector('.nmt').textContent, r.querySelectorAll('.who img').length, r.querySelectorAll('.who .dot').length]));
+  check('Standings Teams grid: logos for Jaguar, Porsche, Envision; Nissan keeps its dot', stT.length === 4 && stT.filter(x => x[1] === 1 && x[2] === 0).map(x => x[0]).sort().join() === 'Envision,Jaguar,Porsche' && stT.filter(x => x[2] === 1).map(x => x[0]).join() === 'Nissan', stT);
+  await page.click('[data-st="drivers"]');
+  check('Standings Drivers grid keeps colour dots (no logos)', (await page.$$eval('#stGrid .who img', i => i.length)) === 0 && (await page.$$eval('#stGrid .who .dot', i => i.length)) > 0);
+  await page.click('[data-st="teams"]');
+
+  await page.click('#tab-stats'); await page.click('[data-sw="teams"]'); await page.selectOption('#sScope', 'all');
+  check('Stats teams rows show logos (lineage name row: Envision line has Envision.webp)', (await page.$$eval('#sTable tbody tr[data-open="Envision"] img', i => i.length)) === 1 && (await page.$$eval('#sTable tbody tr[data-open="Nissan"] img', i => i.length)) === 0);
+  await page.click('#sTable tr[data-open="Envision"]');
+  const ph = await page.$$eval('#pBody .phead img', i => i.map(x => Math.round(x.getBoundingClientRect().height)));
+  check('team profile header logo is 48px tall', ph.join() === '48', ph);
+  await grab('logos-profile', 1280);
+  await page.click('#pClose');
+  await page.click('#sTable tr[data-open="Nissan"]');
+  check('team profile without a file has no header logo', (await page.$$eval('#pBody .phead', i => i.length)) === 0);
+  await page.click('#pClose');
+
+  await page.click('#tab-compare'); await page.click('[data-cw="teams"]'); await page.selectOption('#cSeason', 'all');
+  const cm = await page.$$eval('#cPick .pchip', cs => cs.map(c => [c.title, c.querySelectorAll('img').length, c.querySelector('img') ? Math.round(c.querySelector('img').getBoundingClientRect().height) : 0]));
+  check('Compare team chips carry 22px logos where a file exists', cm.some(x => x[1] === 1 && x[2] === 22) && cm.filter(x => x[0] === 'Nissan').every(x => x[1] === 0), cm);
+  const cmt = await page.evaluate(() => ({ logoRow: [...document.querySelectorAll('#cBody tr.lgrow img')].map(i => Math.round(i.getBoundingClientRect().height)), head: document.querySelectorAll('#cBody thead img').length }));
+  check('Compare team table shows 30px logos in a body row, none in the grey header', cmt.logoRow.length >= 1 && cmt.logoRow.every(h => h === 30) && cmt.head === 0, cmt);
+  await page.click('#tab-history');
+  const hs = await page.$$eval('#hGrid .hc', cs => cs.map(c => [c.querySelector('.eyebrow').textContent, c.querySelectorAll('.ln .tml img').length, c.querySelector('.tml img') ? Math.round(c.querySelector('.tml img').getBoundingClientRect().height) : 0]));
+  check('History team champion line shows a 24px logo when the champion has one', hs.some(x => x[1] === 1 && x[2] === 24), hs);
+  // never on the grey header bars
+  const barImgs = async () => page.evaluate(() => [...document.querySelectorAll('img')].filter(i => { let e = i.parentElement; while (e) { if (e.tagName === 'TH' || e.tagName === 'THEAD') return true; e = e.parentElement; } return false; }).length);
+  let onBar = 0;
+  for (const go of [() => page.click('#tab-races'), () => page.click('#tab-standings'), () => page.click('#tab-stats'), () => page.click('#tab-compare'), () => page.click('#tab-history')]) { await go(); onBar += await barImgs(); }
+  check('no logo sits on a grey header bar on any tab', onBar === 0, onBar);
+
+  const logoTabs = [
+    ['races', async () => { await page.click('#tab-races'); }],
+    ['standings-teams', async () => { await page.click('#tab-standings'); await page.click('[data-st="teams"]'); }],
+    ['stats-teams', async () => { await page.click('#tab-stats'); await page.click('[data-sw="teams"]'); }],
+    ['compare-teams', async () => { await page.click('#tab-compare'); await page.click('[data-cw="teams"]'); }],
+    ['history', async () => { await page.click('#tab-history'); }]
+  ];
+  for (const [w, h] of sizes) {
+    await page.setViewportSize({ width: w, height: h });
+    for (const [name, go] of logoTabs) { await go(); await page.waitForTimeout(80); check(`no sideways scroll with logos: ${name} @${w}`, (await overflow(page)) <= 0, await overflow(page)); await grab('logos-' + name, w); }
+    await page.click('#tab-stats'); await page.click('#sTable tr[data-open="Envision"]');
+    check(`no sideways scroll with logos: team profile @${w}`, (await overflow(page)) <= 0 && (await page.evaluate(() => { const d = document.getElementById('pDlg'); return d.scrollWidth - d.clientWidth; })) <= 0);
+    await page.click('#pClose');
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // second load: logos come from the cache, nothing is downloaded again
+  // (headless Chromium can lose a just-written file:// localStorage on reload, so hand the saved cache to the reloaded page explicitly)
+  const savedCache = await page.evaluate(() => localStorage.getItem('race_logos'));
+  await page.context().addInitScript(c => { try { if (!localStorage.getItem('race_logos')) localStorage.setItem('race_logos', c); } catch (e) {} }, savedCache);
+  await page.reload(); await live(page);
+  await page.waitForFunction(() => Object.keys(state.logos).length >= 3 && window.__DRIVE.search.length >= 2, null, { timeout: 15000 });
+  await page.waitForTimeout(150);
+  const again = await page.evaluate(() => ({ dl: window.__DRIVE.dl.length, n: Object.keys(state.logos).length }));
+  check('second load uses the cache: logos present, zero downloads', again.dl === 0 && again.n === 3, again);
 
   const real = errors.filter(e => !/ERR_|Failed to load resource|net::|fonts\.g|accounts\.google/i.test(e));
   check('no page errors', real.length === 0, real);

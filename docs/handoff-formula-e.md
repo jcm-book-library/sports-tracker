@@ -36,6 +36,6 @@ Read `docs/START-HERE.md` and `CLAUDE.md` first. This file is where the Formula 
 
 - Check `Team Lineage` (especially Lola as the continuation of Audi/ABT) and the Opel = Stellantis assumption in `Powertrains`.
 - Replace placeholder team colours once Gen4 liveries are known; fill the TBA seats in `Lineups` when announced.
-- Logos: folder `formula-e` in Drive, then fill `App Settings` `logoFolder` and wire `logoFor()` (empty slot already in the app; model on the A-League logo loader).
+- Logos: done for 10 teams (folder id in `App Settings` `logoFolder`, file per team name in the `logo` column of `Team Lineage`). The app removes each file's dark square background (`keyOutBackground`). Opel and Fortescue files still to come. Drive lists only ~5 files per page: the loader follows `nextPageToken` (the A-League loader does not yet).
 - Stage 2: paste-in results, circuit records, team-mate head-to-head, form guide. Then F1 (needs sprint races: likely a session type on `Races`).
 - Not yet checked live: points totals in the app against the official season tables (the engine follows the rules above; the previous import was checked by script).
