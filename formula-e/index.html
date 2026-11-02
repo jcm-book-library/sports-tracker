@@ -227,6 +227,14 @@ table.st{border-collapse:separate;border-spacing:0;width:max-content;min-width:1
 .hc ol{margin:2px 0 0;padding-left:20px;font-size:13px;color:var(--muted)}
 .foot{margin-top:14px;font-size:13px;color:var(--muted)}
 
+/* driver change dialog */
+.dc-new{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
+.field.check{flex-direction:row;align-items:center;gap:8px;color:var(--fg)}
+.field.check input{width:auto}
+.dc-help{text-align:left}
+.dc-prev{border:1px solid var(--line);background:var(--bg);padding:10px;font-size:13.5px;display:flex;flex-direction:column;gap:6px;min-width:0;overflow-wrap:anywhere}
+.dc-prev .err{color:var(--red)}.dc-prev .wrn{color:#f2c27a}.dc-prev .pv{color:var(--fg)}
+@media (max-width:480px){#dcForm .dlg-body,.dc-new{grid-template-columns:minmax(0,1fr)}#dcForm .field:empty{display:none}}
 /* dialogs */
 dialog{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:2px;padding:0;width:min(600px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
 dialog::backdrop{background:rgba(5,7,10,.7)}
@@ -375,7 +383,7 @@ dialog[open]{display:flex;flex-direction:column}
       <div class="strip" id="strip" aria-label="Rounds"></div>
       <div class="listbar" id="listBar"></div>
       <div class="rcs" id="raceList"></div>
-      <div id="addRow" style="margin-top:12px;text-align:center" hidden><button class="btn" id="addRaceBtn" type="button">Add race</button></div>
+      <div id="addRow" style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap" hidden><button class="btn" id="addRaceBtn" type="button">Add race</button><button class="btn" id="dcBtn" type="button">Driver change</button></div>
     </section>
 
     <section id="p-standings" role="tabpanel" aria-labelledby="tab-standings" hidden>
@@ -424,6 +432,36 @@ dialog[open]{display:flex;flex-direction:column}
   </form>
 </dialog>
 <datalist id="circuitList"></datalist>
+
+<!-- driver change (Lineups) -->
+<dialog id="dcDlg" aria-labelledby="dcTitle">
+  <form id="dcForm" novalidate>
+    <div class="dlg-head"><h2 id="dcTitle">Driver change</h2><button class="btn" type="button" id="dcClose">Close</button></div>
+    <div class="dlg-body">
+      <label class="field">Team<select id="dcTeam"></select></label>
+      <label class="field">Driver out<select id="dcOut"></select></label>
+      <label class="field full">Driver in
+        <input id="dcFind" type="search" placeholder="Search drivers…" autocomplete="off" aria-label="Search drivers">
+        <select id="dcIn" aria-label="Driver in"></select></label>
+      <div class="dc-new full" id="dcNew" hidden>
+        <label class="field full">Full name<input id="dcName" autocomplete="off"></label>
+        <label class="field">Code (3 letters)<input id="dcCode" maxlength="3" autocomplete="off" style="text-transform:uppercase"></label>
+        <label class="field">Flag<input id="dcFlag" autocomplete="off"></label>
+        <label class="field full">Nationality<input id="dcNat" list="dcNatList" autocomplete="off"></label>
+        <datalist id="dcNatList"></datalist>
+      </div>
+      <label class="field">Car number<input id="dcNum" inputmode="numeric" autocomplete="off"></label>
+      <span class="field"></span>
+      <label class="field">From round<select id="dcFrom"></select></label>
+      <label class="field">Until round<select id="dcUntil"></select></label>
+      <p class="hint full dc-help">Leave blank for a permanent change. Set it for a stand-in; the regular driver returns the round after.</p>
+      <label class="field full">Note (optional)<input id="dcNote" placeholder="Injured, clashes with WEC…" autocomplete="off"></label>
+      <label class="field check full" id="dcMoveRow" hidden><input type="checkbox" id="dcMove"><span id="dcMoveTxt">Yes, this driver moves teams</span></label>
+      <div class="dc-prev full" id="dcPrev" aria-live="polite"></div>
+    </div>
+    <div class="dlg-foot"><span class="rc-msg" id="dcMsg"></span><button class="btn btn-primary" type="submit" id="dcSave">Save driver change</button></div>
+  </form>
+</dialog>
 
 <!-- profile (driver / team) -->
 <dialog id="pDlg" aria-labelledby="pTitle">
@@ -505,7 +543,7 @@ const state = {
   seasonRows: {}, points: {}, races: [], results: [], drivers: {}, teams: [], lineups: [], circuits: [], lineage: new Map(), lineageRows: [], powertrains: new Map(),
   season: '', tab: 'races', stTab: 'drivers', stView: 'pos', sWho: 'drivers', sScope: 'cur', sGroup: 'lineage',
   sSort: { drivers: { key: 'PTS', dir: -1 }, teams: { key: 'PTS', dir: -1 } },
-  open: new Set(), folded: new Map(), more: new Set(), penOther: new Set(), paste: {}, drafts: {}, cache: {}, rdMode: 'edit', rdId: '',
+  dc: { code: false, num: false, flag: false }, open: new Set(), folded: new Map(), more: new Set(), penOther: new Set(), paste: {}, drafts: {}, cache: {}, rdMode: 'edit', rdId: '',
   cmp: { who: 'drivers', season: '', picks: { drivers: [], teams: [], manus: [], races: [] }, touched: {}, extra: [], chart: null }
 };
 const isEditable = () => state.live && state.season === state.settings.season;
@@ -529,8 +567,9 @@ function teamMark(team) {
   return `<span class="tm" title="${esc(team)}">${l ? `<img src="${esc(l)}" alt="">` : `<i class="dot" style="background:${esc(teamColour(team))}"></i>`}</span>`;
 }
 const PARTICLES = new Set(['da', 'de', 'di', 'del', 'della', 'van', 'von', 'der', 'den', 'le', 'la', 'du', 'dos', 'al', 'el', 'ten', 'ter']);
-function surname(code) {
-  const p = dName(code).trim().split(/\s+/); if (p.length < 2) return p[0] || code;
+function surname(code) { return surnameOf(dName(code), code); }
+function surnameOf(name, fallback) {
+  const p = String(name || '').trim().split(/\s+/); if (p.length < 2) return p[0] || fallback || '';
   let i = p.length - 1; while (i > 1 && PARTICLES.has(p[i - 1].toLowerCase())) i--;
   return p.slice(i).join(' ');
 }
@@ -662,6 +701,16 @@ function normaliseRaces(rows) {
   }));
 }
 
+function normaliseLineups(rows) {
+  return byHeader(rows).filter(l => str(l.driver)).map(l => {
+    const notes = str(l.notes), em = notes.match(/Entrant:\s*(.*?)(?:\s+·\s+|$)/), rm = notes.match(/Rounds?\s+([\d,\s]+?)\s*(?:;|$)/i);
+    return { _row: l._row, season: str(l.season), driver: str(l.driver), team: str(l.team), number: str(l.number), fromRound: toNum(l.fromRound), toRound: toNum(l.toRound), notes,
+      entrant: em ? em[1].trim() : '', rounds: rm ? rm[1].split(',').map(x => toNum(x)).filter(x => x != null) : null };
+  });
+}
+function loadDrivers(rows) {
+  state.drivers = {}; byHeader(rows).forEach(r => { const c = str(r.code); if (c) state.drivers[c] = { code: c, name: str(r.name) || c, flag: str(r.flag), nationality: str(r.nationality), active: str(r.active) }; });
+}
 async function refresh() {
   if (!state.mcp || !SHEET_ID) return;
   setStatus('loading', 'Loading from your sheet…');
@@ -677,13 +726,9 @@ async function refresh() {
     byHeader(points).forEach(r => { const sys = str(r.system), pos = toNum(r.position), pt = toNum(r.points); if (sys && pos != null) (state.points[sys] = state.points[sys] || {})[pos] = pt || 0; });
     state.races = normaliseRaces(races);
     state.results = normaliseResults(results);
-    state.drivers = {}; byHeader(drivers).forEach(r => { const c = str(r.code); if (c) state.drivers[c] = { code: c, name: str(r.name) || c, flag: str(r.flag), nationality: str(r.nationality), active: str(r.active) }; });
+    loadDrivers(drivers);
     state.teams = byHeader(teams).filter(t => str(t.team)).map(t => ({ team: str(t.team), short: str(t.short), powertrain: str(t.powertrain), colour1: str(t.colour1), colour2: str(t.colour2), active: str(t.active) }));
-    state.lineups = byHeader(lineups).filter(l => str(l.driver)).map(l => {
-      const notes = str(l.notes), em = notes.match(/Entrant:\s*(.*?)(?:\s+·\s+|$)/), rm = notes.match(/Rounds?\s+([\d,\s]+?)\s*(?:;|$)/i);
-      return { season: str(l.season), driver: str(l.driver), team: str(l.team), number: str(l.number), fromRound: toNum(l.fromRound), toRound: toNum(l.toRound), notes,
-        entrant: em ? em[1].trim() : '', rounds: rm ? rm[1].split(',').map(x => toNum(x)).filter(x => x != null) : null };
-    });
+    state.lineups = normaliseLineups(lineups);
     state.circuits = byHeader(circuits).filter(c => str(c.circuit)).map(c => ({ circuit: str(c.circuit), city: str(c.city), country: str(c.country), flag: str(c.flag) }));
     state.lineageRows = byHeader(lineage).filter(l => str(l.team));
     state.lineage = new Map(state.lineageRows.map(l => [str(l.team), str(l.lineage) || str(l.team)]));
@@ -727,6 +772,8 @@ async function writeChanges(tab, header, row, changes) {
 }
 
 /* ---------- entry drafts (tap in order) ---------- */
+const isStandIn = l => l.toRound != null && /^Replacement for\b/i.test(l.notes);    // a temporary replacement: the row names a driver out and ends
+const standInTag = (season, round, code) => { const l = lineupFor(season, round, code); return l && isStandIn(l) ? '<span class="tag lap">Stand-in</span>' : ''; };
 const lineupFor = (season, round, code) => state.lineups.find(l => l.season === season && l.driver === code && lineupIn(l, round));
 function lineupIn(l, round) {
   if (l.rounds && l.rounds.length) return l.rounds.includes(round);
@@ -734,7 +781,7 @@ function lineupIn(l, round) {
 }
 function eligible(race) {
   const out = [], seen = new Set();
-  for (const l of state.lineups) if (l.season === race.season && lineupIn(l, race.round) && !seen.has(l.driver)) { seen.add(l.driver); out.push({ code: l.driver, team: l.team, number: l.number }); }
+  for (const l of state.lineups) if (l.season === race.season && lineupIn(l, race.round) && !seen.has(l.driver)) { seen.add(l.driver); out.push({ code: l.driver, team: l.team, number: l.number, standin: isStandIn(l) }); }
   for (const r of (seasonData(race.season).byRace.get(race.id) || [])) if (r.driver && !seen.has(r.driver)) { seen.add(r.driver); out.push({ code: r.driver, team: r.team, number: '' }); }
   return out;
 }
@@ -852,7 +899,7 @@ function classificationHTML(rows) {
   return `<div class="tbox"><table class="t"><thead><tr><th>Pos</th><th class="l">Driver</th><th class="l">Team</th><th>Quali</th><th>Pits</th><th>Pts</th></tr></thead><tbody>${sorted.map(r => {
     const c = r.calc, out = !!r.status, bad = out && (r.finish == null || r.status === 'DSQ');
     const tip = `Race ${pf(c.race)}${c.pole ? ' · pole ' + pf(c.pole) : ''}${c.quali ? ' · quali ' + pf(c.quali) : ''}${c.fl ? ' · fastest lap ' + pf(c.fl) : ''}${c.grp ? ' · group ' + pf(c.grp) : ''}${c.adj ? ' · adjustment ' + pf(c.adj) : ''}`;
-    const tg = tagsHTML(r);
+    const rc = raceById(r.raceId), tg = [rc ? standInTag(rc.season, rc.round, r.driver) : '', tagsHTML(r)].filter(Boolean).join(' ');
     return `<tr${bad ? ' class="x"' : ''}><td class="pos">${classified(r) ? r.finish : (r.status || '–')}</td><td class="l">${driverTag(r.driver)}${r.pole ? '<span class="badge p" title="Pole">P</span>' : ''}${r.fastestLap ? '<span class="badge f" title="Fastest lap">FL</span>' : ''}${tg ? `<span class="tg">${tg}</span>` : ''}</td><td class="l"><span class="dn">${teamMark(r.team)}${esc(r.team)}</span></td><td>${r.qualiPos ?? ''}</td><td>${r.pitStops ?? ''}</td><td title="${esc(tip)}"><b>${pf(c.total)}</b></td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
@@ -943,7 +990,7 @@ function entryHTML(race) {
       <span class="pfb"><button type="button" class="ib" data-act="pole" data-k="pole" aria-pressed="${d.pole === code}" title="Pole">P</button><button type="button" class="ib" data-act="fl" data-k="fl" aria-pressed="${d.fl === code}" title="Fastest lap">FL</button></span><span class="pt">${pf(pt)} pts</span>${q ? '' : moreBtn(race, code)}</div>
       ${q ? '' : `<div class="rtg">${rowTags(d, code, true)}</div>${on ? panelHTML(race, d, code, !!d.status[code]) : ''}`}</li>`;
   }).join('');
-  const chip = (e, n, used) => `<button type="button" class="chipb dchip" data-act="place" data-k="place"${q ? ` data-code="${esc(e.code)}"` : ''}${used ? ' data-used disabled' : ''} title="${esc(dName(e.code))}"><span aria-hidden="true">${esc(dFlag(e.code))}</span><b>${esc(e.code)}</b><small>${ord(n)}</small>${q ? '' : `<span class="sn">${esc(surname(e.code))}</span>`}</button>`;
+  const chip = (e, n, used) => `<button type="button" class="chipb dchip" data-act="place" data-k="place"${q ? ` data-code="${esc(e.code)}"` : ''}${used ? ' data-used disabled' : ''} title="${esc(dName(e.code))}"><span aria-hidden="true">${esc(dFlag(e.code))}</span><b>${esc(e.code)}</b><small>${ord(n)}</small>${q ? '' : `<span class="sn">${esc(surname(e.code))}</span>`}${e.standin ? '<span class="tag lap">Stand-in</span>' : ''}</button>`;
   const groups = groupsOf(ordered).map(g => {
     const inner = q
       ? `<div class="chips">${g.items.map(({ e, n }) => chip(e, n, list.includes(e.code))).join('')}</div>`
@@ -957,7 +1004,7 @@ function entryHTML(race) {
   }).join('');
   return `<div class="ent"><h3>Enter result</h3>
     <div class="ent-bar"><div class="seg"><button type="button" class="btn" data-act="mode" data-mode="race" aria-pressed="${!q}">Race order</button><button type="button" class="btn" data-act="mode" data-mode="quali" aria-pressed="${q}">Qualifying order</button></div>
-      <div class="seg"><button type="button" class="btn" data-act="paste" aria-pressed="${!!ps.open}">Paste results</button><button type="button" class="btn" data-act="revert"${isDirty(race) ? '' : ' disabled'}>Revert</button><button type="button" class="btn" data-act="clear">Clear</button></div></div>
+      <div class="seg"><button type="button" class="btn" data-act="paste" aria-pressed="${!!ps.open}">Paste results</button><button type="button" class="btn" data-act="dchange">Driver change</button><button type="button" class="btn" data-act="revert"${isDirty(race) ? '' : ' disabled'}>Revert</button><button type="button" class="btn" data-act="clear">Clear</button></div></div>
     ${ps.open ? pasteHTML(race, ps, el) : ''}${ps.msg ? `<p class="hint" data-paste-msg>${esc(ps.msg)}</p>` : ''}
     <p class="hint">${q ? 'Tap drivers in qualifying order, fastest first.' : 'Tap drivers in finishing order. Drivers who didn\'t finish get a status button.'}${sd.rules.qualiPoints ? ' Qualifying positions score ' + esc(sd.rules.qualiPoints) + ' points.' : ''}</p>
     ${list.length ? `<ol class="placed">${placed}</ol>` : ''}
@@ -1145,6 +1192,212 @@ async function saveRaceDlg() {
   finally { state.busy = false; $('rdSave').disabled = false; }
 }
 
+
+/* ---------- Driver change (writes Lineups; may add a Drivers row) ---------- */
+const FAR = 9999;
+const rangeText = (a, b) => b == null ? `From round ${a}` : a === b ? `Round ${a}` : `Rounds ${a}–${b}`;
+const overlaps = (l, a, b) => l.rounds && l.rounds.length ? l.rounds.some(n => n >= a && n <= b) : (l.fromRound ?? 1) <= b && (l.toRound ?? FAR) >= a;
+const seasonRounds = () => [...new Set(seasonData(state.season).races.filter(r => r.round != null && r.status !== 'Cancelled').map(r => r.round))].sort((a, b) => a - b);
+const seasonLineups = () => state.lineups.filter(l => l.season === state.season);
+function suggestCode(name) {
+  const sn = nameKey(surnameOf(name)).replace(/[^a-z]/g, '').toUpperCase(), all = nameKey(name).replace(/[^a-z]/g, '').toUpperCase();
+  const taken = new Set(Object.keys(state.drivers).map(c => c.toUpperCase()));
+  if (!sn) return '';
+  const letters = (sn.length >= 3 ? sn : (sn + all)).split('');
+  for (let i = 0; i < letters.length - 2; i++) for (let j = i + 1; j < letters.length - 1; j++) for (let k = j + 1; k < letters.length; k++) {
+    const c = letters[i] + letters[j] + letters[k]; if (!taken.has(c)) return c;
+  }
+  const base = (letters.join('') + 'XX').slice(0, 2);
+  for (let k = 65; k <= 90; k++) { const c = base + String.fromCharCode(k); if (!taken.has(c)) return c; }
+  return '';
+}
+function dcValues() {
+  const inSel = $('dcIn').value, isNew = inSel === '__new', num = str($('dcNum').value);
+  return { team: $('dcTeam').value, out: $('dcOut').value, inCode: isNew ? '' : inSel, isNew, name: str($('dcName').value), code: str($('dcCode').value).toUpperCase(), nat: str($('dcNat').value), flag: str($('dcFlag').value),
+    number: num, from: Number($('dcFrom').value) || null, until: $('dcUntil').value ? Number($('dcUntil').value) : null, note: str($('dcNote').value), move: $('dcMove').checked };
+}
+// everything the dialog knows without touching the sheet: what would change, what blocks it, what is only a warning
+function dcEvaluate(v) {
+  const errors = [], warns = [], season = state.season, rows = seasonLineups();
+  const info = { v, outRow: null, moveRow: null, moveFrom: [] };
+  if (!v.team) errors.push('Pick a team.');
+  if (!v.from) errors.push('Pick the first round.');
+  if (v.from && v.until != null && v.from > v.until) errors.push('"From round" is after "Until round".');
+  const a = v.from || 1, b = v.until ?? FAR;
+  if (v.out) {
+    const hits = rows.filter(l => l.driver === v.out && l.team === v.team && lineupIn(l, a));
+    if (hits.length === 1) info.outRow = hits[0]; else if (v.from) errors.push(`Found ${hits.length} matching Lineups rows for ${dName(v.out)}; fix the sheet first.`);
+    if (info.outRow && info.outRow.rounds && info.outRow.rounds.length) errors.push(`${dName(v.out)}'s Lineups row lists single rounds; edit it in the sheet.`);
+    if (info.outRow && a - 1 < (info.outRow.fromRound ?? 1)) errors.push(`${dName(v.out)} would have no rounds left before round ${a}; edit that row in the sheet.`);
+    const done = state.results.filter(r => r.season === season && r.driver === v.out).map(r => raceById(r.raceId)).filter(rc => rc && rc.round != null && rc.round >= a && rc.round <= b && seasonData(season).ran[rc.id]);
+    [...new Set(done.map(rc => rc.round))].sort((x, y) => x - y).forEach(n => warns.push(`${dName(v.out)} already has a result in round ${n}; it stays.`));
+  }
+  let inName = '', inFlagOk = true;
+  if (v.isNew) {
+    inName = v.name;
+    if (!v.name) errors.push('Type the new driver\'s full name.');
+    if (!/^[A-Z]{3}$/.test(v.code)) errors.push('The code needs exactly 3 letters.');
+    else if (Object.keys(state.drivers).some(c => c.toUpperCase() === v.code)) errors.push(`The code ${v.code} is already used in Drivers.`);
+  } else if (!v.inCode) errors.push('Pick the driver coming in, or choose New driver.');
+  else {
+    inName = dName(v.inCode);
+    if (v.inCode === v.out) errors.push('Driver in and driver out are the same person.');
+    const mine = rows.filter(l => l.driver === v.inCode && overlaps(l, a, b));
+    if (mine.some(l => l.team === v.team)) errors.push(`${dName(v.inCode)} already drives for ${v.team} in those rounds.`);
+    const other = mine.filter(l => l.team !== v.team);
+    if (other.length) {
+      info.moveFrom = other;
+      const cover = rows.filter(l => l.driver === v.inCode && l.team !== v.team && lineupIn(l, a));
+      if (cover.length === 1 && !(cover[0].rounds && cover[0].rounds.length) && a - 1 >= (cover[0].fromRound ?? 1)) info.moveRow = cover[0];
+      else errors.push(`${dName(v.inCode)} races for another team in those rounds and that Lineups row can't be closed safely; edit it in the sheet.`);
+      if (!v.move) errors.push(`${dName(v.inCode)} already races for ${other.map(l => l.team).join(', ')} in those rounds. Tick the box to move them.`);
+    }
+  }
+  if (!v.isNew && !v.inCode) { /* nothing more */ } else if (v.number !== '' && !/^\w{1,4}$/.test(v.number)) errors.push('Check the car number.');
+  if (v.number === '') errors.push('Type the car number.');
+  // plain-words preview
+  let preview = '';
+  if (v.from && inName && v.team) {
+    const sIn = surnameOf(inName), sOut = v.out ? surname(v.out) : '', rng = rangeText(v.from, v.until), num = v.number ? ` car ${v.number}` : ' a car';
+    const returns = v.out && v.until != null ? ` ${sOut} returns from round ${v.until + 1}${info.outRow && info.outRow.toRound != null && v.until + 1 > info.outRow.toRound ? ' (but their row ends before then)' : ''}.` : '';
+    if (v.until != null) preview = v.out ? `${rng}: ${inName} drives${num} for ${v.team} instead of ${dName(v.out)}.${returns}` : `${rng}: ${inName} drives${num} for ${v.team} as an extra car.`;
+    else preview = v.out ? `From round ${v.from}: ${sIn} replaces ${sOut} at ${v.team} for the rest of the season.` : `From round ${v.from}: ${sIn} joins ${v.team} in${num} for the rest of the season.`;
+    if (info.moveRow && v.move) preview += ` ${sIn} leaves ${info.moveRow.team} from round ${v.from}${v.until != null ? ' and does not go back automatically' : ''}.`;
+  }
+  return { errors, warns, preview, info };
+}
+function dcFillRounds() {
+  const rs = seasonRounds(), keepF = $('dcFrom').value, keepU = $('dcUntil').value;
+  $('dcFrom').innerHTML = rs.map(n => `<option value="${n}">Round ${n}</option>`).join('');
+  $('dcUntil').innerHTML = '<option value="">Permanent (until further notice)</option>' + rs.map(n => `<option value="${n}">Round ${n}</option>`).join('');
+  if (keepF) $('dcFrom').value = keepF; if (keepU) $('dcUntil').value = keepU;
+}
+function dcFillOut() {
+  const keep = $('dcOut').value, team = $('dcTeam').value, from = Number($('dcFrom').value) || 1, seen = new Set();
+  const list = seasonLineups().filter(l => l.team === team && lineupIn(l, from) && !seen.has(l.driver) && seen.add(l.driver));
+  $('dcOut').innerHTML = list.map(l => `<option value="${esc(l.driver)}">${esc(dName(l.driver))} (${esc(l.driver)})</option>`).join('') + '<option value="">None (extra car / empty seat)</option>';
+  if ([...$('dcOut').options].some(o => o.value === keep)) $('dcOut').value = keep;
+}
+function dcFillIn() {
+  const keep = $('dcIn').value, find = nameKey($('dcFind').value), team = $('dcTeam').value, from = Number($('dcFrom').value) || 1, out = $('dcOut').value;
+  const here = new Set(seasonLineups().filter(l => l.team === team && lineupIn(l, from)).map(l => l.driver));
+  const elsewhere = code => { const l = seasonLineups().find(x => x.driver === code && x.team !== team && lineupIn(x, from)); return l ? l.team : ''; };
+  const list = Object.values(state.drivers).filter(d => d.code !== out && !here.has(d.code) && (!find || nameKey(d.name + ' ' + d.code).includes(find))).sort((x, y) => x.name.localeCompare(y.name));
+  $('dcIn').innerHTML = '<option value="">Choose a driver…</option><option value="__new">New driver…</option>'
+    + list.map(d => { const t = elsewhere(d.code); return `<option value="${esc(d.code)}">${esc(d.name)} (${esc(d.code)})${t ? ' · now at ' + esc(t) : ''}</option>`; }).join('');
+  if ([...$('dcIn').options].some(o => o.value === keep)) $('dcIn').value = keep;
+}
+function dcSyncNew() {
+  const isNew = $('dcIn').value === '__new';
+  $('dcNew').hidden = !isNew;
+  if (isNew && !state.dc.code) $('dcCode').value = suggestCode($('dcName').value);
+}
+function dcRefresh() {
+  const v = dcValues();
+  const moving = !!(v.inCode && !v.isNew && dcEvaluate({ ...v, move: true }).info.moveFrom.length);
+  $('dcMoveRow').hidden = !moving;
+  if (moving) $('dcMoveTxt').textContent = `Yes, ${surname(v.inCode)} moves teams`; else $('dcMove').checked = false;
+  const ev = dcEvaluate(dcValues());
+  $('dcPrev').innerHTML = (ev.preview ? `<div class="pv"><b>Preview.</b> ${esc(ev.preview)}</div>` : '<div class="muted">Fill in the details to see what will change.</div>')
+    + ev.warns.map(w => `<div class="wrn">${esc(w)}</div>`).join('') + ev.errors.map(w => `<div class="err">${esc(w)}</div>`).join('');
+  $('dcSave').disabled = ev.errors.length > 0 || state.busy;
+  return ev;
+}
+function openDriverChange(round) {
+  if (!isEditable()) return;
+  state.dc = { code: false, num: false, flag: false };
+  const teams = [...new Set(seasonLineups().map(l => l.team))];
+  const rs = seasonRounds(), sd = seasonData(state.season), nx = nextRace(sd);
+  $('dcTeam').innerHTML = teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  $('dcFrom').innerHTML = ''; $('dcUntil').innerHTML = ''; dcFillRounds();
+  const start = round ?? (nx && nx.round) ?? rs[0];
+  if (start != null) $('dcFrom').value = String(start);
+  $('dcUntil').value = '';
+  ['dcFind', 'dcName', 'dcCode', 'dcNat', 'dcFlag', 'dcNote'].forEach(id => { $(id).value = ''; });
+  $('dcMove').checked = false; $('dcMsg').textContent = '';
+  $('dcNatList').innerHTML = [...new Set(Object.values(state.drivers).map(d => d.nationality).filter(Boolean))].sort().map(n => `<option value="${esc(n)}">`).join('');
+  dcFillOut(); dcFillIn(); dcAutoNum(true); dcSyncNew(); dcRefresh();
+  $('dcDlg').showModal();
+}
+function dcAutoNum(force) {
+  if (state.dc.num && !force) return;
+  const team = $('dcTeam').value, from = Number($('dcFrom').value) || 1, out = $('dcOut').value;
+  const l = seasonLineups().find(x => x.driver === out && x.team === team && lineupIn(x, from));
+  $('dcNum').value = l ? l.number : '';
+}
+$('dcBtn').addEventListener('click', () => openDriverChange(null));
+$('dcClose').addEventListener('click', () => $('dcDlg').close());
+$('dcForm').addEventListener('input', e => {
+  const id = e.target.id;
+  if (id === 'dcFind') dcFillIn();
+  if (id === 'dcName' && !state.dc.code) $('dcCode').value = suggestCode($('dcName').value);
+  if (id === 'dcCode') { state.dc.code = true; e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); }
+  if (id === 'dcNum') state.dc.num = true;
+  if (id === 'dcFlag') state.dc.flag = true;
+  if (id === 'dcNat' && !state.dc.flag) {
+    const hit = Object.values(state.drivers).find(d => d.flag && nameKey(d.nationality) === nameKey(e.target.value));
+    if (hit) $('dcFlag').value = hit.flag;
+  }
+  dcRefresh();
+});
+$('dcForm').addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'dcTeam' || id === 'dcFrom') { dcFillOut(); dcFillIn(); dcAutoNum(false); }
+  if (id === 'dcOut') { dcFillIn(); dcAutoNum(false); }
+  if (id === 'dcIn') dcSyncNew();
+  if (id === 'dcNat' && !state.dc.flag) {
+    const hit = Object.values(state.drivers).find(d => d.flag && nameKey(d.nationality) === nameKey(e.target.value));
+    if (hit) $('dcFlag').value = hit.flag;
+  }
+  dcRefresh();
+});
+$('dcForm').addEventListener('submit', e => { e.preventDefault(); saveDriverChange(); });
+const numCell = n => /^\d+$/.test(n) ? Number(n) : n;
+async function saveDriverChange() {
+  if (state.busy) return;
+  const ev = dcRefresh(); if (ev.errors.length) return;
+  if (!state.live) { $('dcMsg').textContent = 'Saving needs the live connection. ' + connectHint(); return; }
+  const v = ev.info.v, season = state.season, a = v.from;
+  state.busy = true; $('dcSave').disabled = true; $('dcMsg').textContent = 'Checking your sheet…';
+  try {
+    // 1. re-read everything first; nothing is written until every check passes
+    const dRows = v.isNew ? await readTab('Drivers') : null;
+    if (v.isNew && byHeader(dRows).some(r => str(r.code).toUpperCase() === v.code)) throw { code: 'dc_stop', message: `the code ${v.code} now exists in Drivers. Nothing was saved; pick another code` };
+    const lRows = await readTab('Lineups'), lHead = (lRows[0] || []).map(h => str(h)), live = normaliseLineups(lRows);
+    for (const k of ['season', 'driver', 'team', 'number', 'fromRound', 'toRound', 'notes']) if (!lHead.includes(k)) throw { code: 'dc_stop', message: `Lineups has no ${k} column` };
+    const closer = (code, label) => {
+      const hits = live.filter(l => l.season === season && l.driver === code && lineupIn(l, a) && (label === 'out' ? l.team === v.team : l.team !== v.team));
+      if (hits.length !== 1) throw { code: 'dc_stop', message: `found ${hits.length} matching Lineups rows for ${dName(code)}; fix the sheet, then save again. Nothing was saved` };
+      const h = hits[0];
+      if (h.rounds && h.rounds.length) throw { code: 'dc_stop', message: `${dName(code)}'s Lineups row lists single rounds; edit it in the sheet. Nothing was saved` };
+      if (a - 1 < (h.fromRound ?? 1)) throw { code: 'dc_stop', message: `${dName(code)} would have no rounds left before round ${a}; edit that Lineups row in the sheet. Nothing was saved` };
+      return h;
+    };
+    const outRow = v.out ? closer(v.out, 'out') : null;
+    const moveRow = ev.info.moveRow && v.move ? closer(v.inCode, 'move') : null;
+    const inCode = v.isNew ? v.code : v.inCode;
+    const mk = (driver, team, number, from, to, notes) => { const o = { season, driver, team, number: numCell(String(number)), fromRound: from, toRound: to == null ? '' : to, notes }; return lHead.map(k => k in o ? cellValue('Lineups', k, o[k]) : ''); };
+    const rowsOut = [mk(inCode, v.team, v.number, a, v.until, (v.out ? 'Replacement for ' + v.out + (v.note ? ': ' + v.note : '') : v.note))];
+    if (outRow && v.until != null && (outRow.toRound == null || v.until + 1 <= outRow.toRound)) rowsOut.push(mk(v.out, v.team, outRow.number, v.until + 1, outRow.toRound, 'Returns after replacement'));
+    // 2. writes, in order: new driver, close old rows, then one append for the Lineups rows
+    $('dcMsg').textContent = 'Saving…';
+    if (v.isNew) {
+      const dHead = (dRows[0] || []).map(h => str(h)), o = { code: v.code, name: v.name, flag: v.flag, nationality: v.nat, active: 'Y' };
+      await state.mcp.callTool(SERVER, 'append_values', { spreadsheetId: SHEET_ID, range: 'Drivers!A1', values: [dHead.map(k => k in o ? cellValue('Drivers', k, o[k]) : '')] }, { cache: false });
+    }
+    for (const h of [outRow, moveRow].filter(Boolean)) await writeChanges('Lineups', lHead, h._row, { toRound: a - 1 });
+    await state.mcp.callTool(SERVER, 'append_values', { spreadsheetId: SHEET_ID, range: 'Lineups!A1', values: rowsOut }, { cache: false });
+    state.lineups = normaliseLineups(await readTab('Lineups')); loadDrivers(await readTab('Drivers')); state.cache = {};
+    $('dcDlg').close(); notice('');
+    setStatus('live', 'Driver change saved · ' + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
+    renderAll();
+  } catch (err) {
+    const unsure = err && ['server_unavailable', 'upstream_error', 'cancelled'].includes(err.code);
+    $('dcMsg').textContent = unsure ? 'The save may or may not have gone through. Reloading your sheet so you can check before saving again.' : err && err.code === 'dc_stop' ? 'Stopped: ' + err.message + '.' : explain(err);
+    if (unsure) { $('dcDlg').close(); await refresh(); }
+  } finally { state.busy = false; if ($('dcDlg').open) dcRefresh(); }
+}
+
 /* ---------- Standings tab ---------- */
 function driverCell(d, rc, sd, view) {
   if (!sd.ran[rc.id]) return '<td><div class="cell"></div></td>';
@@ -1245,6 +1498,11 @@ function extrasHTML(rows) {                          // penalties and DNF reason
   if (!pen && !why.size) return '';
   return `<div class="kv" data-extras>${pen ? `<span><b>Penalties</b> ${pen}</span>` : ''}${why.size ? `<span><b>DNF reasons</b> ${[...why].sort((a, b) => b[1] - a[1]).map(([k, n]) => esc(k) + ' ' + n).join(' · ')}</span>` : ''}</div>`;
 }
+function roundSpans(list) {                          // [5,6,8] -> "R5–6, R8"
+  const a = [...new Set(list)].sort((x, y) => x - y), out = [];
+  for (let i = 0; i < a.length;) { let j = i; while (a[j + 1] === a[j] + 1) j++; out.push(j > i ? `R${a[i]}–${a[j]}` : `R${a[i]}`); i = j + 1; }
+  return out.join(', ');
+}
 const span = set => { const a = [...set].sort(); return !a.length ? '' : a[0] === a[a.length - 1] ? a[0] : `${a[0]}–${a[a.length - 1]}`; };
 function showDriver(code) {
   const per = [];
@@ -1268,7 +1526,15 @@ function showDriver(code) {
 function showTeam(key) {
   const names = new Set(), seasonsOf = new Map(), drivers = new Map(), entrants = new Map();
   const add = (n, s) => { if (groupKey(n) !== key) return; names.add(n); if (s) { if (!seasonsOf.has(n)) seasonsOf.set(n, new Set()); seasonsOf.get(n).add(s); } };
-  for (const s of seasonList()) { const sd = seasonData(s); for (const r of sd.rows) if (r.team) { add(r.team, s); if (groupKey(r.team) === key && r.driver) { if (!drivers.has(s)) drivers.set(s, new Set()); drivers.get(s).add(r.driver); } } }
+  const dRounds = new Map();                         // season|driver -> rounds they raced for this team
+  for (const s of seasonList()) { const sd = seasonData(s); for (const r of sd.rows) if (r.team) { add(r.team, s); if (groupKey(r.team) === key && r.driver) {
+    if (!drivers.has(s)) drivers.set(s, new Set()); drivers.get(s).add(r.driver);
+    const rc = raceById(r.raceId); if (rc && rc.round != null) { const k = s + '|' + r.driver; if (!dRounds.has(k)) dRounds.set(k, new Set()); dRounds.get(k).add(rc.round); } } } }
+  const partYear = (s, c) => {                       // "(R5–6)" when they didn't race every round that has results
+    const sd = seasonData(s), all = new Set(sd.races.filter(r => sd.ran[r.id] && r.round != null).map(r => r.round)), mine = dRounds.get(s + '|' + c);
+    if (!mine || !all.size || [...all].every(n => mine.has(n))) return '';
+    return ' (' + roundSpans([...mine]) + ')';
+  };
   if (state.sGroup === 'lineage') state.lineageRows.forEach(l => { if (str(l.lineage || l.team) === key || lineageOf(str(l.team)) === key) { add(str(l.team), ''); if (!seasonsOf.has(str(l.team))) seasonsOf.set(str(l.team), new Set([str(l.fromSeason), str(l.toSeason)].filter(Boolean))); } });
   state.lineups.forEach(l => { if (l.team && groupKey(l.team) === key && l.entrant) { if (!entrants.has(l.entrant)) entrants.set(l.entrant, new Set()); entrants.get(l.entrant).add(l.season); } });
   const all = aggTeams(seasonList()).find(x => x.key === key) || {};
@@ -1278,7 +1544,7 @@ function showTeam(key) {
     ${extrasHTML(seasonList().flatMap(s => seasonData(s).rows.filter(r => r.team && groupKey(r.team) === key)))}
     <div><h3>Previous names</h3><ul class="plist">${nameList.map(n => `<li><span class="dn">${teamMark(n)}<b>${esc(n)}</b></span> <span class="muted">${esc(span(seasonsOf.get(n) || []))}</span></li>`).join('') || '<li class="muted">None</li>'}
       ${[...entrants].map(([e, s]) => `<li>${esc(e)} <span class="muted">entrant · ${esc(span(s))}</span></li>`).join('')}</ul></div>
-    <div><h3>Drivers by season</h3><div class="tbox"><table class="t"><tbody>${[...drivers].sort((a, b) => b[0].localeCompare(a[0])).map(([s, set]) => `<tr><td class="l">${esc(s)}</td><td class="l">${[...set].map(c => esc(dFlag(c) + ' ' + dName(c))).join(', ')}</td></tr>`).join('')}</tbody></table></div></div>`;
+    <div><h3>Drivers by season</h3><div class="tbox"><table class="t"><tbody>${[...drivers].sort((a, b) => b[0].localeCompare(a[0])).map(([s, set]) => `<tr><td class="l">${esc(s)}</td><td class="l">${[...set].map(c => esc(dFlag(c) + ' ' + dName(c) + partYear(s, c))).join(', ')}</td></tr>`).join('')}</tbody></table></div></div>`;
   $('pDlg').showModal();
 }
 
@@ -1596,6 +1862,7 @@ $('raceList').addEventListener('click', e => {
   else if (act === 'toggle') { if (state.open.has(race.id)) state.open.delete(race.id); else { state.open.add(race.id); if (isEditable() && race.status !== 'Cancelled' && race.status !== 'Postponed') getDraft(race); } rerenderCard(race.id); }
   else if (act === 'edit') openRaceDlg('edit', race);
   else if (act === 'save') saveRace(race.id, b);
+  else if (act === 'dchange') openDriverChange(race.round);
   else { const row = b.closest('[data-code]'); entryAct(race, act, row ? row.dataset.code : '', b); }
 });
 $('raceList').addEventListener('input', e => {

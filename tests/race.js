@@ -595,6 +595,122 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   check('Save after a paste is one append of seven rows with order, statuses and pole', w7.length === 1 && w7[0][0] === 'append_values' && JSON.parse(w7[0][2]).length === 7 && r2.WEH.f === 1 && r2.WEH.q === 3 && r2.NEW.f === 5 && r2.DAC.s === 'DNF' && r2.MUE.s === 'DSQ' && r2.EVA.pole === 'Y' && r2.EVA.q === 1, r2);
   check('the saved card shows Wehrlein on top of the podium', /Pascal Wehrlein/.test(await page.textContent(`${P2} .pod.p1`)));
 
+  // ---------- Driver change (Lineups) ----------
+  const writesSince = m => page.evaluate(m0 => window.__CALLS.slice(m0).filter(c => c[0] !== 'get_values'), m);
+  const elig = round => page.evaluate(r => eligible(raceById('2627-R0' + r)).map(e => e.code).join(), round);
+  const lineupsLen = () => page.evaluate(() => window.__SHEET.Lineups.length);
+  const dc_before = { r1: await elig(1), r2: await elig(2), r3: await elig(3) };
+  check('before: R2 and R3 chips include the regular Nissan driver ZED, not ROW', /ZED/.test(dc_before.r2) && /ZED/.test(dc_before.r3) && !/ROW/.test(dc_before.r3) && /ROW/.test(dc_before.r1), dc_before);
+  check('Driver change button: in each current-season entry bar and under the Races list', (await page.$$eval('#raceList [data-act="dchange"]', b => b.length)) >= 1 && await page.isVisible('#dcBtn'));
+  // (a) temporary stand-in, from the R02 card
+  await page.click(`${P2} [data-act="dchange"]`);
+  check('dialog opens with From round pre-filled from the card (round 2)', await page.isVisible('#dcDlg') && (await page.inputValue('#dcFrom')) === '2' && (await page.inputValue('#dcUntil')) === '');
+  check('helper text explains blank = permanent', /Leave blank for a permanent change/.test(await page.textContent('#dcDlg .dc-help')));
+  await page.selectOption('#dcTeam', 'Nissan');
+  const dc_outOpts = await page.$$eval('#dcOut option', o => o.map(x => x.value).join());
+  check('Driver out lists that team\'s drivers for the round, plus "None"', dc_outOpts === 'MUE,ZED,' && /None/.test(await page.textContent('#dcOut')), dc_outOpts);
+  await page.selectOption('#dcOut', 'ZED');
+  check('car number defaults to the driver out\'s number', (await page.inputValue('#dcNum')) === '12');
+  await page.fill('#dcFind', 'rowl');
+  check('searching narrows the Driver in list', (await page.$$eval('#dcIn option', o => o.map(x => x.value).join())) === ',__new,ROW');
+  await page.selectOption('#dcIn', 'ROW'); await page.selectOption('#dcUntil', '2'); await page.fill('#dcNote', 'Clashes with WEC');
+  const dc_pv1 = await page.textContent('#dcPrev');
+  check('preview (temporary): rounds, car, team, instead of, return round', /Round 2: Oliver Rowland drives car 12 for Nissan instead of Zed Zeller\. Zeller returns from round 3\./.test(dc_pv1) && (await page.isEnabled('#dcSave')), dc_pv1);
+  await page.selectOption('#dcFrom', '3');
+  check('From after Until blocks saving with a clear reason', /"From round" is after "Until round"/.test(await page.textContent('#dcPrev')) && (await page.isDisabled('#dcSave')));
+  await page.selectOption('#dcFrom', '2');
+  const dc_mk1 = await page.evaluate(() => window.__CALLS.length);
+  await page.click('#dcSave');
+  await page.waitForFunction(() => !document.getElementById('dcDlg').open);
+  const dc_w1 = await writesSince(dc_mk1);
+  check('temporary: exactly one update (ZED toRound = 1) then one append of two rows', dc_w1.length === 2 && dc_w1[0][0] === 'update_values' && dc_w1[0][1] === 'Lineups!F9' && dc_w1[0][2] === '[[1]]' && dc_w1[1][0] === 'append_values' && JSON.parse(dc_w1[1][2]).length === 2, dc_w1);
+  const dc_lu = await page.evaluate(() => window.__SHEET.Lineups.slice(-2));
+  check('temporary: stand-in row R2–2 and return row R3–open, with correct cell types', JSON.stringify(dc_lu) === JSON.stringify([['2026/27', 'ROW', 'Nissan', 12, 2, 2, 'Replacement for ZED: Clashes with WEC'], ['2026/27', 'ZED', 'Nissan', 12, 3, '', 'Returns after replacement']]), dc_lu);
+  check('status says "Driver change saved"', /Driver change saved/.test(await page.textContent('#statusText')));
+  const dc_after = { r1: await elig(1), r2: await elig(2), r3: await elig(3) };
+  check('R2 shows the stand-in not the regular; R3 shows the regular again; R1 unchanged', /ROW/.test(dc_after.r2) && !/ZED/.test(dc_after.r2) && /ZED/.test(dc_after.r3) && !/ROW/.test(dc_after.r3) && dc_after.r1 === dc_before.r1, dc_after);
+  check('stand-in chip carries a "Stand-in" tag', (await page.textContent(`${P2} .ur[data-code="ROW"]`)).includes('Stand-in') && (await page.$$eval(`${P2} .ur[data-code="MUE"] .chipb .tag`, t => t.length)) === 0);
+  await page.click(`${P2} .ur[data-code="ROW"] [data-act="place"]`);
+  await page.click(`${P2} [data-act="save"]`);
+  await page.waitForFunction(() => !document.querySelector('.rc[data-id="2627-R02"]').hasAttribute('data-dirty'));
+  check('classification shows "Stand-in" next to the stand-in only', /Stand-in/.test(await page.textContent(`${P2} .t tr:has-text("Rowland")`)) && !/Stand-in/.test(await page.textContent(`${P2} .t tr:has-text("Wehrlein")`)));
+  await page.click(`${P2} [data-act="dchange"]`);
+  await page.selectOption('#dcTeam', 'Nissan'); await page.selectOption('#dcOut', 'ROW');
+  check('a driver out with a saved result in the range gets a warning (not a block)', /Rowland already has a result in round 2; it stays\./.test(await page.textContent('#dcPrev')));
+  await page.click('#dcClose');
+
+  // (b) permanent change with a new driver, from the R03 card
+  const dc_P3 = '.rc[data-id="2627-R03"]';
+  await page.click(`#strip [data-race="2627-R03"]`);
+  await page.click(`${dc_P3} [data-act="dchange"]`);
+  check('R03 card pre-fills From round 3', (await page.inputValue('#dcFrom')) === '3');
+  await page.selectOption('#dcTeam', 'Porsche'); await page.selectOption('#dcOut', 'NEW'); await page.selectOption('#dcIn', '__new');
+  check('New driver reveals name, code, nationality and flag', await page.isVisible('#dcNew') && await page.isVisible('#dcName') && await page.isVisible('#dcCode') && await page.isVisible('#dcNat') && await page.isVisible('#dcFlag'));
+  await page.fill('#dcName', 'Chris Evans');
+  check('code is suggested from the surname and skips one already taken (EVA → EVN)', (await page.inputValue('#dcCode')) === 'EVN');
+  await page.fill('#dcName', 'Théo Pourchaire');
+  check('code from "Théo Pourchaire" is POU (accents ignored)', (await page.inputValue('#dcCode')) === 'POU');
+  const dc_alt = await page.evaluate(() => { state.drivers.POU = { code: 'POU', name: 'x' }; const a = suggestCode('Théo Pourchaire'); state.drivers.PUR = { code: 'PUR', name: 'x' }; state.drivers.POR = { code: 'POR', name: 'x' }; const b = suggestCode('Théo Pourchaire'); delete state.drivers.POU; delete state.drivers.PUR; delete state.drivers.POR; return [a, b]; });
+  check('if POU is taken the next free variant is suggested (POR, then further)', dc_alt[0] === 'POR' && dc_alt[1] !== 'POU' && dc_alt[1] !== 'POR' && /^[A-Z]{3}$/.test(dc_alt[1]), dc_alt);
+  await page.fill('#dcCode', 'eva');
+  check('a code already in Drivers blocks saving', /EVA is already used/.test(await page.textContent('#dcPrev')) && (await page.isDisabled('#dcSave')));
+  await page.fill('#dcCode', 'POU');
+  await page.fill('#dcNat', 'Germany');
+  check('picking an existing nationality fills its flag', (await page.inputValue('#dcFlag')) === '🇩🇪' && (await page.$$eval('#dcNatList option', o => o.length)) >= 5);
+  await page.fill('#dcNat', 'France'); await page.fill('#dcFlag', '🇫🇷');
+  const dc_pv2 = await page.textContent('#dcPrev');
+  check('preview (permanent): "From round 3: Pourchaire replaces Newman at Porsche for the rest of the season."', /From round 3: Pourchaire replaces Newman at Porsche for the rest of the season\./.test(dc_pv2) && (await page.isEnabled('#dcSave')), dc_pv2);
+  for (const [w, hh] of sizes) { await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(120); const ov = await page.evaluate(() => { const d = document.getElementById('dcDlg'); return [document.documentElement.scrollWidth - innerWidth, d.scrollWidth - d.clientWidth]; }); check(`no sideways scroll: driver change dialog @${w}`, ov[0] <= 0 && ov[1] <= 0, ov); await grab('driverchange', w); }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const dc_mk2 = await page.evaluate(() => window.__CALLS.length);
+  await page.click('#dcSave');
+  await page.waitForFunction(() => !document.getElementById('dcDlg').open);
+  const dc_w2 = await writesSince(dc_mk2);
+  check('permanent + new driver: Drivers append, one Lineups update, one Lineups append (in that order)', dc_w2.length === 3 && dc_w2[0][0] === 'append_values' && dc_w2[0][1] === 'Drivers!A1' && dc_w2[1][0] === 'update_values' && dc_w2[1][1] === 'Lineups!F8' && dc_w2[1][2] === '[[2]]' && dc_w2[2][0] === 'append_values' && JSON.parse(dc_w2[2][2]).length === 1, dc_w2);
+  const dc_dl = await page.evaluate(() => [window.__SHEET.Drivers.slice(-1)[0], window.__SHEET.Lineups.slice(-1)[0]]);
+  check('new Drivers row (code, name, flag, nationality, active) and open-ended Lineups row', JSON.stringify(dc_dl) === JSON.stringify([['POU', 'Théo Pourchaire', '🇫🇷', 'France', 'Y', ''], ['2026/27', 'POU', 'Porsche', 7, 3, '', 'Replacement for NEW']]), dc_dl);
+  check('later rounds show the new driver (no stand-in tag); R2 keeps the old one', /POU/.test(await elig(3)) && !/NEW/.test(await elig(3)) && /NEW/.test(await elig(2)) && !(await page.textContent(`${dc_P3} .ur[data-code="POU"]`)).includes('Stand-in'));
+  await page.click('#tab-stats'); await page.click('[data-sw="teams"]'); await page.selectOption('#sScope', 'all');
+  await page.click('#sTable tr[data-open="Nissan"]');
+  const dc_nis = await page.textContent('#pBody');
+  check('team profile adds round ranges for part-season drivers (Guenther R3 in 2023/24), none for full-season ones', /Maximilian Guenther \(R3\)/.test(dc_nis) && !/Oliver Rowland \(R/.test(dc_nis), dc_nis.slice(-300));
+  await page.click('#pClose'); await page.click('#tab-races');
+
+  // (c) safety: duplicate matching Lineups rows, and a code that appears after the dialog was opened
+  await page.click('#dcBtn');
+  await page.selectOption('#dcFrom', '3'); await page.selectOption('#dcTeam', 'Jaguar'); await page.selectOption('#dcOut', 'CAS'); await page.selectOption('#dcIn', 'NEW'); await page.selectOption('#dcUntil', '3');
+  check('safety setup: dialog is ready to save', await page.isEnabled('#dcSave'), await page.textContent('#dcPrev'));
+  const dc_nl = await lineupsLen();
+  await page.evaluate(() => window.__SHEET.Lineups.push(['2026/27', 'CAS', 'Jaguar', 37, '', '', 'duplicate']));
+  const dc_mk3 = await page.evaluate(() => window.__CALLS.length);
+  await page.click('#dcSave');
+  await page.waitForFunction(() => /Stopped/.test(document.getElementById('dcMsg').textContent));
+  check('duplicate matching rows: nothing written, clear message', (await writesSince(dc_mk3)).length === 0 && (await lineupsLen()) === dc_nl + 1 && /found 2 matching Lineups rows for Nick Cassidy/.test(await page.textContent('#dcMsg')), await page.textContent('#dcMsg'));
+  await page.evaluate(() => window.__SHEET.Lineups.pop());
+  await page.click('#dcClose');
+  await page.click('#dcBtn');
+  await page.selectOption('#dcFrom', '3'); await page.selectOption('#dcTeam', 'Jaguar'); await page.selectOption('#dcOut', 'CAS'); await page.selectOption('#dcIn', '__new');
+  await page.fill('#dcName', 'Zoe Zetterberg'); await page.fill('#dcNat', 'Australia');
+  check('safety setup 2: new driver code ZET ready', (await page.inputValue('#dcCode')) === 'ZET' && await page.isEnabled('#dcSave'), await page.textContent('#dcPrev'));
+  await page.evaluate(() => window.__SHEET.Drivers.push(['ZET', 'Someone Else', '', '', 'Y', '']));
+  const dc_mk4 = await page.evaluate(() => window.__CALLS.length);
+  await page.click('#dcSave');
+  await page.waitForFunction(() => /Stopped/.test(document.getElementById('dcMsg').textContent));
+  check('code clash on re-read: nothing written, message names the code', (await writesSince(dc_mk4)).length === 0 && (await lineupsLen()) === dc_nl && /ZET now exists/.test(await page.textContent('#dcMsg')), await page.textContent('#dcMsg'));
+  await page.evaluate(() => window.__SHEET.Drivers.pop());
+  // moving a driver who already races elsewhere needs a tick
+  await page.selectOption('#dcIn', 'WEH');
+  check('driver already racing for another team: needs "Yes, … moves teams" before saving', await page.isVisible('#dcMoveRow') && (await page.isDisabled('#dcSave')) && /Tick the box/.test(await page.textContent('#dcPrev')));
+  await page.check('#dcMove');
+  check('ticking it allows saving and the preview says the driver leaves their old team', (await page.isEnabled('#dcSave')) && /Wehrlein leaves Porsche from round 3/.test(await page.textContent('#dcPrev')), await page.textContent('#dcPrev'));
+  await page.click('#dcClose');
+
+  // past seasons: no way in
+  await page.click('#tab-races');
+  await page.selectOption('#seasonSel', '2023/24');
+  check('past season: Driver change is hidden everywhere', !(await page.isVisible('#dcBtn')) && (await page.$$eval('#raceList [data-act="dchange"]', b => b.length)) === 0);
+  await page.selectOption('#seasonSel', '2026/27');
+
   const real = errors.filter(e => !/ERR_|Failed to load resource|net::|fonts\.g|accounts\.google/i.test(e));
   check('no page errors', real.length === 0, real);
   const failed = checks.filter(c => !c[1]);

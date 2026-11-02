@@ -19,6 +19,12 @@ Read `docs/START-HERE.md` and `CLAUDE.md` first. This file is where the Formula 
 - Sheet: `Results` gained `lapsDown | pitStops | outReason | penalty | penaltyNote | investigation` (backup `Results backup 2026-11-02`), and the missing `groupFastest` header was added to column O.
 - Owner's idea for later: from 2027/28, compare a race with the same race in the previous season once both have full detail.
 
+## Driver changes (2 Nov 2026)
+
+- **Driver change** button on each current-season race card (and under the Races list). Temporary: set an until-round; the app closes the regular driver's `Lineups` row at the round before and appends the stand-in row plus a return row. Permanent: leave until blank. New drivers are appended to `Drivers` in the same step (code suggested, must be unique).
+- Safety: re-reads `Lineups` and `Drivers` first, needs exactly one matching `Lineups` row, stops on a code clash or a `Rounds 1,2,3` style row, never deletes.
+- Stand-in tag shows only for temporary replacements (row has "Replacement for" and an end round).
+
 ## Decisions the owner made
 
 - Full results live inside each race card (Details fold), entered by tapping drivers in order. Paste-in (from a results page) is wanted later; they mostly enter on a laptop.
