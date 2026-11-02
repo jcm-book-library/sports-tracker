@@ -11,6 +11,14 @@ Read `docs/START-HERE.md` and `CLAUDE.md` first. This file is where the Formula 
 - **Evans 2024/25 resolved**: R13 pole points not awarded (shortened qualifying), `pointsAdj` -3, total 74 as Wikipedia.
 - The owner's hand-built season tabs (`14/15` … `27`) and `Records` are untouched and must stay that way.
 
+## Stage 2 (2 Nov 2026)
+
+- Race cards: collapse per card and Collapse all (finished races start folded, the next race open); orange "under investigation" banner outside the fold; tags under each driver (DNF/DNS/DSQ/NC with reason, penalty with note, laps down, investigation); Pits column.
+- Entry: chips grouped in sixes by championship order before the race (round 1 uses last season's final order); a More panel per driver for penalty, investigation, laps down, pit stops and out reason; Paste results (laptop) with a preview, nothing saved until Save.
+- Compare tab: drivers / teams / manufacturers (2–4 picks: stat table, head-to-head for two, points-by-round SVG chart) and races side by side (same season by default, other seasons can be added; older seasons only have basic data).
+- Sheet: `Results` gained `lapsDown | pitStops | outReason | penalty | penaltyNote | investigation` (backup `Results backup 2026-11-02`), and the missing `groupFastest` header was added to column O.
+- Owner's idea for later: from 2027/28, compare a race with the same race in the previous season once both have full detail.
+
 ## Decisions the owner made
 
 - Full results live inside each race card (Details fold), entered by tapping drivers in order. Paste-in (from a results page) is wanted later; they mostly enter on a laptop.

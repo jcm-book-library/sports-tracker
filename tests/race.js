@@ -7,17 +7,20 @@ const DIR = path.resolve(__dirname, '..');
 const pageHtml = fs.readFileSync(path.join(DIR, 'apps/race/index.html'), 'utf8');
 
 /* ---------- seed sheet ---------- */
-const RES_HEAD = ['id', 'season', 'raceId', 'driver', 'team', 'qualiPos', 'grid', 'finish', 'status', 'pole', 'fastestLap', 'pointsAdj', 'notes', 'updatedAt', 'groupFastest'];
+const RES_HEAD = ['id', 'season', 'raceId', 'driver', 'team', 'qualiPos', 'grid', 'finish', 'status', 'pole', 'fastestLap', 'pointsAdj', 'notes', 'updatedAt', 'groupFastest', 'lapsDown', 'pitStops', 'outReason', 'penalty', 'penaltyNote', 'investigation'];
 const RACE_HEAD = ['id', 'season', 'round', 'date', 'country', 'flag', 'city', 'circuit', 'name', 'heat', 'status', 'notes'];
 const drivers = [['EVA', 'Mitch Evans', '🇳🇿', 'New Zealand'], ['CAS', 'Nick Cassidy', '🇳🇿', 'New Zealand'], ['WEH', 'Pascal Wehrlein', '🇩🇪', 'Germany'],
-  ['DAC', 'Antonio Felix da Costa', '🇵🇹', 'Portugal'], ['ROW', 'Oliver Rowland', '🇬🇧', 'United Kingdom'], ['BIR', 'Sam Bird', '🇬🇧', 'United Kingdom'], ['MUE', 'Maximilian Guenther', '🇩🇪', 'Germany']];
+  ['DAC', 'Antonio Felix da Costa', '🇵🇹', 'Portugal'], ['ROW', 'Oliver Rowland', '🇬🇧', 'United Kingdom'], ['BIR', 'Sam Bird', '🇬🇧', 'United Kingdom'], ['MUE', 'Maximilian Guenther', '🇩🇪', 'Germany'],
+  ['NEW', 'Nico Newman', '🇦🇺', 'Australia'], ['ZED', 'Zed Zeller', '🇨🇭', 'Switzerland']];
 const teamOf = { 2324: { EVA: 'Jaguar', CAS: 'Jaguar', WEH: 'Porsche', DAC: 'Porsche', ROW: 'Nissan', BIR: 'Envision' }, 1920: { EVA: 'Jaguar', CAS: 'Jaguar', WEH: 'Porsche', DAC: 'Porsche', ROW: 'Nissan', BIR: 'Virgin' } };
+teamOf[2324].MUE = 'Nissan';
 const races = [];
 const results = [];
 function addRace(season, tag, n, date, flag, city, circuit, name) { races.push([`${tag}-R0${n}`, season, n, date, '', flag, city, circuit, name, '', '', '']); }
-// res: [driver, finish, extras]   extras: {status, pole, fl, grp, adj}
+// res: [driver, finish, extras]   extras: {status, pole, fl, grp, adj, laps, pits, why, pen, note, inv}
 function addResults(tag, season, n, list) {
-  list.forEach(([d, fin, x = {}]) => results.push([`${tag}-R0${n}-${d}`, season, `${tag}-R0${n}`, d, teamOf[tag][d], '', '', fin, x.status || '', x.pole ? 'Y' : '', x.fl ? 'Y' : '', x.adj ?? '', '', '', x.grp ? 'Y' : '']));
+  list.forEach(([d, fin, x = {}]) => results.push([`${tag}-R0${n}-${d}`, season, `${tag}-R0${n}`, d, teamOf[tag][d], '', '', fin, x.status || '', x.pole ? 'Y' : '', x.fl ? 'Y' : '', x.adj ?? '', '', '', x.grp ? 'Y' : '',
+    x.laps ?? '', x.pits ?? '', x.why || '', x.pen || '', x.note || '', x.inv ? 'Y' : '']));
 }
 [['1920', '2019/20'], ['2324', '2023/24'], ['2627', '2026/27']].forEach(([tag, season], k) => {
   [[1, 'Diriyah', 'Riyadh'], [2, 'Mexico City', 'Mexico City'], [3, 'Monaco', 'Monte Carlo']].forEach(([n, city, circ]) =>
@@ -30,9 +33,9 @@ addResults('1920', '2019/20', 1, [['EVA', 1, { pole: 1, fl: 1 }], ['CAS', 2, { g
 addResults('1920', '2019/20', 2, [['EVA', 1], ['CAS', 2], ['BIR', 3], ['WEH', 4], ['ROW', 5], ['DAC', 12, { fl: 1 }]]);
 addResults('1920', '2019/20', 3, [['CAS', 1], ['EVA', 2], ['ROW', 3], ['DAC', 4], ['WEH', 5], ['BIR', 6]]);
 // 2023/24: manufacturers (BIR's Envision uses Jaguar power)
-addResults('2324', '2023/24', 1, [['EVA', 1, { pole: 1 }], ['CAS', 2, { fl: 1 }], ['BIR', 3], ['WEH', 4], ['DAC', 5], ['ROW', 6]]);
+addResults('2324', '2023/24', 1, [['EVA', 1, { pole: 1, pen: '+5s', note: 'track limits', pits: 1 }], ['CAS', 2, { fl: 1 }], ['BIR', 3], ['WEH', 4], ['DAC', 5], ['ROW', 6]]);
 addResults('2324', '2023/24', 2, [['WEH', 1], ['EVA', 2], ['DAC', 3], ['BIR', 4], ['ROW', 5], ['CAS', 6]]);
-addResults('2324', '2023/24', 3, [['ROW', 1], ['BIR', 2], ['CAS', 3], ['EVA', 4], ['WEH', 5], ['DAC', 6]]);
+addResults('2324', '2023/24', 3, [['ROW', 1, { inv: 1, pits: 2 }], ['BIR', 2], ['CAS', 3, { pits: 1 }], ['EVA', 4], ['WEH', 5], ['DAC', 6, { laps: 1 }], ['MUE', '', { status: 'DNF', why: 'Mechanical · lap 12', pits: 0 }]]);
 
 const FE = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], FEQ = [4, 3, 2, 2, 1, 1, 1, 1];
 const sheet = {
@@ -48,7 +51,7 @@ const sheet = {
     ['Porsche', 'Porsche', 'Porsche', '#d5001c', '', 'Y', ''], ['Nissan', 'Nissan', 'Nissan', '#c3002f', '', 'Y', '']],
   Lineups: [['season', 'driver', 'team', 'number', 'fromRound', 'toRound', 'notes'],
     ['2026/27', 'EVA', 'Jaguar', 9, '', '', 'Entrant: Jaguar TCS Racing · Jaguar I-TYPE 7'], ['2026/27', 'CAS', 'Jaguar', 37, '', '', ''], ['2026/27', 'WEH', 'Porsche', 94, '', '', ''], ['2026/27', 'DAC', 'Porsche', 13, '', '', ''],
-    ['2026/27', 'ROW', 'Nissan', 22, '', 1, ''], ['2026/27', 'MUE', 'Nissan', 22, 2, '', ''], ['2026/27', 'BIR', 'Envision', 4, '', '', 'Rounds 1,2,3; Entrant: Envision Racing · Jaguar I-TYPE 7'],
+    ['2026/27', 'ROW', 'Nissan', 22, '', 1, ''], ['2026/27', 'MUE', 'Nissan', 22, 2, '', ''], ['2026/27', 'NEW', 'Porsche', 7, '', '', ''], ['2026/27', 'ZED', 'Nissan', 12, '', '', ''], ['2026/27', 'BIR', 'Envision', 4, '', '', 'Rounds 1,2,3; Entrant: Envision Racing · Jaguar I-TYPE 7'],
     ['2023/24', 'BIR', 'Envision', 4, '', '', 'Entrant: Envision Racing · Jaguar I-TYPE 6'], ['2019/20', 'BIR', 'Virgin', 4, '', '', 'Entrant: Envision Virgin Racing · Audi e-tron FE06'],
     ['2023/24', 'EVA', 'Jaguar', 9, '', '', ''], ['2019/20', 'EVA', 'Jaguar', 9, '', '', '']],
   Circuits: [['circuit', 'city', 'country', 'flag', 'type', 'notes'], ['Riyadh', 'Diriyah', 'Saudi Arabia', '🇸🇦', 'Street', ''], ['Mexico City', 'Mexico City', 'Mexico', '🇲🇽', 'Permanent', '']],
@@ -159,23 +162,47 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
 
   // Races tab basics
   check('round strip has a chip per race, next race highlighted', (await page.$$eval('#strip .rchip', c => c.length)) === 3 && (await page.$$eval('#strip .rchip[data-next]', c => c.map(x => x.dataset.race))).join() === '2627-R01');
-  check('three race cards, not run yet', (await page.$$eval('.rc', c => c.length)) === 3 && (await page.textContent('.rc[data-id="2627-R01"] .rc-msg')) === 'Not run yet');
+  check('three races, not run yet', (await page.$$eval('#raceList [data-id]', c => c.length)) === 3 && (await page.textContent('.rc[data-id="2627-R01"] .rc-msg')) === 'Not run yet');
+  // folding: default state, per card, all, strip chip
+  const ids = sel => page.$$eval(sel, c => c.map(x => x.dataset.id).join());
+  check('default fold: the next race is open, the other two are one-line rows', (await ids('.rc')) === '2627-R01' && (await ids('.rc-mini')) === '2627-R02,2627-R03');
+  const mini2 = (await page.textContent('.rc-mini[data-id="2627-R02"]')).replace(/\s+/g, ' ');
+  check('one-line row shows RD, city and the status, with an Open button', /RD2/.test(mini2) && /Mexico City/.test(mini2) && /Not run yet/.test(mini2) && /Open/.test(mini2), mini2);
+  check('Collapse all / Expand all sits above the list', (await page.textContent('#foldAll')) === 'Collapse all');
+  await page.click('#foldAll');
+  check('Collapse all folds every card and the button flips to Expand all', (await page.$$eval('.rc', c => c.length)) === 0 && (await page.$$eval('.rc-mini', c => c.length)) === 3 && (await page.textContent('#foldAll')) === 'Expand all');
+  await page.click('#foldAll');
+  check('Expand all opens every card again', (await page.$$eval('.rc', c => c.length)) === 3 && (await page.$$eval('.rc-mini', c => c.length)) === 0 && (await page.textContent('#foldAll')) === 'Collapse all');
+  check('each open card has a Collapse button at the top', (await page.$$eval('.rc .rc-head [data-act="fold"]', c => c.map(x => x.textContent.trim()).join())) === 'Collapse ▴,Collapse ▴,Collapse ▴');
+  await page.click('.rc[data-id="2627-R03"] [data-act="fold"]'); await page.click('.rc[data-id="2627-R02"] [data-act="fold"]');
+  check('Collapse on one card folds just that card', (await ids('.rc')) === '2627-R01' && (await ids('.rc-mini')) === '2627-R02,2627-R03');
+  await page.click('.rc-mini[data-id="2627-R03"] [data-act="fold"]');
+  check('Open on a one-line row unfolds it', (await ids('.rc')) === '2627-R01,2627-R03');
+  await page.click('.rc[data-id="2627-R03"] [data-act="fold"]');
   check('Details start collapsed and no entry controls are in the DOM', (await page.getAttribute('.rc[data-id="2627-R01"] [data-act="toggle"]', 'aria-expanded')) === 'false' && (await page.$$eval('.ent', e => e.length)) === 0);
   check('dates read 10 Dec 26', /10 Dec 26/.test(await page.textContent('.rc[data-id="2627-R01"] .rc-meta')));
   await page.click('#strip .rchip[data-race="2627-R02"]');
-  check('tapping a chip opens that card', (await page.getAttribute('.rc[data-id="2627-R02"] [data-act="toggle"]', 'aria-expanded')) === 'true');
+  check('tapping a chip unfolds and opens that card', (await page.getAttribute('.rc[data-id="2627-R02"] [data-act="toggle"]', 'aria-expanded')) === 'true' && (await ids('.rc-mini')) === '2627-R03');
   await page.click('.rc[data-id="2627-R02"] [data-act="toggle"]');
 
   // (3) tap entry: qualifying order, then race order
   const R = '.rc[data-id="2627-R01"]';
   await page.click(`${R} [data-act="toggle"]`);
-  check('entry offers the six drivers entered for round 1 (ROW yes, MUE not yet)', (await page.$$eval(`${R} .ur`, u => u.map(x => x.dataset.code))).sort().join() === 'BIR,CAS,DAC,EVA,ROW,WEH');
+  check('entry offers the eight drivers entered for round 1 (ROW yes, MUE not yet)', (await page.$$eval(`${R} .ur`, u => u.map(x => x.dataset.code))).sort().join() === 'BIR,CAS,DAC,EVA,NEW,ROW,WEH,ZED');
+  // chip grouping, round 1: last season's final order (2023/24: EVA 58, WEH 47, BIR 45, ROW 43, CAS 42, DAC 33); no result last season -> last, by car number (NEW 7, ZED 12)
+  const urOrder = () => page.$$eval(`${R} .ur`, u => u.map(x => x.dataset.code).join());
+  const ordTexts = () => page.$$eval(`${R} .ur .dchip small`, u => u.map(x => x.textContent).join());
+  check('round 1 chips follow last season\'s final standings, newcomers last by car number', (await urOrder()) === 'EVA,WEH,BIR,ROW,CAS,DAC,NEW,ZED', await urOrder());
+  check('groups of six with small headers (Championship 1–6, then 7–8)', (await page.$$eval(`${R} .ent .grp`, g => g.map(x => x.textContent).join('|'))) === 'Championship 1–6|7–8');
+  check('each chip shows flag, code and a 1st/2nd ordinal', (await ordTexts()) === '1st,2nd,3rd,4th,5th,6th,7th,8th' && /🇳🇿\s*EVA/.test(await page.textContent(`${R} .ur[data-code="EVA"] .dchip`)));
+  check('the status quick buttons and a More button are still on each unplaced row', (await page.$$eval(`${R} .ur[data-code="DAC"] .sb`, b => b.length)) === 4 && (await page.isVisible(`${R} .ur[data-code="DAC"] [data-act="more"]`)));
   check('Save is disabled until something changes', await page.isDisabled(`${R} [data-act="save"]`));
   await page.click(`${R} [data-act="mode"][data-mode="quali"]`);
   for (const c of ['EVA', 'CAS', 'WEH', 'DAC', 'ROW', 'BIR']) await page.click(`${R} .chipb[data-code="${c}"]`);
   check('pole follows the first qualifier automatically', (await page.getAttribute(`${R} .pr[data-code="EVA"] [data-act="pole"]`, 'aria-pressed')) === 'true');
   await page.click(`${R} [data-act="mode"][data-mode="race"]`);
   for (const c of ['CAS', 'EVA', 'WEH', 'DAC', 'ROW']) await page.click(`${R} .ur[data-code="${c}"] [data-act="place"]`);
+  check('placed chips dim (data-used) and stay in place', (await urOrder()) === 'EVA,WEH,BIR,ROW,CAS,DAC,NEW,ZED' && (await page.$$eval(`${R} .ur .dchip[data-used]`, u => u.length)) === 5 && (await page.$(`${R} .ur[data-code="NEW"] .dchip[data-used]`)) === null);
   await page.click(`${R} .ur[data-code="BIR"] [data-act="status"][data-status="DNF"]`);
   await page.click(`${R} .pr[data-code="CAS"] [data-act="fl"]`);
   const pv = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.rc[data-id="2627-R01"] .pr')].map(r => [r.dataset.code, r.querySelector('.pt').textContent])));
@@ -197,6 +224,7 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
     ROW: ['2627-R01-ROW', '2026/27', '2627-R01', 'ROW', 'Nissan', 5, '', 5, '', '', '', '', '', null, ''], BIR: ['2627-R01-BIR', '2026/27', '2627-R01', 'BIR', 'Envision', 6, '', '', 'DNF', '', '', '', '', null, ''] };
   const same = Object.entries(want).every(([d, w]) => byDrv[d] && w.every((v, i) => v === null ? /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(byDrv[d][i]) : byDrv[d][i] === v));
   check('six new rows in header order with team from Lineups, numbers as numbers, text as text', rowsAdded.length === 6 && same, byDrv.BIR);
+  check('saving keeps cards where they were (R01 open, R02 open from the chip, R03 folded)', (await ids('.rc')) === '2627-R01,2627-R02' && (await ids('.rc-mini')) === '2627-R03');
   const podium = await page.$$eval(`${R} .pod .nm`, n => n.map(x => x.textContent));
   check('podium shows P2 left, P1 centre, P3 right', podium.join() === 'Mitch Evans,Nick Cassidy,Pascal Wehrlein', podium);
   check('pole and fastest lap line', /Pole: Mitch Evans/.test(await page.textContent(`${R} .rc-pf`)) && /Fastest lap: Nick Cassidy/.test(await page.textContent(`${R} .rc-pf`)));
@@ -225,7 +253,109 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   const allWrites = await page.evaluate(() => [...new Set(window.__CALLS.map(c => c[0]))].sort());
   check('only get_values, append_values and update_values were ever called (no deletes or clears)', allWrites.join() === 'append_values,get_values,update_values', allWrites);
 
+
+  // round 2: chips follow the standings of the earlier rounds (CAS 29, EVA 25, WEH 17, DAC 14, BIR 11); MUE has no result yet so goes last by car number
+  const R2 = '.rc[data-id="2627-R02"]';
+  await page.click(`${R2} [data-act="toggle"]`);
+  const ur2 = await page.$$eval(`${R2} .ur`, u => u.map(x => x.dataset.code).join());
+  check('round 2 chips follow the championship so far; rookies without a result last by car number', ur2 === 'CAS,EVA,WEH,DAC,BIR,NEW,ZED,MUE', ur2);
+  check('round 2 groups: Championship 1–6 then 7–8', (await page.$$eval(`${R2} .ent .grp`, g => g.map(x => x.textContent).join('|'))) === 'Championship 1–6|7–8');
+  await page.click(`${R2} [data-act="mode"][data-mode="quali"]`);
+  check('qualifying order uses the same grouped chips', (await page.$$eval(`${R2} .chips .dchip`, c => c.map(x => x.dataset.code).join())) === 'CAS,EVA,WEH,DAC,BIR,NEW,ZED,MUE' && (await page.$$eval(`${R2} .ent .grp`, g => g.length)) === 2);
+  await page.click(`${R2} [data-act="mode"][data-mode="race"]`);
+  await page.click(`${R2} [data-act="toggle"]`);
+
+  // More panel: penalty, investigation, laps down, pit stops, out reason
+  const rowIdx = d => page.evaluate(d => window.__SHEET.Results.findIndex(r => r[0] === '2627-R01-' + d) + 1, d);
+  check('placed rows have a More button; the panel starts closed', (await page.isVisible(`${R} .pr[data-code="CAS"] [data-act="more"]`)) && (await page.$$eval(`${R} .panel`, p => p.length)) === 0);
+  await page.click(`${R} .pr[data-code="CAS"] [data-act="more"]`);
+  check('More opens a panel with penalty picks, investigation, laps down and pit stops', (await page.$$eval(`${R} .pr[data-code="CAS"] .panel [data-act="pen"]`, b => b.map(x => x.textContent).join())) === '+5s,+10s,Drive-through,Grid drop,Other' && (await page.$$eval(`${R} .pr[data-code="CAS"] .panel .step`, s => s.length)) === 2 && await page.isVisible(`${R} .pr[data-code="CAS"] .panel [data-act="inv"]`));
+  await page.click(`${R} .pr[data-code="CAS"] [data-act="pen"][data-v="+5s"]`);
+  await page.fill(`${R} .pr[data-code="CAS"] [data-in="penaltyNote"]`, 'track limits');
+  check('typing a note keeps focus (no re-render)', await page.evaluate(() => document.activeElement && document.activeElement.dataset.in === 'penaltyNote'));
+  await page.click(`${R} .pr[data-code="CAS"] [data-act="inv"]`);
+  check('penalty and investigation tags show on the row at once, and Save lights up', /\+5s/.test(await page.textContent(`${R} .pr[data-code="CAS"] .rtg .tag.pen`)) && /track limits/.test(await page.textContent(`${R} .pr[data-code="CAS"] .rtg .why`)) && await page.isVisible(`${R} .pr[data-code="CAS"] .rtg .tag.inv`) && !(await page.isDisabled(`${R} [data-act="save"]`)) && (await page.getAttribute(R, 'data-dirty')) !== null);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="more"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="laps"][data-d="1"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="pits"][data-d="1"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="pits"][data-d="1"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="pits"][data-d="-1"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="pen"][data-v="Other"]`);
+  await page.fill(`${R} .pr[data-code="DAC"] [data-in="penalty"]`, 'Stop-go');
+  const dacSteps = await page.$$eval(`${R} .pr[data-code="DAC"] .step span`, s => s.map(x => x.textContent).join());   // laps down, pit stops
+  check('steppers: laps down 1; pit stops + + - = 1; Other reveals a text field', dacSteps === '1,1' && /Stop-go/.test(await page.textContent(`${R} .pr[data-code="DAC"] .rtg`)) && /\+1 lap/.test(await page.textContent(`${R} .pr[data-code="DAC"] .rtg`)), dacSteps);
+  await page.click(`${R} .pr[data-code="BIR"] [data-act="more"]`);
+  const birPits = async () => page.textContent(`${R} .pr[data-code="BIR"] [data-fld="pits"] .step span`);
+  const b0 = await birPits();
+  await page.click(`${R} .pr[data-code="BIR"] [data-act="pits"][data-d="1"]`);
+  const b1 = await birPits();
+  await page.click(`${R} .pr[data-code="BIR"] [data-act="pits"][data-d="-1"]`);
+  const b2 = await birPits();
+  await page.click(`${R} .pr[data-code="BIR"] [data-act="pits"][data-d="-1"]`);
+  const b3 = await birPits();
+  await page.click(`${R} .pr[data-code="BIR"] [data-act="pits"][data-d="1"]`);
+  check('pit stops: blank shows a dash, first + gives 1, back to 0 (a real value), then blank again', b0 === '–' && b1 === '1' && b2 === '0' && b3 === '–' && (await birPits()) === '1', [b0, b1, b2, b3]);
+  // an unplaced driver who is out: ROW (status buttons stay on the row, and are repeated inside More)
+  await page.click(`${R} .ur[data-code="ROW"] [data-act="more"]`);
+  await page.click(`${R} .ur[data-code="ROW"] .panel [data-act="status"][data-status="DNF"]`);
+  check('status picks are inside the panel for out drivers and the quick button on the row follows', (await page.getAttribute(`${R} .ur[data-code="ROW"] .sts [data-status="DNF"]`, 'aria-pressed')) === 'true' && (await page.$$eval(`${R} .ur[data-code="ROW"] .panel .picks .tb`, b => b.map(x => x.textContent).slice(0, 4).join())) === 'DNF,DNS,DSQ,NC');
+  await page.click(`${R} .ur[data-code="ROW"] [data-act="reason"][data-v="Mechanical"]`);
+  await page.fill(`${R} .ur[data-code="ROW"] [data-in="outNote"]`, 'lap 12');
+  await page.click(`${R} .ur[data-code="ROW"] [data-act="pits"][data-d="1"]`);
+  check('reason picks plus a short note are stored as "Mechanical · lap 12"', await page.evaluate(() => { const d = state.drafts['2627-R01']; return d.x.ROW.outReason === 'Mechanical · lap 12'; }) && /Mechanical · lap 12/.test(await page.textContent(`${R} .ur[data-code="ROW"] .rtg`)));
+  await page.click(`${R} [data-act="toggle"]`);
+  check('the unsaved dot shows on the folded Details toggle', await page.isVisible(`${R} .rc-toggle .udot`));
+  await page.click(`${R} [data-act="toggle"]`);
+  // Revert and Clear reset the new fields too
+  await page.click(`${R} [data-act="clear"]`);
+  const blankOnly = x => Object.values(x).every(v => JSON.stringify(v) === JSON.stringify({ penalty: '', penaltyNote: '', lapsDown: 0, pitStops: null, outReason: '', investigation: false }));
+  check('Clear empties the new fields as well', (await page.evaluate(() => state.drafts['2627-R01'].x)).constructor === Object && blankOnly(await page.evaluate(() => state.drafts['2627-R01'].x)) && (await page.$$eval(`${R} .rtg`, t => t.every(x => x.textContent.trim() === ''))));
+  await page.click(`${R} [data-act="revert"]`);
+  check('Revert brings back what is saved: no pending changes', await page.isDisabled(`${R} [data-act="save"]`) && (await page.evaluate(() => JSON.stringify(state.drafts['2627-R01'].x.CAS))) === JSON.stringify({ penalty: '', penaltyNote: '', lapsDown: 0, pitStops: null, outReason: '', investigation: false }));
+  // do it again for real and save
+  const ensureMore = async row => { if (!(await page.$(`${R} ${row} .panel`))) await page.click(`${R} ${row} [data-act="more"]`); };
+  await ensureMore('.pr[data-code="CAS"]'); await ensureMore('.pr[data-code="DAC"]'); await ensureMore('.pr[data-code="BIR"]'); await ensureMore('.ur[data-code="ROW"]');
+  await page.click(`${R} .pr[data-code="CAS"] [data-act="pen"][data-v="+5s"]`);
+  await page.fill(`${R} .pr[data-code="CAS"] [data-in="penaltyNote"]`, 'track limits');
+  await page.click(`${R} .pr[data-code="CAS"] [data-act="inv"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="laps"][data-d="1"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="pits"][data-d="1"]`);
+  await page.click(`${R} .pr[data-code="DAC"] [data-act="pen"][data-v="Other"]`);
+  await page.fill(`${R} .pr[data-code="DAC"] [data-in="penalty"]`, 'Stop-go');
+  await page.click(`${R} .pr[data-code="BIR"] [data-act="pits"][data-d="1"]`);
+  await page.click(`${R} .ur[data-code="ROW"] .panel [data-act="status"][data-status="DNF"]`);
+  await page.click(`${R} .ur[data-code="ROW"] [data-act="reason"][data-v="Mechanical"]`);
+  await page.fill(`${R} .ur[data-code="ROW"] [data-in="outNote"]`, 'lap 12');
+  await page.click(`${R} .ur[data-code="ROW"] [data-act="pits"][data-d="1"]`);
+  const mark6 = await page.evaluate(() => window.__CALLS.length);
+  await page.click(`${R} [data-act="save"]`);
+  await page.waitForFunction(() => !document.querySelector('.rc[data-id="2627-R01"]').hasAttribute('data-dirty') && !document.querySelector('.rc[data-id="2627-R01"] [data-act="save"]').textContent.includes('Saving'));
+  const w6 = await page.evaluate(m => window.__CALLS.slice(m).filter(c => c[0] !== 'get_values').map(c => c[0] + ' ' + c[1]), mark6);
+  const [rCAS, rDAC, rBIR, rROW] = [await rowIdx('CAS'), await rowIdx('DAC'), await rowIdx('BIR'), await rowIdx('ROW')];
+  const want6 = [`S${rCAS}:U${rCAS}`, `N${rCAS}`, `P${rDAC}:Q${rDAC}`, `S${rDAC}`, `N${rDAC}`, `Q${rBIR}`, `N${rBIR}`, `I${rROW}`, `Q${rROW}:R${rROW}`, `N${rROW}`].map(r => 'update_values Results!' + r);
+  check('More-panel changes write only the changed cells, in the new columns (header names P–U), nothing else', JSON.stringify(w6.sort()) === JSON.stringify(want6.sort()), w6);
+  const hdr = await page.evaluate(() => window.__SHEET.Results[0]);
+  check('new columns sit at P to U by header name', ['lapsDown', 'pitStops', 'outReason', 'penalty', 'penaltyNote', 'investigation'].map(k => String.fromCharCode(65 + hdr.indexOf(k))).join('') === 'PQRSTU');
+  const cell = (r, L) => page.evaluate(([r, L]) => window.__SHEET.Results[r - 1][L.charCodeAt(0) - 65], [r, L]);
+  check('values and types: penalty text, note, Y; laps down and pit stops as numbers; reason text', (await cell(rCAS, 'S')) === '+5s' && (await cell(rCAS, 'T')) === 'track limits' && (await cell(rCAS, 'U')) === 'Y' && (await cell(rDAC, 'P')) === 1 && (await cell(rDAC, 'Q')) === 1 && (await cell(rDAC, 'S')) === 'Stop-go' && (await cell(rBIR, 'Q')) === 1 && (await cell(rROW, 'I')) === 'DNF' && (await cell(rROW, 'R')) === 'Mechanical · lap 12', [await cell(rDAC, 'P'), await cell(rBIR, 'Q')]);
+  check('cells that were not touched stay blank (CAS has no laps down or pit stops)', !(await cell(rCAS, 'P')) && !(await cell(rCAS, 'Q')) && !(await cell(rCAS, 'R')));
+  // investigation banner outside the fold, tags in the classification
+  await page.click(`${R} [data-act="toggle"]`);
+  check('Under investigation banner is visible with Details closed', (await page.getAttribute(`${R} [data-act="toggle"]`, 'aria-expanded')) === 'false' && /Under investigation: Cassidy\. The result may change\./.test(await page.textContent(`${R} div.inv`)) && await page.isVisible(`${R} div.inv`));
+  await page.click(`${R} [data-act="toggle"]`);
+  const tagsOf = d => page.evaluate(d => { const row = [...document.querySelectorAll('.rc[data-id="2627-R01"] .t tbody tr')].find(r => r.textContent.includes(d)); return row ? row.querySelector('.tg') ? row.querySelector('.tg').innerHTML : '' : null; }, d);
+  const tCAS = await tagsOf('Nick Cassidy'), tDAC = await tagsOf('Antonio'), tROW = await tagsOf('Oliver Rowland');
+  check('classification tags: penalty + note, under investigation, +1 lap, DNF + reason', /tag pen">\+5s/.test(tCAS) && /why">track limits/.test(tCAS) && /tag inv">Under investigation/.test(tCAS) && /tag lap">\+1 lap</.test(tDAC) && /tag pen">Stop-go/.test(tDAC) && /tag out">DNF/.test(tROW) && /why">Mechanical · lap 12/.test(tROW), [tCAS, tDAC, tROW]);
+  const pits = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.rc[data-id="2627-R01"] .t tbody tr')].map(r => [r.children[1].textContent.slice(0, 12), r.children[4].textContent])));
+  check('classification has a Pits column', (await page.$$eval(`${R} .t thead th`, h => h.map(x => x.textContent).join())) === 'Pos,Driver,Team,Quali,Pits,Pts' && Object.values(pits).filter(v => v === '1').length === 3, pits);
+  await page.click(`${R} [data-act="fold"]`);
+  const miniR1 = (await page.textContent('.rc-mini[data-id="2627-R01"]')).replace(/\s+/g, ' ');
+  check('folded one-liner: winner surname and team, and the orange ! for an investigation', /🏆 Cassidy · Jaguar/.test(miniR1) && /!/.test(await page.textContent('.rc-mini[data-id="2627-R01"] .tag.inv')), miniR1);
+  await page.click('.rc-mini[data-id="2627-R01"] [data-act="fold"]');
+  check('Open brings the card back with Details still open', (await page.getAttribute(`${R} [data-act="toggle"]`, 'aria-expanded')) === 'true');
+
   // edit race dialog
+  await page.click('.rc-mini[data-id="2627-R03"] [data-act="fold"]');
   const RR = '.rc[data-id="2627-R03"]';
   await page.click(`${RR} [data-act="edit"]`);
   await page.fill('#rdDate', '2027-01-30'); await page.fill('#rdCity', 'Jakarta'); await page.fill('#rdCircuit', 'Ancol'); await page.fill('#rdName', 'Jakarta E-Prix');
@@ -241,7 +371,7 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   await page.click('#rdSave');
   await page.waitForFunction(() => !document.getElementById('rdDlg').open);
   const w5 = await page.evaluate(m => window.__CALLS.slice(m).filter(c => c[0] !== 'get_values'), mark5);
-  check('add race appends one row with the next id 2627-R04', w5.length === 1 && w5[0][0] === 'append_values' && JSON.parse(w5[0][2])[0][0] === "'2627-R04" && (await page.$$eval('.rc', c => c.length)) === 4);
+  check('add race appends one row with the next id 2627-R04', w5.length === 1 && w5[0][0] === 'append_values' && JSON.parse(w5[0][2])[0][0] === "'2627-R04" && (await page.$$eval('#raceList [data-id]', c => c.length)) === 4 && (await page.$$eval('.rc[data-id="2627-R04"]', c => c.length)) === 1);
 
   // (6a) overflow on every tab at three widths, current season
   await page.click(`${R} .pr[data-code="EVA"] [data-act="up"]`).catch(() => {});
@@ -260,11 +390,21 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
     for (const [name, go] of stepList) { await go(); await page.waitForTimeout(80); check(`no sideways scroll: ${name} @${w}`, (await overflow(page)) <= 0, await overflow(page)); await grab(name, w); }
   }
 
+  // folded list (one-liners) at three widths
+  await page.click('#tab-races');
+  if ((await page.textContent('#foldAll')) === 'Collapse all') await page.click('#foldAll');
+  for (const [w, h] of sizes) { await page.setViewportSize({ width: w, height: h }); await page.waitForTimeout(80); check(`no sideways scroll: races folded @${w}`, (await overflow(page)) <= 0, await overflow(page)); await grab('races-folded', w); }
+  await page.click('#foldAll');
+  check('Expand all brings every card back (cards stay as they were)', (await page.$$eval('.rc', c => c.length)) === 4);
+
   // past season: standings, manufacturers, grid cells
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.selectOption('#seasonSel', '2023/24');
   await page.click('#tab-races');
   check('past season shows the read-only chip', await page.isVisible('#roChip'));
+  check('a past season starts fully folded (there is no next race)', (await page.$$eval('.rc', c => c.length)) === 0 && (await page.$$eval('.rc-mini', c => c.length)) === 3 && (await page.textContent('#foldAll')) === 'Expand all');
+  check('past one-liners show the winner, and the investigation !', /Evans/.test(await page.textContent('.rc-mini[data-id="2324-R01"]')) && /!/.test(await page.textContent('.rc-mini[data-id="2324-R03"] .tag.inv')));
+  await page.click('#foldAll');
   await page.click('.rc[data-id="2324-R01"] [data-act="toggle"]');
   // (4) no edit/save/entry controls on a past season
   check('past season has no Edit race / Save / entry controls or Add race', (await page.$$eval('[data-act="edit"], [data-act="save"], .ent, [data-act="place"]', e => e.length)) === 0 && !(await page.isVisible('#addRaceBtn')));
@@ -298,6 +438,72 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   await grab('races-past', 360);
   await page.setViewportSize({ width: 1280, height: 900 });
 
+  // ---------- Compare tab ----------
+  await page.setViewportSize({ width: 360, height: 740 });
+  const tabBox = await page.$$eval('.tab', ts => ts.map(t => { const r = t.getBoundingClientRect(); return { txt: t.textContent.trim(), l: Math.round(r.left), r: Math.round(r.right), cut: t.scrollWidth > t.clientWidth + 1 }; }));
+  check('tabs read Races, Standings, Stats, Compare, History', tabBox.map(t => t.txt).join() === 'Races,Standings,Stats,Compare,History');
+  check('the tab bar fits at 360: no label cut off, nothing sideways', tabBox.every(t => !t.cut && t.l >= 0 && t.r <= 360) && (await overflow(page)) <= 0, tabBox);
+  await page.setViewportSize({ width: 390, height: 844 });
+  check('the tab bar fits at 390 too', (await page.$$eval('.tab', ts => ts.every(t => t.scrollWidth <= t.clientWidth + 1 && t.getBoundingClientRect().right <= 390))));
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.click('#tab-compare');
+  check('Compare season starts on the header season', (await page.inputValue('#cSeason')) === '2023/24' && (await page.$$eval('[data-cw]', b => b.map(x => x.textContent).join())) === 'Drivers,Teams,Manufacturers,Races');
+  await page.selectOption('#cSeason', '2019/20');
+  const picksNow = () => page.evaluate(() => state.cmp.picks[state.cmp.who].join());
+  check('drivers: defaults to the top two of the championship (EVA, CAS)', (await picksNow()) === 'EVA,CAS' && (await page.$$eval('#cPick .pchip', c => c.map(x => x.dataset.pick).join())).startsWith('EVA,CAS,'));
+  const rowCells = row => page.$$eval(`table[data-cmp="stats"] tr[data-row="${row}"] td`, t => t.map(x => x.textContent + (x.classList.contains('best') ? '*' : '')).join('|'));
+  check('stat table: EVA v CAS, best values highlighted in lime (ties are not)', (await rowCells('S')) === 'Starts|3|3' && (await rowCells('W')) === 'Wins|2*|1' && (await rowCells('P')) === 'Podiums|3|3' && (await rowCells('PP')) === 'Poles|1*|0' && (await rowCells('FL')) === 'Fastest laps|1*|0'
+    && (await rowCells('PTS')) === 'Points|72*|62' && (await rowCells('avgFin')) === 'Avg finish|1.3*|1.7' && (await rowCells('avgQ')) === 'Avg quali|–|–' && (await rowCells('best')) === 'Best finish|P1|P1', [await rowCells('W'), await rowCells('avgFin')]);
+  const h = k => page.textContent(`[data-h="${k}"]`);
+  check('head to head, hand-worked: EVA ahead in 2 of 3, CAS in 1; points 72 v 62', (await h('Finished ahead-a')) === '2' && (await h('Finished ahead-b')) === '1' && (await h('Points in those races-a')) === '72' && (await h('Points in those races-b')) === '62' && /3 races where both started/.test(await page.textContent('[data-h2h-note]')));
+  check('head to head says so when no qualifying positions were entered', /No qualifying positions entered/.test(await page.textContent('[data-cmp="h2h"]')));
+  const ch = await page.evaluate(() => { const p = [...document.querySelectorAll('#cChart svg path.ln')], hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)); return { n: p.length, stroke: p.map(x => x.getAttribute('stroke')), lum: p.map(x => { const c = hex(x.getAttribute('stroke')); return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255; }), labels: [...document.querySelectorAll('#cChart svg text')].map(t => t.textContent).join(' '), vb: document.querySelector('#cChart svg').getAttribute('viewBox') }; });
+  check('points chart: one line per pick, in different, visible colours', ch.n === 2 && ch.stroke[0] !== ch.stroke[1] && ch.lum.every(l => l > 0.35), ch);
+  check('chart has round numbers on the x axis, points on the y axis and a legend', /\b1\b.*\b2\b.*\b3\b/.test(ch.labels) && /\b60\b/.test(ch.labels) && (await page.$$eval('.clegend span', s => s.length)) === 2);
+  await page.hover('#cChart .hit');
+  check('hover shows round and points for each pick', await page.isVisible('#cChart .ctip') && /Round \d/.test(await page.textContent('#cChart .ctip')) && /Evans/.test(await page.textContent('#cChart .ctip')) && /Cassidy/.test(await page.textContent('#cChart .ctip')));
+  await page.click('#cPick [data-pick="BIR"]');
+  check('a third pick adds a column and a line; head to head needs exactly two', (await page.$$eval('table[data-cmp="stats"] thead th', t => t.length)) === 4 && (await page.$$eval('#cChart svg path.ln', p => p.length)) === 3 && (await page.$$eval('[data-cmp="h2h"]', e => e.length)) === 0);
+  await page.click('#cPick [data-pick="WEH"]');
+  check('four is the limit: other chips switch off', (await page.$$eval('#cPick .pchip:disabled', c => c.length)) >= 1 && (await page.$$eval('#cChart svg path.ln', p => p.length)) === 4);
+  await page.click('#cPick [data-pick="WEH"]'); await page.click('#cPick [data-pick="BIR"]');
+  for (const [w, h] of sizes) { await page.setViewportSize({ width: w, height: h }); await page.waitForTimeout(150); check(`no sideways scroll: compare drivers @${w}`, (await overflow(page)) <= 0, await overflow(page)); await grab('compare-drivers', w); }
+  const vbw = async () => +(await page.getAttribute('#cChart svg', 'viewBox')).split(' ')[2];
+  await page.setViewportSize({ width: 360, height: 740 }); await page.waitForTimeout(200); const vb360 = await vbw();
+  await page.setViewportSize({ width: 1280, height: 900 }); await page.waitForTimeout(200); const vb1280 = await vbw();
+  check('the chart scales to its container (viewBox follows the width; readable at 360)', vb360 <= 330 && vb1280 > 600, [vb360, vb1280]);
+  // teams
+  await page.click('[data-cw="teams"]');
+  check('teams: Jaguar v Porsche by default; stat table and head to head on best-placed car', (await picksNow()) === 'Jaguar,Porsche' && (await rowCells('PTS')) === 'Points|134*|44' && (await h('Finished ahead-a')) === '3' && (await h('Finished ahead-b')) === '0', await picksNow());
+  check('teams chart: one line per team', (await page.$$eval('#cChart svg path.ln', p => p.length)) === 2);
+  for (const [w, hh] of sizes) { await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(150); check(`no sideways scroll: compare teams @${w}`, (await overflow(page)) <= 0); await grab('compare-teams', w); }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // all-time
+  await page.click('[data-cw="drivers"]');
+  await page.selectOption('#cSeason', 'all');
+  check('all-time drivers: table works, points chart is hidden', (await page.$$eval('table[data-cmp="stats"]', t => t.length)) === 1 && (await page.$$eval('#cChart', c => c.length)) === 0 && /one season at a time/.test(await page.textContent('#cBody')));
+  await page.click('[data-cw="manus"]');
+  check('manufacturers have no all-time option and fall back to a season', (await page.$$eval('#cSeason option[value="all"]', o => o.length)) === 0 && (await page.inputValue('#cSeason')) !== 'all');
+  await page.selectOption('#cSeason', '2023/24');
+  check('manufacturers 2023/24: Jaguar 106 v Porsche 89, one line each', (await picksNow()) === 'Jaguar,Porsche' && (await rowCells('PTS')) === 'Points|106*|89' && (await page.$$eval('#cChart svg path.ln', p => p.length)) === 2);
+  for (const [w, hh] of sizes) { await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(150); check(`no sideways scroll: compare manufacturers @${w}`, (await overflow(page)) <= 0); await grab('compare-manus', w); }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // races
+  await page.click('[data-cw="races"]');
+  check('races: defaults to the last two races of the season, side by side', (await picksNow()) === '2324-R02,2324-R03' && (await page.$$eval('table[data-cmp="races"] thead th', t => t.length)) === 3 && /Mexico City/.test(await page.textContent('table[data-cmp="races"] thead')) && /Monaco/.test(await page.textContent('table[data-cmp="races"] thead')));
+  await page.click('#cPick [data-pick="2324-R01"]'); await page.click('#cPick [data-pick="2324-R02"]');
+  const rv = async row => page.$$eval(`table[data-cmp="races"] tr[data-row="${row}"] td`, t => t.slice(1).map(x => x.innerText.replace(/\n/g, ' | ')).join(' || '));
+  check('races table: podium, pole, fastest lap, classified', (await rv('Podium')) === '1. Evans | 2. Cassidy | 3. Bird || 1. Rowland | 2. Bird | 3. Cassidy' && (await rv('Pole')) === 'Evans || –' && (await rv('Fastest lap')) === 'Cassidy || –' && (await rv('Classified')) === '6 || 6', await rv('Podium'));
+  check('races table: DNFs with reasons, penalties, laps down, pit stops, investigations', (await rv('DNFs')) === '0 || 1 | Guenther (Mechanical · lap 12)' && (await rv('Penalties')) === 'Evans +5s || –' && (await rv('Laps down')) === '0 || 1' && (await rv('Pit stops')) === '1 || 3' && (await rv('Investigations')) === '– || Rowland', [await rv('DNFs'), await rv('Pit stops')]);
+  const gr = await page.evaluate(() => { const g = document.querySelector('[data-cmp="grid"]'), c = (d, i) => g.querySelector(`tr[data-drv="${d}"]`).querySelectorAll('td')[i + 1].firstElementChild; return { rows: g.querySelectorAll('tbody tr').length, ov: getComputedStyle(g).overflowX, sticky: getComputedStyle(g.querySelector('td.sticky')).position, rowland: c('ROW', 1).className, mue: c('MUE', 1).className + '|' + c('MUE', 1).textContent, evaPen: !!c('EVA', 0).querySelector('.bt'), dacL: c('DAC', 1).querySelector('.bl') && c('DAC', 1).querySelector('.bl').textContent }; });
+  check('per-driver grid: 7 drivers, own scroll box, sticky driver column, medal and DNF colours, penalty and laps-down marks', gr.rows === 7 && gr.ov === 'auto' && gr.sticky === 'sticky' && /c1/.test(gr.rowland) && /cx\|DNF/.test(gr.mue) && gr.evaPen && gr.dacL === '+1L', gr);
+  await page.selectOption('#cAdd', '1920-R01');
+  check('a race from another season can be added (noted as basic data)', (await page.$$eval('table[data-cmp="races"] thead th', t => t.length)) === 4 && /2019\/20/.test(await page.textContent('#cPick [data-pick="1920-R01"]')) && /basic data/.test(await page.textContent('#cBody')));
+  for (const [w, hh] of sizes) { await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(100); check(`no sideways scroll: compare races @${w}`, (await overflow(page)) <= 0, await overflow(page)); await grab('compare-races', w); }
+  await page.click('#cPick [data-pick="1920-R01"]');
+  check('removing it again takes it off the table', (await page.$$eval('table[data-cmp="races"] thead th', t => t.length)) === 3);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
   // stats
   await page.click('#tab-stats'); await page.click('[data-sw="drivers"]');
   await page.selectOption('#sScope', 'all');
@@ -309,6 +515,13 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   check('tapping a header sorts by it', (await page.getAttribute('[data-sort="W"]', 'title')) === 'Wins' && (await page.getAttribute('th[aria-sort="descending"]', 'aria-sort')) === 'descending' && (await page.$eval('#sTable tbody tr:first-child', r => r.dataset.open)) === 'EVA');
   await page.click('#sTable tr[data-open="EVA"]');
   check('driver profile lists season by season', await page.isVisible('#pDlg') && (await page.$$eval('#pBody tbody tr', r => r.length)) === 3 && /Mitch Evans/.test(await page.textContent('#pTitle')));
+  check('driver profile shows penalties when any were entered (EVA: one)', /Penalties 1/.test(await page.textContent('#pBody [data-extras]')) && !/DNF reasons/.test(await page.textContent('#pBody [data-extras]')));
+  await page.click('#pClose');
+  await page.click('#sTable tr[data-open="MUE"]');
+  check('driver profile shows DNF reasons (MUE: Mechanical 1)', /DNF reasons Mechanical 1/.test(await page.textContent('#pBody [data-extras]')) && !/Penalties/.test(await page.textContent('#pBody [data-extras]')));
+  await page.click('#pClose');
+  await page.click('#sTable tr[data-open="BIR"]');
+  check('driver profile shows nothing extra when nothing was entered (BIR)', (await page.$$eval('#pBody [data-extras]', e => e.length)) === 0);
   await page.click('#pClose');
   await page.selectOption('#sScope', '2019/20');
   check('scope can be one season', (await page.$$eval('#sTable tbody tr', r => r.length)) === 6);
@@ -324,6 +537,12 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   const prof = await page.textContent('#pBody');
   check('team profile lists previous names (Virgin) and entrants from Lineups notes', /Virgin/.test(prof) && /Envision Virgin Racing/.test(prof) && /Envision Racing/.test(prof) && /Jaguar I-TYPE/.test(prof) === false && /Sam Bird/.test(prof), prof.slice(0, 400));
   await page.click('#pClose');
+  await page.click('#sTable tr[data-open="Nissan"]');
+  check('team profile shows DNF reasons across seasons (Nissan: Mechanical 2)', /DNF reasons Mechanical 2/.test(await page.textContent('#pBody [data-extras]')));
+  await page.click('#pClose');
+  await page.click('#sTable tr[data-open="Jaguar"]');
+  check('team profile shows penalties (Jaguar: 2)', /Penalties 2/.test(await page.textContent('#pBody [data-extras]')));
+  await page.click('#pClose');
 
   // history
   await page.click('#tab-history');
@@ -333,6 +552,48 @@ fs.writeFileSync(path.join(__dirname, 'page-race.html'), `<!doctype html><html l
   await page.click('#hGrid .hc[data-season="2019/20"]');
   check('tapping a season opens its standings', (await page.inputValue('#seasonSel')) === '2019/20' && (await page.getAttribute('#tab-standings', 'aria-selected')) === 'true');
   check('tab and season are remembered in localStorage', await page.evaluate(() => localStorage.getItem('race_tab') === 'standings' && localStorage.getItem('race_season') === '2019/20'));
+
+  // ---------- Paste results (R02, current season) ----------
+  await page.selectOption('#seasonSel', '2026/27'); await page.click('#tab-races');
+  const P2 = '.rc[data-id="2627-R02"]';
+  await page.click(`${P2} [data-act="toggle"]`);
+  await page.click(`${P2} [data-act="paste"]`);
+  const block = ['1 Pascal Wehrlein Porsche 94 45:12.345 25', '2.\tCASSIDY\tJaguar\t37\t+1.2\t18', 'P3 EVA', 'Sam Bird', 'Wehrlen Porsche 13', 'DNF Da Costa', 'DSQ Guenther'].join('\n');
+  await page.fill(`${P2} textarea[data-in="paste"]`, block);
+  await page.click(`${P2} [data-act="pasteParse"]`);
+  const pvl = await page.$$eval(`${P2} .pv li`, l => l.map(x => x.className + ':' + x.textContent.replace(/\s+/g, ' ').trim()));
+  check('paste preview reads names, surnames, codes, tab rows, DNF and DSQ lines', pvl.length === 7 && /Pascal Wehrlein/.test(pvl[0]) && /Nick Cassidy/.test(pvl[1]) && /Mitch Evans/.test(pvl[2]) && /Sam Bird/.test(pvl[3]) && /DNF.*Antonio Felix da Costa/.test(pvl[5]) && /DSQ.*Maximilian Guenther/.test(pvl[6]), pvl);
+  check('a typo\'d name is listed as "not matched" in red, with a driver dropdown', /^bad:.*not matched: Wehrlen Porsche/.test(pvl[4]) && (await page.$$eval(`${P2} .pv li.bad select`, s => s.length)) === 1);
+  for (const [w, hh] of sizes) { await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(100); check(`no sideways scroll: paste preview @${w}`, (await overflow(page)) <= 0, await overflow(page)); await grab('paste', w); }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.selectOption(`${P2} .pv li.bad select`, 'NEW');
+  const pvl2 = await page.$$eval(`${P2} .pv li`, l => l.map(x => x.querySelector('.pn').textContent).join());
+  check('fixing the line with the dropdown places that driver in order', pvl2 === '1,2,3,4,5,DNF,DSQ' && (await page.$$eval(`${P2} .pv li.bad`, l => l.length)) === 0);
+  check('nothing is written to the sheet until Save', (await page.evaluate(() => window.__SHEET.Results.filter(r => r[2] === '2627-R02').length)) === 0);
+  await page.click(`${P2} [data-act="pasteApply"]`);
+  const placed2 = await page.$$eval(`${P2} .pr`, r => r.map(x => x.dataset.code).join());
+  const st2 = await page.evaluate(() => Object.assign({}, state.drafts['2627-R02'].status));
+  check('Apply sets the race order and the statuses (draft only)', placed2 === 'WEH,CAS,EVA,BIR,NEW' && st2.DAC === 'DNF' && st2.MUE === 'DSQ' && /Nothing is saved until you press Save/.test(await page.textContent(`${P2} [data-paste-msg]`)) && !(await page.isDisabled(`${P2} [data-act="save"]`)));
+  // second paste: a line of codes with one unknown, left to be skipped; and qualifying mode
+  await page.click(`${P2} [data-act="paste"]`);
+  await page.fill(`${P2} textarea[data-in="paste"]`, 'WEH CAS EVA BIR NEW ZZZ');
+  await page.click(`${P2} [data-act="pasteParse"]`);
+  check('one line of codes: unknown code is shown as not matched, never dropped', /not matched: ZZZ/.test(await page.textContent(`${P2} .pv li.bad`)) && (await page.$$eval(`${P2} .pv li`, l => l.length)) === 6);
+  await page.click(`${P2} [data-act="pasteApply"]`);
+  check('a skipped line is reported, statuses already set are kept', /1 line skipped/.test(await page.textContent(`${P2} [data-paste-msg]`)) && (await page.$$eval(`${P2} .pr`, r => r.map(x => x.dataset.code).join())) === 'WEH,CAS,EVA,BIR,NEW' && (await page.evaluate(() => state.drafts['2627-R02'].status.DAC)) === 'DNF');
+  await page.click(`${P2} [data-act="mode"][data-mode="quali"]`);
+  await page.click(`${P2} [data-act="paste"]`);
+  await page.fill(`${P2} textarea[data-in="paste"]`, 'EVA CAS WEH');
+  await page.click(`${P2} [data-act="pasteParse"]`); await page.click(`${P2} [data-act="pasteApply"]`);
+  check('in qualifying mode the paste sets the qualifying order (pole follows the first)', (await page.$$eval(`${P2} .pr`, r => r.map(x => x.dataset.code).join())) === 'EVA,CAS,WEH' && (await page.getAttribute(`${P2} .pr[data-code="EVA"] [data-act="pole"]`, 'aria-pressed')) === 'true');
+  await page.click(`${P2} [data-act="mode"][data-mode="race"]`);
+  const mark7 = await page.evaluate(() => window.__CALLS.length);
+  await page.click(`${P2} [data-act="save"]`);
+  await page.waitForFunction(() => !document.querySelector('.rc[data-id="2627-R02"]').hasAttribute('data-dirty'));
+  const w7 = await page.evaluate(m => window.__CALLS.slice(m).filter(c => c[0] !== 'get_values'), mark7);
+  const r2 = await page.evaluate(() => Object.fromEntries(window.__SHEET.Results.filter(r => r[2] === '2627-R02').map(r => [r[3], { q: r[5], f: r[7], s: r[8], pole: r[9] }])));
+  check('Save after a paste is one append of seven rows with order, statuses and pole', w7.length === 1 && w7[0][0] === 'append_values' && JSON.parse(w7[0][2]).length === 7 && r2.WEH.f === 1 && r2.WEH.q === 3 && r2.NEW.f === 5 && r2.DAC.s === 'DNF' && r2.MUE.s === 'DSQ' && r2.EVA.pole === 'Y' && r2.EVA.q === 1, r2);
+  check('the saved card shows Wehrlein on top of the podium', /Pascal Wehrlein/.test(await page.textContent(`${P2} .pod.p1`)));
 
   const real = errors.filter(e => !/ERR_|Failed to load resource|net::|fonts\.g|accounts\.google/i.test(e));
   check('no page errors', real.length === 0, real);
