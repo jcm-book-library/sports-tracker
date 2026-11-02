@@ -72,7 +72,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .notice{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--violet);padding:10px 14px;margin-bottom:14px;font-size:14px}
 .notice[data-kind="error"]{border-left-color:var(--red)}
 
-.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:16px}
+.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:16px}
+@media (max-width:560px){.tabs{grid-template-columns:repeat(6,minmax(0,1fr))}.tab{grid-column:span 2}.tab:nth-child(n+4){grid-column:span 3}}
 .tab{border:1px solid var(--accent);background:transparent;color:var(--fg);border-radius:2px;padding:9px 2px;font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;min-width:0}
 .tab[aria-selected="true"]{background:var(--accent);color:#fff}
 .subtabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
@@ -156,24 +157,26 @@ table.t{border-collapse:collapse;width:100%;font-size:13px}
 .ent h3{color:var(--lime);letter-spacing:.1em}
 .hint{margin:0;font-size:12.5px;color:var(--muted);text-align:center}
 .placed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
-.pr{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid var(--line);background:var(--bg);padding:4px 6px;min-width:0}
+.pr{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);background:var(--bg);padding:4px 6px;min-width:0}
+.pr .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
 .pr .pn{font:800 14px var(--num);width:26px;text-align:center;flex:none}
 .pr .pnm{flex:1 1 110px;min-width:0;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pr .ctl,.pr .tg{display:flex;gap:3px;flex:none}
+.pr .ctl,.pr .pfb{display:flex;gap:3px;flex:none}
 .pr .ib{width:32px;height:32px;padding:0;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:2px;font-size:12px}
 .pr .ib[aria-pressed="true"]{font-weight:800}
 .pr .ib[data-act="pole"][aria-pressed="true"]{background:var(--lime);color:#111;border-color:var(--lime)}
 .pr .ib[data-act="fl"][aria-pressed="true"]{background:var(--violet);color:#150b3a;border-color:var(--violet)}
 .pr .pt{font:700 12.5px var(--num);color:var(--muted);width:48px;text-align:right;flex:none}
-.pr .stt{font:800 10px var(--num);color:var(--red);border:1px solid var(--red);padding:1px 4px;background:transparent}
 .unp{display:flex;flex-direction:column;gap:4px}
 .unp.chips{flex-direction:row;flex-wrap:wrap}
-.ur{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.ur{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 6px;align-items:center;min-width:0}
+.ur .rtg,.ur .panel{grid-column:1 / -1}
+.ugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:4px 8px}
 .chipb{border:1px solid var(--line);background:var(--raise);color:var(--fg);border-radius:2px;padding:5px 9px;min-height:34px;font-weight:600;font-size:13px;text-align:left;display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%}
 .chipb:hover{border-color:var(--violet)}
 .chipb span.nmx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sts{display:flex;gap:3px}
-@media (max-width:440px){.ur{grid-template-columns:minmax(0,1fr)}.sts .sb{flex:1}}
+@media (max-width:440px){.ur{grid-template-columns:minmax(0,1fr) auto}.ur .sts{grid-column:1 / -1;grid-row:2}.ur .tb[data-act="more"]{grid-column:2;grid-row:1}.sts .sb{flex:1}}
 .sts .sb{height:32px;min-width:40px;padding:0 5px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:2px;font:800 10.5px var(--num)}
 .sts .sb[aria-pressed="true"]{background:rgba(239,107,115,.2);color:var(--red);border-color:var(--red)}
 
@@ -241,6 +244,94 @@ dialog[open]{display:flex;flex-direction:column}
 .kv b{color:var(--muted);font-weight:600}
 .plist{margin:0;padding-left:18px;font-size:13.5px}
 .plist li{margin-bottom:2px}
+
+/* Stage 2: folding, tags, grouped chips, More panel, paste, compare */
+.listbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.listbar:empty{display:none}
+.rc-mini{border:1px solid var(--line);background:var(--surface);display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:4px 10px;padding:9px 12px;min-width:0}
+.rc-mini[data-dirty]{border-color:var(--accent)}
+.rc-mini .rd{font:800 12px var(--num);color:var(--lime);letter-spacing:.08em}
+.rc-mini .ct{font-family:var(--display);font-size:12px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rc-mini .w{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;text-align:right}
+.rc-mini .w b{color:var(--fg)}
+.rc-mini .udot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--lime);margin-left:6px;vertical-align:middle}
+@media (max-width:560px){.rc-mini{grid-template-columns:auto minmax(0,1fr) auto}.rc-mini .w{grid-column:2 / -1;grid-row:2;text-align:left}.rc-mini .cbtn{grid-column:3;grid-row:1}}
+.cbtn{border:1px solid var(--line);background:transparent;color:var(--muted);font-size:11px;padding:2px 8px;min-height:24px;border-radius:2px;white-space:nowrap}
+.cbtn:hover{border-color:var(--muted);color:var(--fg)}
+.rc-head{display:flex;justify-content:flex-end;margin:-6px -4px -4px 0}
+.inv{border:1px solid #e8a33a;background:rgba(232,163,58,.1);color:#f2c27a;font-size:12.5px;text-align:center;padding:6px 8px}
+.inv b{color:#ffd59a}
+.tag{display:inline-block;font:700 10px/1.5 var(--body);letter-spacing:.04em;padding:0 5px;border:1px solid;margin-left:4px;vertical-align:middle;white-space:nowrap;text-transform:uppercase}
+.tag.out{border-color:var(--red);color:var(--red)}
+.tag.pen{border-color:#e8a33a;color:#f2c27a}
+.tag.inv{border-color:#e8a33a;color:#111;background:#e8a33a;padding:0 5px;font-size:10px;text-align:left}
+.tag.lap{border-color:var(--line);color:var(--muted)}
+.why{font-size:11.5px;color:var(--muted)}
+.tg{display:block;margin-top:2px;white-space:normal}.tg .tag:first-child{margin-left:0}
+.t td.l{white-space:normal}
+.rtg{font-size:12px}.rtg:empty{display:none}.rtg .tag:first-child{margin-left:0}
+.grp{font:700 10.5px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:6px 0 4px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.dchip{border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:5px 8px;font-size:13px;font-weight:700;display:inline-flex;gap:6px;align-items:center;min-height:34px}
+.dchip small{font:800 11px var(--num);color:var(--muted)}
+.dchip .sn{font-weight:500;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dchip[data-used]{opacity:.3}
+.tb{border:1px solid var(--line);background:transparent;color:var(--fg);font-size:12px;font-weight:700;padding:3px 8px;min-height:28px;border-radius:2px}
+.tb[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.panel{border-top:1px dashed var(--line);padding-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;min-width:0}
+.panel .full{grid-column:1 / -1}
+.panel input{width:100%}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;min-width:0}
+.fld input{text-transform:none;letter-spacing:0;font-weight:400}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);align-self:flex-start}
+.step button{background:transparent;border:0;color:var(--fg);width:32px;height:30px;font-size:16px}
+.step span{font:800 14px var(--num);min-width:34px;text-align:center;color:var(--fg)}
+.picks{display:flex;flex-wrap:wrap;gap:4px}
+.pastebox{border:1px solid var(--line);background:var(--bg);padding:8px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.pastebox textarea{width:100%;min-height:110px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+.pastebox .row{display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+.pv{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.pv li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:6px;align-items:center;border:1px solid var(--line);padding:4px 6px;font-size:13px}
+.pv li.bad{border-color:var(--red)}
+.pv .pn{font:800 13px var(--num);text-align:center}
+.pv .miss{color:var(--red);overflow-wrap:anywhere}
+.pv select{max-width:150px}
+.pv li.bad{grid-template-columns:34px minmax(0,1fr)}
+.pv li.bad select{grid-column:2;max-width:none;width:100%}
+
+/* compare */
+.cpick{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.pchip{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;padding:4px 9px;min-height:32px;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;max-width:100%}
+.pchip i{width:10px;height:10px;border-radius:50%;flex:none;border:1px solid rgba(255,255,255,.25)}
+.pchip[aria-pressed="true"]{background:var(--raise);font-weight:800}
+.pchip:disabled{opacity:.35;cursor:default}
+.cmp-note{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.cmp-sec{margin-top:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.cmp-sec h3{color:var(--lime);letter-spacing:.1em}
+.t.cmp td{white-space:normal;vertical-align:top}
+.t.cmp td.lab,.t.cmp th.lab{text-align:left;color:var(--muted);font-weight:600;min-width:84px}
+.t.cmp th .sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.t.cmp td.best{background:rgba(198,244,50,.16);color:var(--lime);font-weight:800}
+.h2h{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:0;border:1px solid var(--line);background:var(--surface)}
+.h2h>div{padding:8px 10px;border-top:1px solid var(--line);text-align:center;font:800 18px var(--num)}
+.h2h>div.l{font:600 12px var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center}
+.h2h>div.hd{border-top:0;font:700 12.5px var(--body);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 6px;overflow-wrap:normal;word-break:normal;min-width:0}
+.h2h>div.win{color:var(--lime)}
+.chart{position:relative;border:1px solid var(--line);background:var(--surface);padding:6px;min-width:0}
+.chart svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.chart text{fill:var(--muted);font:10px var(--body)}
+.chart .gl{stroke:var(--line);stroke-width:1;opacity:.6}
+.chart .guide{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.ctip{position:absolute;top:8px;pointer-events:none;background:var(--bg);border:1px solid var(--line);padding:5px 8px;font-size:12px;display:flex;flex-direction:column;gap:2px;z-index:2;white-space:nowrap}
+.ctip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.clegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;margin-top:6px}
+.clegend i{display:inline-block;width:14px;height:3px;margin-right:6px;vertical-align:middle}
+.gcmp .who{width:176px}
+.gcmp .who .nmt{flex:1 1 auto}
+.gcmp td .cell{min-width:44px}
+.bt,.bl{position:absolute;font:800 7.5px/1.2 var(--num);padding:0 2px}
+.bt{top:1px;right:1px;background:#e8a33a;color:#111}
+.bl{bottom:1px;left:1px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
 </style>
 
 <div class="wrap">
@@ -276,11 +367,13 @@ dialog[open]{display:flex;flex-direction:column}
       <button class="tab" role="tab" id="tab-races" data-tab="races" aria-selected="true">Races</button>
       <button class="tab" role="tab" id="tab-standings" data-tab="standings" aria-selected="false">Standings</button>
       <button class="tab" role="tab" id="tab-stats" data-tab="stats" aria-selected="false">Stats</button>
+      <button class="tab" role="tab" id="tab-compare" data-tab="compare" aria-selected="false">Compare</button>
       <button class="tab" role="tab" id="tab-history" data-tab="history" aria-selected="false">History</button>
     </nav>
 
     <section id="p-races" role="tabpanel" aria-labelledby="tab-races">
       <div class="strip" id="strip" aria-label="Rounds"></div>
+      <div class="listbar" id="listBar"></div>
       <div class="rcs" id="raceList"></div>
       <div id="addRow" style="margin-top:12px;text-align:center" hidden><button class="btn" id="addRaceBtn" type="button">Add race</button></div>
     </section>
@@ -297,6 +390,13 @@ dialog[open]{display:flex;flex-direction:column}
       <div class="subtabs" id="sCtl"></div>
       <div class="tbox" id="sTable"></div>
       <p class="foot" id="sNote"></p>
+    </section>
+
+    <section id="p-compare" role="tabpanel" aria-labelledby="tab-compare" hidden>
+      <div class="panel-head"><div class="eyebrow">Compare</div><h2 id="cTitle">Drivers</h2></div>
+      <div class="subtabs" id="cCtl"></div>
+      <div class="cpick" id="cPick"></div>
+      <div id="cBody"></div>
     </section>
 
     <section id="p-history" role="tabpanel" aria-labelledby="tab-history" hidden>
@@ -361,7 +461,10 @@ let SHEET_ID = '';                       // never hard-coded: pasted by the owne
 const SETTINGS_KEY = 'race_settings';
 const RES_NUM = ['qualiPos', 'grid', 'finish', 'pointsAdj'];
 const STATUSES = ['DNF', 'DNS', 'DSQ', 'NC'];
-const FIELDS = ['qualiPos', 'finish', 'status', 'pole', 'fastestLap'];   // the cells the entry UI is allowed to change
+const FIELDS = ['qualiPos', 'finish', 'status', 'pole', 'fastestLap', 'lapsDown', 'pitStops', 'outReason', 'penalty', 'penaltyNote', 'investigation'];   // the cells the entry UI is allowed to change
+const REASONS = ['Mechanical', 'Electrical', 'Battery', 'Crash', 'Collision', 'Damage', 'Black flag', 'Technical', 'Other'];
+const PEN_PICKS = ['+5s', '+10s', 'Drive-through', 'Grid drop'];
+const TABS = ['races', 'standings', 'stats', 'compare', 'history'];
 
 /* ---------- helpers ---------- */
 const $ = id => document.getElementById(id);
@@ -390,6 +493,8 @@ const LS = {
 };
 const hashColour = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 55% 55%)`; };
 const safeColour = c => /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20})$/.test(str(c)) ? str(c) : '';
+const nameKey = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const ord = n => { const v = n % 100, s = ['th', 'st', 'nd', 'rd']; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const sheetIdFrom = s => { const t = str(s); const m = t.match(/\/d\/([A-Za-z0-9_-]{15,})/); if (m) return m[1]; return /^[A-Za-z0-9_-]{25,}$/.test(t) ? t : ''; };
 const quote = tab => /[^A-Za-z0-9_]/.test(tab) ? `'${tab.replace(/'/g, "''")}'` : tab;
 
@@ -400,7 +505,8 @@ const state = {
   seasonRows: {}, points: {}, races: [], results: [], drivers: {}, teams: [], lineups: [], circuits: [], lineage: new Map(), lineageRows: [], powertrains: new Map(),
   season: '', tab: 'races', stTab: 'drivers', stView: 'pos', sWho: 'drivers', sScope: 'cur', sGroup: 'lineage',
   sSort: { drivers: { key: 'PTS', dir: -1 }, teams: { key: 'PTS', dir: -1 } },
-  open: new Set(), drafts: {}, cache: {}, rdMode: 'edit', rdId: ''
+  open: new Set(), folded: new Map(), more: new Set(), penOther: new Set(), paste: {}, drafts: {}, cache: {}, rdMode: 'edit', rdId: '',
+  cmp: { who: 'drivers', season: '', picks: { drivers: [], teams: [], manus: [], races: [] }, touched: {}, extra: [], chart: null }
 };
 const isEditable = () => state.live && state.season === state.settings.season;
 const raceById = id => state.races.find(r => r.id === id);
@@ -421,6 +527,12 @@ const logoFor = team => null;               // logos arrive later (Drive folder 
 function teamMark(team) {
   const l = logoFor(team);
   return `<span class="tm" title="${esc(team)}">${l ? `<img src="${esc(l)}" alt="">` : `<i class="dot" style="background:${esc(teamColour(team))}"></i>`}</span>`;
+}
+const PARTICLES = new Set(['da', 'de', 'di', 'del', 'della', 'van', 'von', 'der', 'den', 'le', 'la', 'du', 'dos', 'al', 'el', 'ten', 'ter']);
+function surname(code) {
+  const p = dName(code).trim().split(/\s+/); if (p.length < 2) return p[0] || code;
+  let i = p.length - 1; while (i > 1 && PARTICLES.has(p[i - 1].toLowerCase())) i--;
+  return p.slice(i).join(' ');
 }
 const driverTag = code => `<span class="dn"><span class="fl" aria-hidden="true">${esc(dFlag(code))}</span>${esc(dName(code))}</span>`;
 function powertrainOf(season, team) {
@@ -539,7 +651,8 @@ function normaliseResults(rows) {
   return byHeader(rows).filter(r => str(r.id)).map(r => ({
     _row: r._row, id: str(r.id), season: str(r.season), raceId: str(r.raceId), driver: str(r.driver), team: str(r.team),
     qualiPos: toNum(r.qualiPos), grid: toNum(r.grid), finish: toNum(r.finish), status: str(r.status).toUpperCase(),
-    pole: yes(r.pole), fastestLap: yes(r.fastestLap), groupFastest: yes(r.groupFastest), pointsAdj: toNum(r.pointsAdj) || 0, notes: str(r.notes)
+    pole: yes(r.pole), fastestLap: yes(r.fastestLap), groupFastest: yes(r.groupFastest), pointsAdj: toNum(r.pointsAdj) || 0, notes: str(r.notes),
+    lapsDown: toNum(r.lapsDown) || 0, pitStops: toNum(r.pitStops), outReason: str(r.outReason), penalty: str(r.penalty), penaltyNote: str(r.penaltyNote), investigation: yes(r.investigation)
   }));
 }
 function normaliseRaces(rows) {
@@ -625,11 +738,16 @@ function eligible(race) {
   for (const r of (seasonData(race.season).byRace.get(race.id) || [])) if (r.driver && !seen.has(r.driver)) { seen.add(r.driver); out.push({ code: r.driver, team: r.team, number: '' }); }
   return out;
 }
+const blankX = () => ({ penalty: '', penaltyNote: '', lapsDown: 0, pitStops: null, outReason: '', investigation: false });
+const xOf = (d, code) => d.x[code] || (d.x[code] = blankX());
 function freshDraft(race) {
   const rows = seasonData(race.season).byRace.get(race.id) || [];
   const by = (k, f) => rows.filter(f).sort((a, b) => a[k] - b[k]).map(r => r.driver);
-  const d = { mode: 'race', race: by('finish', r => r.finish != null), quali: by('qualiPos', r => r.qualiPos != null), status: {}, pole: '', fl: '', poleManual: false };
-  rows.forEach(r => { if (r.status) d.status[r.driver] = r.status; if (r.pole && !d.pole) d.pole = r.driver; if (r.fastestLap && !d.fl) d.fl = r.driver; });
+  const d = { mode: 'race', race: by('finish', r => r.finish != null), quali: by('qualiPos', r => r.qualiPos != null), status: {}, pole: '', fl: '', poleManual: false, x: {} };
+  rows.forEach(r => {
+    if (r.status) d.status[r.driver] = r.status; if (r.pole && !d.pole) d.pole = r.driver; if (r.fastestLap && !d.fl) d.fl = r.driver;
+    d.x[r.driver] = { penalty: r.penalty, penaltyNote: r.penaltyNote, lapsDown: r.lapsDown, pitStops: r.pitStops, outReason: r.outReason, investigation: r.investigation };
+  });
   return d;
 }
 const getDraft = race => state.drafts[race.id] || (state.drafts[race.id] = freshDraft(race));
@@ -637,14 +755,16 @@ const getDraft = race => state.drafts[race.id] || (state.drafts[race.id] = fresh
 function plan(race) {
   const d = state.drafts[race.id]; if (!d) return { items: [], count: 0 };
   const rows = seasonData(race.season).byRace.get(race.id) || [], ex = new Map(rows.map(r => [r.driver, r]));
-  const codes = new Set([...d.race, ...d.quali, ...Object.keys(d.status), d.pole, d.fl, ...ex.keys()].filter(Boolean));
+  const codes = new Set([...d.race, ...d.quali, ...Object.keys(d.status), ...Object.keys(d.x), d.pole, d.fl, ...ex.keys()].filter(Boolean));
   const items = [];
   for (const code of codes) {
-    const fin = d.race.indexOf(code), q = d.quali.indexOf(code);
-    const vals = { qualiPos: q >= 0 ? q + 1 : '', finish: fin >= 0 ? fin + 1 : '', status: d.status[code] || '', pole: d.pole === code ? 'Y' : '', fastestLap: d.fl === code ? 'Y' : '' };
+    const fin = d.race.indexOf(code), q = d.quali.indexOf(code), x = d.x[code] || blankX();
+    const vals = { qualiPos: q >= 0 ? q + 1 : '', finish: fin >= 0 ? fin + 1 : '', status: d.status[code] || '', pole: d.pole === code ? 'Y' : '', fastestLap: d.fl === code ? 'Y' : '',
+      lapsDown: x.lapsDown > 0 ? x.lapsDown : '', pitStops: x.pitStops == null ? '' : x.pitStops, outReason: str(x.outReason), penalty: str(x.penalty), penaltyNote: str(x.penaltyNote), investigation: x.investigation ? 'Y' : '' };
     const e = ex.get(code);
     if (e) {
-      const cur = { qualiPos: e.qualiPos ?? '', finish: e.finish ?? '', status: e.status, pole: e.pole ? 'Y' : '', fastestLap: e.fastestLap ? 'Y' : '' };
+      const cur = { qualiPos: e.qualiPos ?? '', finish: e.finish ?? '', status: e.status, pole: e.pole ? 'Y' : '', fastestLap: e.fastestLap ? 'Y' : '',
+        lapsDown: e.lapsDown > 0 ? e.lapsDown : '', pitStops: e.pitStops ?? '', outReason: e.outReason, penalty: e.penalty, penaltyNote: e.penaltyNote, investigation: e.investigation ? 'Y' : '' };
       const changes = {}; FIELDS.forEach(k => { if (cur[k] !== vals[k]) changes[k] = vals[k]; });
       if (Object.keys(changes).length) items.push({ code, existing: e, vals, changes });
     } else if (FIELDS.some(k => vals[k] !== '')) {
@@ -661,10 +781,40 @@ function previewPts(race, d, code) {
   return resultCalc({ finish: f >= 0 ? f + 1 : null, qualiPos: q >= 0 ? q + 1 : null, status: d.status[code] || '', pole: d.pole === code, fastestLap: d.fl === code, groupFastest: !!ex.groupFastest, pointsAdj: ex.pointsAdj || 0 }, rulesFor(race.season)).total;
 }
 
+/* championship order before a race: earlier rounds of this season, or last season's final order in round 1 */
+function standingsBefore(race) {
+  const sd = seasonData(race.season), earlier = sd.races.filter(r => raceOrder(r, race) < 0 && sd.ran[r.id]);
+  if (earlier.length) {
+    const m = new Map();
+    for (const rc of earlier) for (const r of sd.byRace.get(rc.id)) {
+      if (!r.driver) continue;
+      let o = m.get(r.driver); if (!o) m.set(r.driver, o = { code: r.driver, total: 0, counts: new Array(40).fill(0) });
+      o.total += r.calc.total; bump(o, r);
+    }
+    return [...m.values()].sort((a, b) => b.total - a.total || cmpCount(a, b) || dName(a.code).localeCompare(dName(b.code))).map(o => o.code);
+  }
+  const list = seasonList(), prev = list[list.indexOf(race.season) + 1];
+  return prev ? seasonData(prev).drivers.map(d => d.code) : [];
+}
+function orderedEligible(race) {
+  const base = standingsBefore(race), at = c => { const i = base.indexOf(c); return i < 0 ? 1e6 : i; };
+  const num = e => { const n = parseInt(e.number, 10); return Number.isFinite(n) ? n : 1e5; };
+  return eligible(race).sort((a, b) => at(a.code) - at(b.code) || num(a) - num(b) || a.code.localeCompare(b.code));
+}
+function groupsOf(list) {
+  const out = [];
+  for (let i = 0; i < list.length; i += 6) { const a = i + 1, b = Math.min(i + 6, list.length); out.push({ label: (i === 0 ? 'Championship ' : '') + (a === b ? a : a + '–' + b), items: list.slice(i, i + 6).map((e, k) => ({ e, n: i + k + 1 })) }); }
+  return out;
+}
+
 /* ---------- Races tab ---------- */
 function nextRace(sd) {
   if (state.season !== state.settings.season) return null;
   return sd.races.find(r => !sd.ran[r.id] && r.status !== 'Cancelled' && r.status !== 'Postponed') || null;
+}
+function isFolded(race, sd) {
+  if (!state.folded.has(race.id)) { const nx = nextRace(sd); state.folded.set(race.id, !((nx && nx.id === race.id) || (isEditable() && isDirty(race)))); }
+  return state.folded.get(race.id);
 }
 function renderStrip(sd) {
   const nx = nextRace(sd);
@@ -687,86 +837,230 @@ function warnings(race, rows, sd) {
   if (d && d.fl && sd.rules.fl10) { const f = d.race.indexOf(d.fl); if (f < 0 || f + 1 > 10) w.push(`Fastest lap point isn't awarded: ${dName(d.fl)} is outside the top 10.`); }
   return w;
 }
+function tagsHTML(o) {
+  const t = [];
+  if (o.status) t.push(`<span class="tag out">${esc(o.status)}</span>${o.outReason ? ` <span class="why">${esc(o.outReason)}</span>` : ''}`);
+  if (o.penalty) t.push(`<span class="tag pen">${esc(o.penalty)}</span>${o.penaltyNote ? ` <span class="why">${esc(o.penaltyNote)}</span>` : ''}`);
+  if (o.lapsDown > 0) t.push(`<span class="tag lap">+${o.lapsDown} lap${o.lapsDown === 1 ? '' : 's'}</span>`);
+  if (o.investigation) t.push('<span class="tag inv">Under investigation</span>');
+  return t.join(' ');
+}
 function classificationHTML(rows) {
   if (!rows.length) return '<p class="muted" style="margin:0;text-align:center;font-size:13px">No results entered yet.</p>';
   const order = { DNF: 1, NC: 2, DSQ: 3, DNS: 4 };
   const sorted = [...rows].sort((a, b) => (a.finish ?? 999) - (b.finish ?? 999) || (order[a.status] || 9) - (order[b.status] || 9));
-  return `<div class="tbox"><table class="t"><thead><tr><th>Pos</th><th class="l">Driver</th><th class="l">Team</th><th>Quali</th><th>Status</th><th>Pts</th></tr></thead><tbody>${sorted.map(r => {
-    const c = r.calc, bad = r.status === 'DSQ' || r.status === 'DNF' || r.status === 'DNS' || r.status === 'NC';
+  return `<div class="tbox"><table class="t"><thead><tr><th>Pos</th><th class="l">Driver</th><th class="l">Team</th><th>Quali</th><th>Pits</th><th>Pts</th></tr></thead><tbody>${sorted.map(r => {
+    const c = r.calc, out = !!r.status, bad = out && (r.finish == null || r.status === 'DSQ');
     const tip = `Race ${pf(c.race)}${c.pole ? ' · pole ' + pf(c.pole) : ''}${c.quali ? ' · quali ' + pf(c.quali) : ''}${c.fl ? ' · fastest lap ' + pf(c.fl) : ''}${c.grp ? ' · group ' + pf(c.grp) : ''}${c.adj ? ' · adjustment ' + pf(c.adj) : ''}`;
-    return `<tr${bad && r.finish == null || r.status === 'DSQ' ? ' class="x"' : ''}><td class="pos">${r.finish ?? '–'}</td><td class="l">${driverTag(r.driver)}${r.pole ? '<span class="badge p" title="Pole">P</span>' : ''}${r.fastestLap ? '<span class="badge f" title="Fastest lap">FL</span>' : ''}</td><td class="l"><span class="dn">${teamMark(r.team)}${esc(r.team)}</span></td><td>${r.qualiPos ?? ''}</td><td>${esc(r.status)}</td><td title="${esc(tip)}"><b>${pf(c.total)}</b></td></tr>`;
+    const tg = tagsHTML(r);
+    return `<tr${bad ? ' class="x"' : ''}><td class="pos">${classified(r) ? r.finish : (r.status || '–')}</td><td class="l">${driverTag(r.driver)}${r.pole ? '<span class="badge p" title="Pole">P</span>' : ''}${r.fastestLap ? '<span class="badge f" title="Fastest lap">FL</span>' : ''}${tg ? `<span class="tg">${tg}</span>` : ''}</td><td class="l"><span class="dn">${teamMark(r.team)}${esc(r.team)}</span></td><td>${r.qualiPos ?? ''}</td><td>${r.pitStops ?? ''}</td><td title="${esc(tip)}"><b>${pf(c.total)}</b></td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
+const invNames = rows => rows.filter(r => r.investigation).map(r => surname(r.driver));
+
+/* entry */
+function splitReasonUI(s) {
+  const p = str(s).split(' · '), first = p[0] || '';
+  if (!first) return { reason: '', note: '' };
+  const hit = REASONS.find(r => r.toLowerCase() === first.toLowerCase());
+  return hit ? { reason: hit, note: p.slice(1).join(' · ') } : { reason: 'Other', note: str(s) };
+}
+const joinReason = (reason, note) => [str(reason), str(note)].filter(Boolean).join(' · ');
+const pk = (act, v, pressed, label) => `<button type="button" class="tb" data-act="${act}" data-v="${esc(v)}" data-k="p-${act}:${esc(v)}" aria-pressed="${!!pressed}">${esc(label ?? v)}</button>`;
+function stepper(act, label, val) {
+  return `<div class="fld" data-fld="${act}">${label}<div class="step"><button type="button" data-act="${act}" data-d="-1" data-k="p-${act}:-1" aria-label="${label}: one less">−</button><span>${val}</span><button type="button" data-act="${act}" data-d="1" data-k="p-${act}:1" aria-label="${label}: one more">+</button></div></div>`;
+}
+function panelHTML(race, d, code, out) {
+  const x = xOf(d, code), key = race.id + '|' + code, custom = !!x.penalty && !PEN_PICKS.includes(x.penalty), otherOn = custom || state.penOther.has(key);
+  const st = d.status[code], ui = splitReasonUI(x.outReason);
+  const outBlock = out ? `<div class="fld full">Out<div class="picks">${STATUSES.map(s => `<button type="button" class="tb" data-act="status" data-status="${s}" data-k="p-status:${s}" aria-pressed="${st === s}">${s}</button>`).join('')}</div></div>
+    ${st ? `<div class="fld full">Reason<div class="picks">${REASONS.map(r => pk('reason', r, ui.reason === r)).join('')}</div><input data-in="outNote" value="${esc(ui.note)}" placeholder="Short note, e.g. lap 12" aria-label="Reason note"></div>` : ''}` : '';
+  return `<div class="panel">${outBlock}
+    <div class="fld full">Penalty<div class="picks">${PEN_PICKS.map(p => pk('pen', p, x.penalty === p)).join('')}${pk('pen', 'Other', otherOn)}</div>
+      ${otherOn ? `<input data-in="penalty" value="${esc(custom ? x.penalty : '')}" placeholder="Other penalty, e.g. Stop-go" aria-label="Penalty (other)">` : ''}
+      <input data-in="penaltyNote" value="${esc(x.penaltyNote)}" placeholder="Penalty reason, e.g. track limits" aria-label="Penalty note"></div>
+    <div class="fld">Under investigation<div class="picks">${pk('inv', 'Y', x.investigation, 'Yes')}</div></div>
+    ${out ? '' : stepper('laps', 'Laps down', x.lapsDown)}
+    ${stepper('pits', 'Pit stops', x.pitStops == null ? '–' : x.pitStops)}</div>`;
+}
+function moreBtn(race, code) { const on = state.more.has(race.id + '|' + code); return `<button type="button" class="tb" data-act="more" data-k="more" aria-expanded="${on}" aria-pressed="${on}">More ${on ? '▴' : '▾'}</button>`; }
+const rowTags = (d, code, withStatus) => { const x = d.x[code] || blankX(); return tagsHTML({ ...x, status: withStatus ? d.status[code] : '' }); };
+
+/* paste results */
+const STATUS_WORDS = { dnf: 'DNF', ret: 'DNF', retired: 'DNF', dns: 'DNS', dsq: 'DSQ', dq: 'DSQ', nc: 'NC' };
+const NUMBERISH = /^[+\-]?\d[\d:.,]*s?$|^\d+\s?l(aps?)?$/i;
+function parsePaste(text, el) {
+  const people = el.map(e => { const full = nameKey(dName(e.code)), parts = full.split(' ');
+    return { code: e.code, full, sn: nameKey(surname(e.code)), last: parts[parts.length - 1], cd: e.code.toLowerCase() }; });
+  const byCode = new Map(people.map(p => [p.cd, p.code]));
+  const has = (norm, k) => { const i = k ? (' ' + norm + ' ').indexOf(' ' + k + ' ') : -1; return i; };
+  const rows = [];
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim(); if (!line) continue;
+    const words = line.split(/[\s,;|]+/).filter(Boolean);
+    if (words.length >= 3 && words.every(w => /^[A-Za-z]{3}$/.test(w)) && words.filter(w => byCode.has(w.toLowerCase())).length >= 2) { words.forEach(w => rows.push({ text: w, code: byCode.get(w.toLowerCase()) || '', status: '' })); continue; }   // one line of codes
+    const toks = line.split(/[\t ]+/).filter(Boolean);
+    let i = 0, status = '', pos = false;
+    while (i < toks.length && i < 2) {
+      const t = toks[i].replace(/[.:)\-–]+$/, '');
+      if (!pos && /^p?\d{1,2}$/i.test(t)) { pos = true; i++; continue; }
+      if (!status && STATUS_WORDS[t.toLowerCase()]) { status = STATUS_WORDS[t.toLowerCase()]; i++; continue; }
+      break;
+    }
+    const tail = toks.slice(i), norm = nameKey(tail.filter(t => !NUMBERISH.test(t)).join(' '));
+    let hit = null;
+    for (const tier of ['full', 'sn', 'last', 'cd']) {
+      const found = people.map(p => ({ p, at: has(norm, p[tier]) })).filter(f => f.at >= 0).sort((a, b) => a.at - b.at);
+      if (found.length) { hit = found[0].p.code; break; }
+    }
+    const k = tail.findIndex(t => NUMBERISH.test(t)), shown = (k < 0 ? tail : tail.slice(0, k)).join(' ') || line;
+    rows.push({ text: shown, code: hit || '', status });
+  }
+  return rows;
+}
+function pasteHTML(race, ps, el) {
+  const rows = ps.rows, seen = new Set(); let pos = 0;
+  const opts = el.map(e => `<option value="${esc(e.code)}">${esc(dName(e.code))} (${esc(e.code)})</option>`).join('');
+  const list = rows ? rows.map((r, i) => {
+    const dup = r.code && seen.has(r.code); if (r.code) seen.add(r.code);
+    if (!r.code || dup) return `<li class="bad" data-i="${i}"><span class="pn">–</span><span class="miss">${dup ? `already listed: ${esc(dName(r.code))}` : `not matched: ${esc(r.text)}`}</span><select data-in="pasteSel" data-i="${i}" aria-label="Driver for ${esc(r.text)}"><option value="">Skip this line</option>${opts}</select></li>`;
+    const label = r.status ? r.status : String(++pos);
+    return `<li data-i="${i}"><span class="pn">${esc(label)}</span><span>${esc(dFlag(r.code))} ${esc(dName(r.code))}</span><span class="muted">${esc(r.code)}</span></li>`;
+  }).join('') : '';
+  const bad = rows ? rows.filter((r, i) => !r.code).length : 0;
+  return `<div class="pastebox"><label class="fld" style="gap:6px">Paste the results<textarea data-in="paste" placeholder="1 Pascal Wehrlein Porsche&#10;2. CASSIDY&#10;P3 ROW&#10;DNF Da Costa&#10;or one line of codes: WEH CAS ROW" aria-label="Pasted results">${esc(ps.text || '')}</textarea></label>
+    ${rows ? `<ol class="pv">${list || ''}</ol>${rows.length ? '' : '<p class="hint">Nothing readable in that text.</p>'}${bad ? `<p class="hint">${bad} line${bad === 1 ? '' : 's'} not matched. Pick a driver for it, or leave it to be skipped.</p>` : ''}` : ''}
+    <div class="row"><button type="button" class="btn" data-act="pasteClose">Close</button><span class="seg"><button type="button" class="btn" data-act="pasteParse">Preview</button><button type="button" class="btn btn-primary" data-act="pasteApply"${rows && rows.some(r => r.code) ? '' : ' disabled'}>Apply</button></span></div></div>`;
+}
+
 function entryHTML(race) {
   const d = getDraft(race), sd = seasonData(race.season), q = d.mode === 'quali', key = q ? 'quali' : 'race', list = d[key];
-  const el = eligible(race), un = el.filter(e => !list.includes(e.code));
+  const ordered = orderedEligible(race), el = ordered, ps = state.paste[race.id] || {};
   const placed = list.map((code, i) => {
-    const pt = previewPts(race, d, code), st = d.status[code];
-    return `<li class="pr" data-code="${esc(code)}"><span class="pn">${i + 1}</span><span class="pnm">${esc(dFlag(code))} ${esc(dName(code))}${st ? ` <span class="stt">${esc(st)}</span>` : ''}</span>
-      <span class="ctl"><button type="button" class="ib" data-act="up" aria-label="Move ${esc(dName(code))} up"${i === 0 ? ' disabled' : ''}>▲</button><button type="button" class="ib" data-act="down" aria-label="Move ${esc(dName(code))} down"${i === list.length - 1 ? ' disabled' : ''}>▼</button><button type="button" class="ib" data-act="rm" aria-label="Remove ${esc(dName(code))}">✕</button></span>
-      <span class="tg"><button type="button" class="ib" data-act="pole" aria-pressed="${d.pole === code}" title="Pole">P</button><button type="button" class="ib" data-act="fl" aria-pressed="${d.fl === code}" title="Fastest lap">FL</button></span><span class="pt">${pf(pt)} pts</span></li>`;
+    const pt = previewPts(race, d, code), mk = race.id + '|' + code, on = !q && state.more.has(mk);
+    return `<li class="pr prow" data-code="${esc(code)}"><div class="top"><span class="pn">${i + 1}</span><span class="pnm">${esc(dFlag(code))} ${esc(dName(code))}</span>
+      <span class="ctl"><button type="button" class="ib" data-act="up" data-k="up" aria-label="Move ${esc(dName(code))} up"${i === 0 ? ' disabled' : ''}>▲</button><button type="button" class="ib" data-act="down" data-k="down" aria-label="Move ${esc(dName(code))} down"${i === list.length - 1 ? ' disabled' : ''}>▼</button><button type="button" class="ib" data-act="rm" data-k="rm" aria-label="Remove ${esc(dName(code))}">✕</button></span>
+      <span class="pfb"><button type="button" class="ib" data-act="pole" data-k="pole" aria-pressed="${d.pole === code}" title="Pole">P</button><button type="button" class="ib" data-act="fl" data-k="fl" aria-pressed="${d.fl === code}" title="Fastest lap">FL</button></span><span class="pt">${pf(pt)} pts</span>${q ? '' : moreBtn(race, code)}</div>
+      ${q ? '' : `<div class="rtg">${rowTags(d, code, true)}</div>${on ? panelHTML(race, d, code, !!d.status[code]) : ''}`}</li>`;
   }).join('');
-  const unp = un.map(e => q
-    ? `<button type="button" class="chipb" data-act="place" data-code="${esc(e.code)}">${teamMark(e.team)}<span class="nmx">${esc(dFlag(e.code))} ${esc(dName(e.code))}</span></button>`
-    : `<div class="ur" data-code="${esc(e.code)}"><button type="button" class="chipb" data-act="place">${teamMark(e.team)}<span class="nmx">${esc(dFlag(e.code))} ${esc(dName(e.code))}</span></button>
-      <span class="sts">${STATUSES.map(s => `<button type="button" class="sb" data-act="status" data-status="${s}" aria-pressed="${d.status[e.code] === s}">${s}</button>`).join('')}</span></div>`).join('');
+  const chip = (e, n, used) => `<button type="button" class="chipb dchip" data-act="place" data-k="place"${q ? ` data-code="${esc(e.code)}"` : ''}${used ? ' data-used disabled' : ''} title="${esc(dName(e.code))}"><span aria-hidden="true">${esc(dFlag(e.code))}</span><b>${esc(e.code)}</b><small>${ord(n)}</small>${q ? '' : `<span class="sn">${esc(surname(e.code))}</span>`}</button>`;
+  const groups = groupsOf(ordered).map(g => {
+    const inner = q
+      ? `<div class="chips">${g.items.map(({ e, n }) => chip(e, n, list.includes(e.code))).join('')}</div>`
+      : `<div class="ugrid">${g.items.map(({ e, n }) => {
+          const used = list.includes(e.code), mk = race.id + '|' + e.code, on = !used && state.more.has(mk);
+          return `<div class="ur" data-code="${esc(e.code)}">${chip(e, n, used)}
+            <span class="sts">${STATUSES.map(s => `<button type="button" class="sb" data-act="status" data-status="${s}" data-k="q-status:${s}" aria-pressed="${d.status[e.code] === s}"${used ? ' disabled' : ''}>${s}</button>`).join('')}</span>${used ? '' : moreBtn(race, e.code)}
+            ${used ? '' : `<div class="rtg">${rowTags(d, e.code, true)}</div>`}${on ? panelHTML(race, d, e.code, true) : ''}</div>`;
+        }).join('')}</div>`;
+    return `<div class="grp">${esc(g.label)}</div>${inner}`;
+  }).join('');
   return `<div class="ent"><h3>Enter result</h3>
     <div class="ent-bar"><div class="seg"><button type="button" class="btn" data-act="mode" data-mode="race" aria-pressed="${!q}">Race order</button><button type="button" class="btn" data-act="mode" data-mode="quali" aria-pressed="${q}">Qualifying order</button></div>
-      <div class="seg"><button type="button" class="btn" data-act="revert"${isDirty(race) ? '' : ' disabled'}>Revert</button><button type="button" class="btn" data-act="clear">Clear</button></div></div>
+      <div class="seg"><button type="button" class="btn" data-act="paste" aria-pressed="${!!ps.open}">Paste results</button><button type="button" class="btn" data-act="revert"${isDirty(race) ? '' : ' disabled'}>Revert</button><button type="button" class="btn" data-act="clear">Clear</button></div></div>
+    ${ps.open ? pasteHTML(race, ps, el) : ''}${ps.msg ? `<p class="hint" data-paste-msg>${esc(ps.msg)}</p>` : ''}
     <p class="hint">${q ? 'Tap drivers in qualifying order, fastest first.' : 'Tap drivers in finishing order. Drivers who didn\'t finish get a status button.'}${sd.rules.qualiPoints ? ' Qualifying positions score ' + esc(sd.rules.qualiPoints) + ' points.' : ''}</p>
     ${list.length ? `<ol class="placed">${placed}</ol>` : ''}
-    ${un.length ? `<div class="unp${q ? ' chips' : ''}">${unp}</div>` : '<p class="hint">Everyone is placed.</p>'}
+    ${el.length ? groups : ''}
     ${el.length ? '' : '<p class="hint">No drivers are listed in Lineups for this round yet.</p>'}</div>`;
+}
+function miniHTML(race, sd, rows, dirty) {
+  const cancelled = race.status === 'Cancelled', postponed = race.status === 'Postponed', win = rows.find(r => r.finish === 1 && r.status !== 'DSQ'), inv = invNames(rows).length;
+  const txt = win ? `🏆 <b>${esc(surname(win.driver))}</b> · ${esc(win.team)}` : esc(cancelled ? 'Cancelled' : postponed ? 'Postponed' : sd.ran[race.id] ? 'Results entered' : 'Not run yet');
+  return `<article class="rc-mini" data-id="${esc(race.id)}"${dirty ? ' data-dirty' : ''}><span class="rd">RD${race.round ?? '?'}${race.heat ? '·' + race.heat : ''}</span>
+    <span class="ct"><span aria-hidden="true">${esc(race.flag)}</span> ${esc(race.city || 'City TBC')}${/unleashed/i.test(race.name) ? ' · Unleashed' : ''}${inv ? ' <span class="tag inv" title="Under investigation">!</span>' : ''}${dirty ? '<span class="udot" title="Unsaved changes"></span>' : ''}</span>
+    <span class="w">${txt}</span><button type="button" class="cbtn" data-act="fold" aria-expanded="false" aria-label="Open round ${race.round ?? ''} ${esc(race.city)}">Open ▾</button></article>`;
 }
 function cardHTML(race) {
   const sd = seasonData(race.season), rows = sd.byRace.get(race.id) || [], ed = isEditable(), open = state.open.has(race.id);
   const cancelled = race.status === 'Cancelled', postponed = race.status === 'Postponed', ran = sd.ran[race.id];
   const dirty = ed && isDirty(race), entry = ed && !cancelled && !postponed;
+  if (isFolded(race, sd)) return miniHTML(race, sd, rows, dirty);
   const stTxt = cancelled ? 'Cancelled' : postponed ? 'Postponed' : ran ? 'Results entered' : 'Not run yet';
   const pole = rows.find(r => r.pole), fl = rows.find(r => r.fastestLap);
   const pf_ = (pole || fl) ? `<div class="rc-pf">${pole ? `Pole: <b>${esc(dName(pole.driver))}</b>` : ''}${pole && fl ? ' · ' : ''}${fl ? `Fastest lap: <b>${esc(dName(fl.driver))}</b>` : ''}</div>` : '';
-  const w = warnings(race, rows, sd);
+  const w = warnings(race, rows, sd), inv = invNames(rows);
   const body = open ? `<div class="more" id="m-${esc(race.id)}">${classificationHTML(rows)}${entry ? entryHTML(race) : ''}</div>` : '';
   return `<article class="rc" data-id="${esc(race.id)}"${dirty ? ' data-dirty' : ''}${cancelled ? ' data-x' : ''}>
+    <div class="rc-head"><button type="button" class="cbtn" data-act="fold" aria-expanded="true">Collapse ▴</button></div>
     <div class="rc-ttl"><div class="eyebrow">Round ${race.round ?? '?'}${race.heat ? ' · Heat ' + race.heat : ''}</div>
       <h2><span aria-hidden="true">${esc(race.flag)}</span> ${esc(race.city || 'City TBC')}</h2>
       <div class="rc-name">${esc(race.name || 'Race name TBC')}</div>
       <div class="rc-meta">${esc(fmtDate(race.date))}${race.circuit ? ' · ' + esc(race.circuit) : ''}</div></div>
     ${ran ? podiumHTML(rows) : ''}${pf_}
+    ${inv.length ? `<div class="inv"><b>Under investigation:</b> ${esc(inv.join(', '))}. The result may change.</div>` : ''}
     <div class="rc-warn">${w.map(x => `<span>${esc(x)}</span>`).join('')}</div>
     <button type="button" class="btn rc-toggle" data-act="toggle" aria-expanded="${open}" aria-controls="m-${esc(race.id)}">Details<span class="udot"${dirty ? '' : ' hidden'}></span><span class="chev" aria-hidden="true"></span></button>
     ${body}
     <div class="rc-foot">${ed ? '<button type="button" class="btn" data-act="edit">Edit race</button>' : '<span></span>'}<span class="rc-msg"${ran ? ' data-ok' : ''}>${esc(stTxt)}</span>${ed && entry ? `<button type="button" class="btn btn-primary" data-act="save"${dirty ? '' : ' disabled'}>Save</button>` : '<span></span>'}</div>
   </article>`;
 }
+function updateListBar() {
+  const sd = seasonData(state.season), all = sd.races.length && sd.races.every(r => isFolded(r, sd));
+  $('listBar').innerHTML = sd.races.length ? `<span class="eyebrow">Season ${esc(state.season)}</span><button type="button" class="btn" id="foldAll">${all ? 'Expand all' : 'Collapse all'}</button>` : '';
+}
 function renderRaces() {
   const sd = seasonData(state.season);
   renderStrip(sd);
   $('raceList').innerHTML = sd.races.length ? sd.races.map(cardHTML).join('') : '<div class="empty">No races in this season yet.</div>';
+  updateListBar();
   $('addRow').hidden = !isEditable();
 }
+const cardEl = id => $('raceList').querySelector(`[data-id="${CSS.escape(id)}"]`);
 function rerenderCard(id) {
-  const el = document.querySelector(`.rc[data-id="${CSS.escape(id)}"]`), race = raceById(id); if (!el || !race) return;
+  const el = cardEl(id), race = raceById(id); if (!el || !race) return;
   const t = document.createElement('div'); t.innerHTML = cardHTML(race); el.replaceWith(t.firstElementChild);
 }
+function refreshDirty(race) {
+  const card = cardEl(race.id); if (!card) return;
+  const dirty = isDirty(race); card.toggleAttribute('data-dirty', dirty);
+  const sv = card.querySelector('[data-act="save"]'); if (sv) sv.disabled = !dirty;
+  const rv = card.querySelector('[data-act="revert"]'); if (rv) rv.disabled = !dirty;
+  const u = card.querySelector('.rc-toggle .udot'); if (u) u.hidden = !dirty;
+}
+const dropOther = race => [...state.penOther].filter(k => k.startsWith(race.id + '|')).forEach(k => state.penOther.delete(k));
 function entryAct(race, act, code, btn) {
-  const d = getDraft(race), key = d.mode === 'quali' ? 'quali' : 'race', list = d[key];
+  const d = getDraft(race), key = d.mode === 'quali' ? 'quali' : 'race', list = d[key], mk = race.id + '|' + code;
   const syncPole = () => { if (key === 'quali' && !d.poleManual) d.pole = d.quali[0] || ''; };
-  const i = list.indexOf(code);
+  const i = list.indexOf(code), x = code ? xOf(d, code) : null;
   switch (act) {
     case 'mode': d.mode = btn.dataset.mode; break;
-    case 'place': if (i < 0) { list.push(code); if (key === 'race') delete d.status[code]; syncPole(); } break;
+    case 'place': if (i < 0) { list.push(code); if (key === 'race' && d.status[code]) { delete d.status[code]; x.outReason = ''; } syncPole(); } break;
     case 'rm': if (i >= 0) { list.splice(i, 1); syncPole(); } break;
     case 'up': if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; syncPole(); } break;
     case 'down': if (i >= 0 && i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; syncPole(); } break;
     case 'pole': d.pole = d.pole === code ? '' : code; d.poleManual = true; break;
     case 'fl': d.fl = d.fl === code ? '' : code; break;
     case 'status': if (d.status[code] === btn.dataset.status) delete d.status[code]; else d.status[code] = btn.dataset.status; break;
-    case 'clear': Object.assign(d, { race: [], quali: [], status: {}, pole: '', fl: '', poleManual: false }); break;
-    case 'revert': { const f = freshDraft(race); f.mode = d.mode; state.drafts[race.id] = f; break; }
+    case 'more': if (state.more.has(mk)) state.more.delete(mk); else state.more.add(mk); break;
+    case 'pen': {
+      const v = btn.dataset.v;
+      if (v === 'Other') { const custom = x.penalty && !PEN_PICKS.includes(x.penalty); if (custom || state.penOther.has(mk)) { x.penalty = ''; state.penOther.delete(mk); } else { x.penalty = ''; state.penOther.add(mk); } }
+      else { state.penOther.delete(mk); x.penalty = x.penalty === v ? '' : v; }
+      break;
+    }
+    case 'inv': x.investigation = !x.investigation; break;
+    case 'laps': x.lapsDown = Math.max(0, (x.lapsDown || 0) + Number(btn.dataset.d)); break;
+    case 'pits': { const dl = Number(btn.dataset.d), c = x.pitStops; x.pitStops = dl > 0 ? (c == null ? 1 : c + 1) : (c == null || c === 0 ? null : c - 1); break; }
+    case 'reason': { const ui = splitReasonUI(x.outReason); x.outReason = joinReason(ui.reason === btn.dataset.v ? '' : btn.dataset.v, ui.note); break; }
+    case 'paste': { const p = state.paste[race.id] || (state.paste[race.id] = { text: '', rows: null }); p.open = !p.open; p.msg = ''; break; }
+    case 'pasteClose': { const p = state.paste[race.id]; if (p) p.open = false; break; }
+    case 'pasteParse': { const p = state.paste[race.id]; if (p) { p.rows = parsePaste(p.text, orderedEligible(race)); p.msg = ''; } break; }
+    case 'pasteApply': {
+      const p = state.paste[race.id]; if (!p || !p.rows) break;
+      const seen = new Set(), order = [], st = {}; let skipped = 0;
+      p.rows.forEach(r => { if (!r.code || seen.has(r.code)) { skipped++; return; } seen.add(r.code); if (r.status) st[r.code] = r.status; else order.push(r.code); });
+      if (key === 'race') { d.race = order; order.forEach(c => delete d.status[c]); Object.assign(d.status, st); }
+      else { d.quali = order; syncPole(); }
+      p.msg = `Applied: ${order.length} placed${key === 'race' && Object.keys(st).length ? ', ' + Object.keys(st).length + ' out' : ''}${key === 'quali' && Object.keys(st).length ? ' (statuses ignored for qualifying)' : ''}.${skipped ? ' ' + skipped + ' line' + (skipped === 1 ? '' : 's') + ' skipped.' : ''} Nothing is saved until you press Save.`;
+      p.open = false; p.rows = null; p.text = ''; break;
+    }
+    case 'clear': Object.assign(d, { race: [], quali: [], status: {}, pole: '', fl: '', poleManual: false, x: {} }); dropOther(race); break;
+    case 'revert': { const f = freshDraft(race); f.mode = d.mode; state.drafts[race.id] = f; dropOther(race); break; }
   }
   rerenderCard(race.id);
-  const again = code && document.querySelector(`.rc[data-id="${CSS.escape(race.id)}"] [data-code="${CSS.escape(code)}"] [data-act="${act}"]:not([disabled])`);
+  const sel = btn && btn.dataset.k && code ? `[data-code="${CSS.escape(code)}"] [data-k="${CSS.escape(btn.dataset.k)}"]:not([disabled])` : '';
+  const again = sel && cardEl(race.id).querySelector(sel);
   if (again) again.focus();
 }
 
@@ -844,7 +1138,7 @@ async function saveRaceDlg() {
       const row = { id, season, round: nn, ...v, country: c.country || '', flag: c.flag || '' };
       await state.mcp.callTool(SERVER, 'append_values', { spreadsheetId: SHEET_ID, range: 'Races!A1', values: [header.map(k => k in row ? cellValue('Races', k, row[k]) : '')] }, { cache: false });
       state.races.push({ id, season, round: nn, date: v.date || null, country: row.country, flag: row.flag, city: v.city, circuit: v.circuit, name: v.name, heat: v.heat === '' ? null : v.heat, status: v.status, notes: v.notes });
-      state.cache = {}; state.open.add(id);
+      state.cache = {}; state.open.add(id); state.folded.set(id, false);
     }
     $('rdDlg').close(); renderAll();
   } catch (err) { $('rdMsg').textContent = explain(err); }
@@ -945,6 +1239,12 @@ function renderStats() {
     : '<div class="empty" style="border:0">Nothing to show for this scope yet.</div>';
   $('sNote').textContent = `${w === 'drivers' ? 'S starts, W wins, P podiums, PP poles, FL fastest laps, DNF retirements, Top 10 points finishes, C championships (completed seasons only).' : 'Starts are race entries (one per car). Titles count completed seasons only.'} Tap a header to sort, tap a row for the profile.`;
 }
+function extrasHTML(rows) {                          // penalties and DNF reasons, only when something was entered
+  const pen = rows.filter(r => r.penalty).length, why = new Map();
+  rows.filter(r => r.status === 'DNF' && r.outReason).forEach(r => { const k = splitReasonUI(r.outReason).reason || 'Other'; why.set(k, (why.get(k) || 0) + 1); });
+  if (!pen && !why.size) return '';
+  return `<div class="kv" data-extras>${pen ? `<span><b>Penalties</b> ${pen}</span>` : ''}${why.size ? `<span><b>DNF reasons</b> ${[...why].sort((a, b) => b[1] - a[1]).map(([k, n]) => esc(k) + ' ' + n).join(' · ')}</span>` : ''}</div>`;
+}
 const span = set => { const a = [...set].sort(); return !a.length ? '' : a[0] === a[a.length - 1] ? a[0] : `${a[0]}–${a[a.length - 1]}`; };
 function showDriver(code) {
   const per = [];
@@ -959,6 +1259,7 @@ function showDriver(code) {
   $('pTitle').textContent = dName(code);
   $('pBody').innerHTML = `<div class="kv"><span><b>Code</b> ${esc(code)}</span><span><b>Nationality</b> ${esc(dFlag(code))} ${esc(drv(code).nationality)}</span><span><b>Best finish</b> ${best == null ? '–' : 'P' + best + (bestN > 1 ? ' ×' + bestN : '')}</span><span><b>Titles</b> ${a.C || 0}</span></div>
     <div class="kv"><span><b>Starts</b> ${a.S || 0}</span><span><b>Wins</b> ${a.W || 0}</span><span><b>Podiums</b> ${a.P || 0}</span><span><b>Poles</b> ${a.PP || 0}</span><span><b>Points</b> ${pf(a.PTS || 0)}</span></div>
+    ${extrasHTML(seasonList().flatMap(s => seasonData(s).rows.filter(r => r.driver === code)))}
     <div class="kv"><span><b>Teams driven for</b></span>${teams.map(t => `<span class="dn">${teamMark(t)}${esc(t)}</span>`).join('') || '–'}</div>
     <div class="tbox"><table class="t"><thead><tr><th class="l">Season</th><th class="l">Team</th><th>Pos</th><th>Pts</th><th>W</th><th>P</th><th>PP</th></tr></thead><tbody>${per.map(p =>
       `<tr><td class="l">${esc(p.s)}</td><td class="l"><span class="dn">${p.d.teams.map(t => teamMark(t)).join('')}${esc(p.d.teams.join(' / '))}</span></td><td>${p.d.pos}${p.champ ? ' <span class="badge p">C</span>' : ''}</td><td><b>${pf(p.d.total)}</b></td><td>${p.W}</td><td>${p.P}</td><td>${p.PP}</td></tr>`).join('')}</tbody></table></div>`;
@@ -974,11 +1275,268 @@ function showTeam(key) {
   const nameList = [...names].sort((a, b) => (span(seasonsOf.get(a) || []) || 'z').localeCompare(span(seasonsOf.get(b) || []) || 'z'));
   $('pTitle').textContent = key;
   $('pBody').innerHTML = `<div class="kv"><span><b>Seasons</b> ${all.Se || 0}</span><span><b>Starts</b> ${all.S || 0}</span><span><b>Wins</b> ${all.W || 0}</span><span><b>Podiums</b> ${all.P || 0}</span><span><b>Poles</b> ${all.PP || 0}</span><span><b>Fastest laps</b> ${all.FL || 0}</span><span><b>Points</b> ${pf(all.PTS || 0)}</span><span><b>Titles</b> ${all.T || 0}</span></div>
+    ${extrasHTML(seasonList().flatMap(s => seasonData(s).rows.filter(r => r.team && groupKey(r.team) === key)))}
     <div><h3>Previous names</h3><ul class="plist">${nameList.map(n => `<li><span class="dn">${teamMark(n)}<b>${esc(n)}</b></span> <span class="muted">${esc(span(seasonsOf.get(n) || []))}</span></li>`).join('') || '<li class="muted">None</li>'}
       ${[...entrants].map(([e, s]) => `<li>${esc(e)} <span class="muted">entrant · ${esc(span(s))}</span></li>`).join('')}</ul></div>
     <div><h3>Drivers by season</h3><div class="tbox"><table class="t"><tbody>${[...drivers].sort((a, b) => b[0].localeCompare(a[0])).map(([s, set]) => `<tr><td class="l">${esc(s)}</td><td class="l">${[...set].map(c => esc(dFlag(c) + ' ' + dName(c))).join(', ')}</td></tr>`).join('')}</tbody></table></div></div>`;
   $('pDlg').showModal();
 }
+
+/* ---------- Compare tab ---------- */
+const COMPARE_WHO = [['drivers', 'Drivers'], ['teams', 'Teams'], ['manus', 'Manufacturers'], ['races', 'Races']];
+const FALLBACK = ['#c6f432', '#a27bff', '#ff8a3d', '#3cc8d8', '#ef6b73', '#e8c547'];
+let cvs = null; try { cvs = document.createElement('canvas').getContext('2d'); } catch (e) {}
+function rgbOf(c) {
+  try { cvs.fillStyle = '#000000'; cvs.fillStyle = c; const h = cvs.fillStyle; if (h[0] === '#') return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return h.match(/[\d.]+/g).slice(0, 3).map(Number); } catch (e) { return [160, 160, 160]; }
+}
+const lum = c => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255;
+const toHex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+function visibleColour(c) { let v = rgbOf(c); for (let k = 0; k < 14 && lum(v) < 0.42; k++) v = v.map(x => x + (255 - x) * 0.18); return v; }
+function assignColours(raws) {                       // team colours, lightened if too dark; clashes get a fallback colour
+  const used = [], out = [];
+  raws.forEach(raw => {
+    let v = visibleColour(raw);
+    const near = c => used.some(u => Math.hypot(u[0] - c[0], u[1] - c[1], u[2] - c[2]) < 70);
+    if (near(v)) { const f = FALLBACK.map(rgbOf).find(c => !near(c)); if (f) v = f; }
+    used.push(v); out.push(toHex(v));
+  });
+  return out;
+}
+function cmpScope() {
+  const c = state.cmp, who = c.who; let season = c.season || state.season;
+  if (season === 'all' && (who === 'manus' || who === 'races')) season = state.season;
+  if (who === 'manus' && !seasonData(season).manus) { const m = seasonList().find(s => seasonData(s).manus); if (m) season = m; }
+  return { who, season, all: season === 'all', seasons: season === 'all' ? seasonList() : [season] };
+}
+function lastTeamOf(code) { for (const s of seasonList()) { const d = seasonData(s).drivers.find(x => x.code === code); if (d && d.team) return d.team; } return ''; }
+function cmpList(cs) {
+  const who = cs.who;
+  if (who === 'drivers') {
+    if (!cs.all) return seasonData(cs.season).drivers.map(d => ({ key: d.code, label: dName(d.code), short: surname(d.code), flag: dFlag(d.code), raw: teamColour(d.team) }));
+    return aggDrivers(cs.seasons).filter(a => a.S || a.PTS).sort((a, b) => b.PTS - a.PTS || b.W - a.W || dName(a.code).localeCompare(dName(b.code)))
+      .map(a => ({ key: a.code, label: dName(a.code), short: surname(a.code), flag: dFlag(a.code), raw: teamColour(lastTeamOf(a.code)) }));
+  }
+  if (who === 'teams') {
+    const m = new Map();
+    for (const s of cs.seasons) seasonData(s).teams.forEach(t => { const k = lineageOf(t.team); const o = m.get(k) || { key: k, label: cs.all ? k : t.team, pts: 0, team: t.team }; o.pts += t.total; o.team = t.team; m.set(k, o); });
+    return [...m.values()].sort((a, b) => b.pts - a.pts || a.key.localeCompare(b.key)).map(o => ({ key: o.key, label: o.label, short: o.label, flag: '', raw: teamColour(o.team) }));
+  }
+  if (who === 'manus') {
+    const sd = seasonData(cs.season);
+    return (sd.manus || []).map(m => { const t = sd.teams.find(x => powertrainOf(cs.season, x.team) === m.name); return { key: m.name, label: m.name, short: m.name, flag: '', raw: t ? teamColour(t.team) : hashColour(m.name) }; });
+  }
+  const out = [], sd = seasonData(cs.season);
+  sd.races.filter(r => sd.ran[r.id]).forEach(r => out.push({ key: r.id, label: `RD${r.round ?? '?'}${r.heat ? '·' + r.heat : ''} ${r.flag} ${r.city}`, raw: '' }));
+  state.cmp.extra.map(raceById).filter(r => r && r.season !== cs.season).forEach(r => out.push({ key: r.id, label: `${r.season} RD${r.round ?? '?'} ${r.flag} ${r.city}`, raw: '' }));
+  return out;
+}
+function cmpRows(who, key, seasons) {                // [{sd, rc, rows}] for every race the pick took part in
+  const out = [];
+  for (const s of seasons) {
+    const sd = seasonData(s);
+    for (const rc of sd.races) {
+      if (!sd.ran[rc.id]) continue;
+      const all = sd.byRace.get(rc.id) || [];
+      const mine = who === 'drivers' ? all.filter(r => r.driver === key) : who === 'teams' ? all.filter(r => r.team && lineageOf(r.team) === key) : all.filter(r => r.team && powertrainOf(s, r.team) === key);
+      if (mine.length) out.push({ sd, rc, rows: mine });
+    }
+  }
+  return out;
+}
+function cmpMetrics(who, key, ents) {
+  const m = { S: 0, W: 0, P: 0, PP: 0, FL: 0, DNF: 0, T10: 0, PTS: 0, avgFin: null, avgQ: null, best: null };
+  let fs = 0, fn = 0, qs = 0, qn = 0;
+  for (const e of ents) {
+    for (const r of e.rows) {
+      if (r.status !== 'DNS') m.S++;
+      if (classified(r)) { if (r.finish === 1) m.W++; if (r.finish <= 3) m.P++; if (r.finish <= 10) m.T10++; fs += r.finish; fn++; if (m.best == null || r.finish < m.best) m.best = r.finish; }
+      if (r.qualiPos != null) { qs += r.qualiPos; qn++; }
+      if (r.pole) m.PP++; if (r.fastestLap) m.FL++; if (r.status === 'DNF') m.DNF++;
+      if (who !== 'manus') m.PTS += r.calc.total;
+    }
+    if (who === 'manus') { const mm = e.sd.manus && e.sd.manus.find(x => x.name === key); m.PTS += mm ? (mm.per[e.rc.id] || 0) : 0; }
+  }
+  if (fn) m.avgFin = fs / fn; if (qn) m.avgQ = qs / qn;
+  return m;
+}
+function h2hCalc(who, a, b, seasons) {
+  const A = cmpRows(who, a, seasons), bm = new Map(cmpRows(who, b, seasons).map(e => [e.rc.id, e]));
+  const o = { races: 0, aAhead: 0, bAhead: 0, level: 0, qa: 0, qb: 0, ql: 0, ptsA: 0, ptsB: 0 };
+  const bestF = rows => { const c = rows.filter(classified); return c.length ? Math.min(...c.map(r => r.finish)) : null; };
+  const bestQ = rows => { const c = rows.filter(r => r.qualiPos != null); return c.length ? Math.min(...c.map(r => r.qualiPos)) : null; };
+  for (const ea of A) {
+    const eb = bm.get(ea.rc.id); if (!eb) continue;
+    const ra = ea.rows.filter(r => r.status !== 'DNS'), rb = eb.rows.filter(r => r.status !== 'DNS'); if (!ra.length || !rb.length) continue;
+    o.races++;
+    const fa = bestF(ra), fb = bestF(rb);
+    if (fa != null && fb != null) { if (fa < fb) o.aAhead++; else if (fa > fb) o.bAhead++; else o.level++; } else if (fa != null) o.aAhead++; else if (fb != null) o.bAhead++; else o.level++;
+    const qa = bestQ(ra), qb = bestQ(rb);
+    if (qa != null && qb != null) { if (qa < qb) o.qa++; else if (qa > qb) o.qb++; else o.ql++; }
+    o.ptsA += ra.reduce((n, r) => n + r.calc.total, 0); o.ptsB += rb.reduce((n, r) => n + r.calc.total, 0);
+  }
+  return o;
+}
+function cmpSeries(who, key, season) {
+  const sd = seasonData(season), races = sd.races.filter(r => sd.ran[r.id] && r.status !== 'Cancelled');
+  let cum = 0;
+  return races.map(rc => {
+    const rows = sd.byRace.get(rc.id) || []; let p = 0;
+    if (who === 'drivers') p = rows.filter(r => r.driver === key).reduce((n, r) => n + r.calc.total, 0);
+    else if (who === 'teams') p = rows.filter(r => r.team && lineageOf(r.team) === key).reduce((n, r) => n + r.calc.total, 0);
+    else { const m = sd.manus && sd.manus.find(x => x.name === key); p = m ? (m.per[rc.id] || 0) : 0; }
+    cum += p; return cum;
+  });
+}
+function bestCells(vals, dir) {
+  const v = vals.filter(x => x != null); if (v.length < 2 || new Set(v).size < 2) return vals.map(() => false);
+  const b = dir > 0 ? Math.max(...v) : Math.min(...v); return vals.map(x => x === b);
+}
+function statTableHTML(ents, colours, data) {
+  const defs = [['S', 'Starts', 1], ['W', 'Wins', 1], ['P', 'Podiums', 1], ['PP', 'Poles', 1], ['FL', 'Fastest laps', 1], ['DNF', 'DNFs', -1], ['T10', 'Top 10', 1], ['PTS', 'Points', 1], ['avgFin', 'Avg finish', -1], ['avgQ', 'Avg quali', -1], ['best', 'Best finish', -1]];
+  const show = (k, v) => v == null ? '–' : k === 'avgFin' || k === 'avgQ' ? v.toFixed(1) : k === 'best' ? 'P' + v : pf(v);
+  return `<div class="tbox"><table class="t cmp" data-cmp="stats"><thead><tr><th class="lab"></th>${ents.map((e, i) => `<th><span class="sw" style="background:${colours[i]}"></span>${esc(e.short)}</th>`).join('')}</tr></thead><tbody>${defs.map(([k, label, dir]) => {
+    const vals = data.map(d => d[k]), hi = bestCells(vals, dir);
+    return `<tr data-row="${k}"><td class="lab">${label}</td>${vals.map((v, i) => `<td class="${hi[i] ? 'best' : ''}">${show(k, v)}</td>`).join('')}</tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+function h2hHTML(who, ents, colours, cs) {
+  const h = h2hCalc(who, ents[0].key, ents[1].key, cs.seasons), nm = e => who === 'drivers' ? `${esc(e.flag)} ${esc(e.short)}` : esc(e.short);
+  const row = (label, a, b) => `<div class="${a > b ? 'win' : ''}" data-h="${esc(label)}-a">${pf(a)}</div><div class="l">${label}</div><div class="${b > a ? 'win' : ''}" data-h="${esc(label)}-b">${pf(b)}</div>`;
+  const qn = h.qa + h.qb + h.ql;
+  return `<div class="cmp-sec"><h3>Head to head</h3>
+    <p class="cmp-note" data-h2h-note>${h.races} race${h.races === 1 ? '' : 's'} where both started${who === 'teams' ? ' (best-placed car of each team)' : ''}. ${h.level ? h.level + ' with neither ahead. ' : ''}</p>
+    <div class="h2h" data-cmp="h2h"><div class="hd" style="color:${colours[0]}">${nm(ents[0])}</div><div class="l hd"></div><div class="hd" style="color:${colours[1]}">${nm(ents[1])}</div>
+    ${row('Finished ahead', h.aAhead, h.bAhead)}${qn ? row('Qualified ahead', h.qa, h.qb) : `<div class="l" style="grid-column:1 / -1;justify-content:center">No qualifying positions entered for these races</div>`}${row('Points in those races', h.ptsA, h.ptsB)}</div></div>`;
+}
+function chartSpec(who, ents, colours, season) {
+  const sd = seasonData(season), races = sd.races.filter(r => sd.ran[r.id] && r.status !== 'Cancelled');
+  return {
+    labels: races.map(rc => ({ short: String(rc.round ?? '?') + (races.filter(x => x.round === rc.round).length > 1 && rc.heat ? 'abc'[rc.heat - 1] || '' : ''), long: `Round ${rc.round ?? '?'} · ${rc.city || ''}` })),
+    series: ents.map((e, i) => ({ label: e.short, colour: colours[i], pts: cmpSeries(who, e.key, season) }))
+  };
+}
+function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw || 1))), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function drawChart() {
+  const el = $('cChart'), spec = state.cmp.chart; if (!el || !spec) return;
+  const n = spec.labels.length, W = Math.max(280, Math.round(el.clientWidth - 12)), H = W < 500 ? 240 : 300, m = { l: 36, r: 12, t: 12, b: 26 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const maxV = Math.max(1, ...spec.series.flatMap(s => s.pts)), step = niceStep(maxV / 4), top = Math.ceil(maxV / step) * step;
+  const xs = spec.labels.map((_, i) => n === 1 ? m.l + iw / 2 : m.l + iw * i / (n - 1)), y = v => m.t + ih - ih * v / top, every = Math.ceil(n / Math.max(4, Math.floor(iw / 28)));
+  let g = '';
+  for (let v = 0; v <= top + 1e-9; v += step) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 6}" y="${y(v) + 3.5}" text-anchor="end">${pf(v)}</text>`;
+  spec.labels.forEach((l, i) => { if (i % every === 0 || i === n - 1) g += `<text x="${xs[i]}" y="${H - 8}" text-anchor="middle">${esc(l.short)}</text>`; });
+  const lines = spec.series.map((s, k) => `<path class="ln" data-pick="${esc(s.label)}" d="${s.pts.map((v, i) => (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + y(v).toFixed(1)).join(' ')}" fill="none" stroke="${s.colour}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"${k % 2 && false ? ' stroke-dasharray="6 3"' : ''}/>`
+    + s.pts.map((v, i) => `<circle cx="${xs[i].toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" fill="${s.colour}"/>`).join('')).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Points by round"><title>Points by round</title>${g}<line class="guide" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" style="display:none"/>${lines}<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" class="hit"/></svg><div class="ctip" hidden></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.ctip'), guide = svg.querySelector('.guide');
+  const show = ev => {
+    const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) * W / r.width; let i = 0, best = 1e9;
+    xs.forEach((v, k) => { const dd = Math.abs(v - x); if (dd < best) { best = dd; i = k; } });
+    guide.setAttribute('x1', xs[i]); guide.setAttribute('x2', xs[i]); guide.style.display = '';
+    tip.innerHTML = `<b>${esc(spec.labels[i].long)}</b>` + spec.series.map(s => `<span><i style="background:${s.colour}"></i>${esc(s.label)} <b>${pf(s.pts[i])}</b></span>`).join('');
+    tip.hidden = false;
+    const px = xs[i] / W * r.width + 6, tw = tip.offsetWidth; tip.style.left = (px + tw + 12 > r.width ? Math.max(4, px - tw - 12) : px + 6) + 'px';
+  };
+  svg.addEventListener('pointermove', show); svg.addEventListener('pointerdown', show);
+  svg.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse') { tip.hidden = true; guide.style.display = 'none'; } });
+}
+function raceFacts(rc) {
+  const sd = seasonData(rc.season), rows = sd.byRace.get(rc.id) || [], cl = rows.filter(classified).sort((a, b) => a.finish - b.finish);
+  const win = cl.find(r => r.finish === 1);
+  return { rc, rows, podium: cl.slice(0, 3), pole: rows.find(r => r.pole), fl: rows.find(r => r.fastestLap), win, nCl: cl.length, dnf: rows.filter(r => r.status === 'DNF'),
+    pen: rows.filter(r => r.penalty), laps: rows.filter(r => r.lapsDown > 0), pitKnown: rows.some(r => r.pitStops != null), pits: rows.reduce((n, r) => n + (r.pitStops || 0), 0), inv: rows.filter(r => r.investigation) };
+}
+function racesCompareHTML(ids) {
+  const facts = ids.map(raceById).filter(Boolean).sort((a, b) => a.season.localeCompare(b.season) || raceOrder(a, b)).map(raceFacts);
+  if (facts.length < 2) return '<div class="empty">Pick at least two races to compare.</div>';
+  const nm = r => esc(surname(r.driver));
+  const rowsDef = [
+    ['Race', f => esc(f.rc.name || '–')], ['Date', f => esc(fmtDate(f.rc.date))], ['Circuit', f => esc(f.rc.circuit || '–')],
+    ['Podium', f => f.podium.length ? f.podium.map(r => `${r.finish}. ${nm(r)}`).join('<br>') : '–'],
+    ['Pole', f => f.pole ? nm(f.pole) : '–'], ['Fastest lap', f => f.fl ? nm(f.fl) : '–'],
+    ['Winner started', f => !f.win ? '–' : f.win.qualiPos != null ? 'Quali P' + f.win.qualiPos : f.win.grid != null ? 'Grid P' + f.win.grid : '–'],
+    ['Classified', f => String(f.nCl)],
+    ['DNFs', f => f.dnf.length ? f.dnf.length + '<br>' + f.dnf.map(r => `${nm(r)}${r.outReason ? ' (' + esc(r.outReason) + ')' : ''}`).join('<br>') : '0'],
+    ['Penalties', f => f.pen.length ? f.pen.map(r => `${nm(r)} ${esc(r.penalty)}`).join('<br>') : '–'],
+    ['Laps down', f => String(f.laps.length)],
+    ['Pit stops', f => f.pitKnown ? String(f.pits) : '–'],
+    ['Investigations', f => f.inv.length ? f.inv.map(nm).join(', ') : '–']
+  ];
+  const head = `<tr><th class="lab"></th>${facts.map(f => `<th><span aria-hidden="true">${esc(f.rc.flag)}</span> ${esc(f.rc.city)}<br><span style="font-weight:500">${esc(f.rc.season)} · RD${f.rc.round ?? '?'}</span></th>`).join('')}</tr>`;
+  const table = `<div class="tbox"><table class="t cmp" data-cmp="races"><thead>${head}</thead><tbody>${rowsDef.map(([l, fn]) => `<tr data-row="${esc(l)}"><td class="lab">${l}</td>${facts.map(f => `<td>${fn(f)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  // per-driver grid
+  const codes = new Map();
+  facts.forEach((f, i) => f.rows.forEach(r => { if (!r.driver) return; const o = codes.get(r.driver) || { code: r.driver, team: r.team, fs: [] }; o.fs[i] = r; o.team = r.team || o.team; codes.set(r.driver, o); }));
+  const list = [...codes.values()].sort((a, b) => { const av = o => { const v = facts.map((_, i) => o.fs[i] && classified(o.fs[i]) ? o.fs[i].finish : 30); return v.reduce((x, y) => x + y, 0) / v.length; }; return av(a) - av(b) || dName(a.code).localeCompare(dName(b.code)); });
+  const cell = r => {
+    if (!r) return '<td><div class="cell"></div></td>';
+    let cls = '', txt = '';
+    if (classified(r)) { txt = r.finish; cls = r.finish === 1 ? 'c1' : r.finish === 2 ? 'c2' : r.finish === 3 ? 'c3' : r.finish <= 10 ? 'cp' : ''; } else if (r.status) { txt = r.status; cls = 'cx'; }
+    const tip = [r.finish != null ? 'P' + r.finish : r.status || 'no result', r.penalty && 'penalty ' + r.penalty + (r.penaltyNote ? ' (' + r.penaltyNote + ')' : ''), r.lapsDown > 0 && '+' + r.lapsDown + ' lap', r.outReason, r.investigation && 'under investigation', r.pitStops != null && r.pitStops + ' pit stop' + (r.pitStops === 1 ? '' : 's')].filter(Boolean).join(' · ');
+    return `<td><div class="cell ${cls}" title="${esc(tip)}">${txt}${r.pole ? '<b class="bp" title="Pole">P</b>' : ''}${r.fastestLap ? '<b class="bf" title="Fastest lap">FL</b>' : ''}${r.penalty || r.investigation ? '<b class="bt" title="Penalty or investigation">!</b>' : ''}${r.lapsDown > 0 ? `<b class="bl">+${r.lapsDown}L</b>` : ''}</div></td>`;
+  };
+  const grid = `<div class="gbox" data-cmp="grid"><table class="g gcmp"><thead><tr><th class="sticky">Driver</th>${facts.map(f => `<th title="${esc(f.rc.city)}"><span class="hf" aria-hidden="true">${esc(f.rc.flag)}</span><span class="hn">${f.rc.round ?? '?'}</span></th>`).join('')}</tr></thead><tbody>${list.map(o =>
+    `<tr data-drv="${esc(o.code)}"><td class="sticky"><div class="who"><span class="fl" aria-hidden="true">${esc(dFlag(o.code))}</span><span class="cd">${esc(o.code)}</span><span class="nmt">${esc(surname(o.code))}</span>${teamMark(o.team)}</div></td>${facts.map((f, i) => cell(o.fs[i])).join('')}</tr>`).join('')}</tbody></table></div>`;
+  return table + `<div class="cmp-sec"><h3>Every driver, race by race</h3>${grid}</div>`;
+}
+function renderCompare() {
+  const c = state.cmp, cs = cmpScope(), who = cs.who, list = cmpList(cs);
+  $('cTitle').textContent = { drivers: 'Compare drivers', teams: 'Compare teams', manus: 'Compare manufacturers', races: 'Compare races' }[who];
+  const seasons = seasonList().filter(s => who !== 'manus' || seasonData(s).manus);
+  const opts = [...(who === 'drivers' || who === 'teams' ? [['all', 'All-time']] : []), ...seasons.map(s => [s, s])];
+  $('cCtl').innerHTML = COMPARE_WHO.map(([k, l]) => `<button type="button" class="btn" data-cw="${k}" aria-pressed="${who === k}">${l}</button>`).join('')
+    + `<span class="sp"></span><label><span class="sr">Season</span><select id="cSeason" aria-label="Season">${opts.map(([v, l]) => `<option value="${esc(v)}"${cs.season === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  let picks = c.picks[who].filter(k => list.some(e => e.key === k));
+  const seasonKey = who + '|' + cs.season, changed = c.lastKey !== seasonKey; c.lastKey = seasonKey;
+  if (!c.touched[who] || (changed && picks.length < 2)) {
+    c.touched[who] = false;
+    if (who === 'races') picks = list.filter(e => raceById(e.key) && raceById(e.key).season === cs.season).slice(-2).map(e => e.key);
+    else picks = list.slice(0, 2).map(e => e.key);
+  }
+  picks = picks.slice(0, 4); c.picks[who] = picks;
+  const ents = picks.map(k => list.find(e => e.key === k)), colours = who === 'races' ? [] : assignColours(ents.map(e => e.raw));
+  const full = picks.length >= 4;
+  let add = '';
+  if (who === 'races') {
+    const groups = seasonList().filter(s => s !== cs.season).map(s => { const sd = seasonData(s); const rs = sd.races.filter(r => sd.ran[r.id] && !picks.includes(r.id)); return rs.length ? `<optgroup label="${esc(s)}">${rs.map(r => `<option value="${esc(r.id)}">RD${r.round ?? '?'} ${esc(r.city)}</option>`).join('')}</optgroup>` : ''; }).join('');
+    add = groups ? `<select id="cAdd" aria-label="Add a race from another season"${full ? ' disabled' : ''}><option value="">Add from another season…</option>${groups}</select>` : '';
+  }
+  $('cPick').innerHTML = list.length ? list.map(e => {
+    const i = picks.indexOf(e.key), on = i >= 0, dot = on ? colours[i] : toHex(visibleColour(e.raw || '#9aa0a6'));
+    return `<button type="button" class="pchip" data-pick="${esc(e.key)}" aria-pressed="${on}"${!on && full ? ' disabled' : ''} title="${esc(e.label)}">${who === 'races' ? '' : `<i style="background:${dot}"></i>`}${who === 'drivers' ? esc(e.flag) + ' ' + esc(e.short) : esc(who === 'races' ? e.label : e.short)}</button>`;
+  }).join('') + add : `<div class="empty" style="width:100%">${who === 'manus' ? "No manufacturers' championship in this season." : 'Nothing to compare yet. Results need to be entered first.'}</div>`;
+  let body = '';
+  c.chart = null;
+  if (!list.length) body = '';
+  else if (who === 'races') body = (picks.length ? '' : '') + `<p class="cmp-note">Pick 2 to 4 races. Older seasons only have basic data (no pit stops, penalties or reasons).</p>` + racesCompareHTML(picks);
+  else if (picks.length < 2) body = '<div class="empty">Pick 2 to 4 to compare.</div>';
+  else {
+    const data = ents.map(e => cmpMetrics(who, e.key, cmpRows(who, e.key, cs.seasons)));
+    body = `<p class="cmp-note">${cs.all ? 'All seasons.' : 'Season ' + esc(cs.season) + '.'} Pick 2 to 4. The best value in each row is highlighted.</p>` + statTableHTML(ents, colours, data)
+      + (picks.length === 2 && who !== 'manus' ? h2hHTML(who, ents, colours, cs) : '');
+    if (cs.all) body += '<p class="cmp-note" style="margin-top:12px">The points chart is shown for one season at a time.</p>';
+    else {
+      const spec = chartSpec(who, ents, colours, cs.season);
+      if (spec.labels.length) { c.chart = spec; body += `<div class="cmp-sec"><h3>Points by round</h3><div class="chart" id="cChart" data-cmp="chart"></div><div class="clegend">${spec.series.map(s => `<span><i style="background:${s.colour}"></i>${esc(s.label)}</span>`).join('')}</div></div>`; }
+    }
+  }
+  $('cBody').innerHTML = body;
+  drawChart();
+}
+$('cCtl').addEventListener('click', e => { const b = e.target.closest('[data-cw]'); if (!b) return; state.cmp.who = b.dataset.cw; renderCompare(); });
+$('cCtl').addEventListener('change', e => { if (e.target.id !== 'cSeason') return; state.cmp.season = e.target.value; state.cmp.touched = {}; renderCompare(); });
+$('cPick').addEventListener('click', e => {
+  const b = e.target.closest('[data-pick]'); if (!b) return;
+  const c = state.cmp, who = c.who, k = b.dataset.pick, i = c.picks[who].indexOf(k);
+  c.touched[who] = true;
+  if (i >= 0) { c.picks[who].splice(i, 1); c.extra = c.extra.filter(x => x !== k); } else if (c.picks[who].length < 4) c.picks[who].push(k);
+  renderCompare();
+});
+$('cPick').addEventListener('change', e => {
+  if (e.target.id !== 'cAdd' || !e.target.value) return;
+  const c = state.cmp; if (c.picks.races.length < 4) { c.extra.push(e.target.value); c.picks.races.push(e.target.value); c.touched.races = true; }
+  renderCompare();
+});
+{ let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (state.tab === 'compare') drawChart(); }, 80); }); }
 
 /* ---------- History tab ---------- */
 function renderHistory() {
@@ -1005,32 +1563,57 @@ function renderAll() {
   renderHeader();
   $('app').hidden = !SHEET_ID;
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === state.tab)));
-  ['races', 'standings', 'stats', 'history'].forEach(k => { $('p-' + k).hidden = k !== state.tab; });
+  TABS.forEach(k => { $('p-' + k).hidden = k !== state.tab; });
   if (!state.live) { $('raceList').innerHTML = '<div class="empty">Nothing loaded yet. ' + esc(connectHint()) + '</div>'; $('strip').innerHTML = ''; $('addRow').hidden = true; return; }
   if (state.tab === 'races') renderRaces();
   else if (state.tab === 'standings') renderStandings();
   else if (state.tab === 'stats') renderStats();
+  else if (state.tab === 'compare') renderCompare();
   else renderHistory();
 }
 function setTab(t) { state.tab = t; LS.set('race_tab', t); renderAll(); }
-function setSeason(s) { state.season = s; LS.set('race_season', s); renderAll(); }
+function setSeason(s) { state.season = s; state.cmp.season = ''; LS.set('race_season', s); renderAll(); }
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 $('seasonSel').addEventListener('change', e => setSeason(e.target.value));
 $('refreshBtn').addEventListener('click', () => state.google && !google_.valid() ? googleConnect() : refresh());
 $('strip').addEventListener('click', e => {
   const b = e.target.closest('[data-race]'); if (!b) return;
-  state.open.add(b.dataset.race); rerenderCard(b.dataset.race);
-  const c = document.querySelector(`.rc[data-id="${CSS.escape(b.dataset.race)}"]`); if (c) c.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  state.folded.set(b.dataset.race, false); state.open.add(b.dataset.race); rerenderCard(b.dataset.race); updateListBar();
+  const c = cardEl(b.dataset.race); if (c) c.scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+$('listBar').addEventListener('click', e => {
+  if (!e.target.closest('#foldAll')) return;
+  const sd = seasonData(state.season), all = sd.races.every(r => isFolded(r, sd));
+  sd.races.forEach(r => state.folded.set(r.id, !all));
+  renderRaces();
 });
 $('raceList').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
-  const card = b.closest('.rc'), race = card && raceById(card.dataset.id); if (!race) return;
+  const card = b.closest('.rc, .rc-mini'), race = card && raceById(card.dataset.id); if (!race) return;
   const act = b.dataset.act;
-  if (act === 'toggle') { if (state.open.has(race.id)) state.open.delete(race.id); else { state.open.add(race.id); if (isEditable() && race.status !== 'Cancelled' && race.status !== 'Postponed') getDraft(race); } rerenderCard(race.id); }
+  if (act === 'fold') { const sd = seasonData(race.season); state.folded.set(race.id, !isFolded(race, sd)); rerenderCard(race.id); updateListBar(); }
+  else if (act === 'toggle') { if (state.open.has(race.id)) state.open.delete(race.id); else { state.open.add(race.id); if (isEditable() && race.status !== 'Cancelled' && race.status !== 'Postponed') getDraft(race); } rerenderCard(race.id); }
   else if (act === 'edit') openRaceDlg('edit', race);
   else if (act === 'save') saveRace(race.id, b);
   else { const row = b.closest('[data-code]'); entryAct(race, act, row ? row.dataset.code : '', b); }
+});
+$('raceList').addEventListener('input', e => {
+  const t = e.target.closest('[data-in]'); if (!t) return;
+  const card = t.closest('.rc'), race = card && raceById(card.dataset.id); if (!race) return;
+  if (t.dataset.in === 'paste') { const p = state.paste[race.id] || (state.paste[race.id] = {}); p.text = t.value; return; }
+  const row = t.closest('[data-code]'); if (!row) return;
+  const code = row.dataset.code, d = getDraft(race), x = xOf(d, code);
+  if (t.dataset.in === 'penalty') x.penalty = str(t.value);
+  else if (t.dataset.in === 'penaltyNote') x.penaltyNote = str(t.value);
+  else if (t.dataset.in === 'outNote') { const ui = splitReasonUI(x.outReason); x.outReason = joinReason(ui.reason || (str(t.value) ? 'Other' : ''), t.value); }
+  card.querySelectorAll(`[data-code="${CSS.escape(code)}"] > .rtg, [data-code="${CSS.escape(code)}"] > .top + .rtg`).forEach(el => { el.innerHTML = rowTags(d, code, true); });
+  refreshDirty(race);
+});
+$('raceList').addEventListener('change', e => {
+  const t = e.target.closest('[data-in="pasteSel"]'); if (!t) return;
+  const card = t.closest('.rc'), race = card && raceById(card.dataset.id), p = race && state.paste[race.id]; if (!p || !p.rows) return;
+  p.rows[Number(t.dataset.i)].code = t.value; rerenderCard(race.id);
 });
 $('addRaceBtn').addEventListener('click', () => openRaceDlg('add', null));
 $('rdForm').addEventListener('submit', e => { e.preventDefault(); saveRaceDlg(); });
@@ -1053,7 +1636,7 @@ $('sTable').addEventListener('click', e => {
   if (h) { const so = state.sSort[state.sWho]; if (so.key === h.dataset.sort) so.dir = -so.dir; else { so.key = h.dataset.sort; so.dir = -1; } renderStats(); }
   else if (r) { if (state.sWho === 'drivers') showDriver(r.dataset.open); else showTeam(r.dataset.open); }
 });
-$('hGrid').addEventListener('click', e => { const b = e.target.closest('[data-season]'); if (!b) return; state.season = b.dataset.season; LS.set('race_season', state.season); setTab('standings'); });
+$('hGrid').addEventListener('click', e => { const b = e.target.closest('[data-season]'); if (!b) return; state.season = b.dataset.season; state.cmp.season = ''; LS.set('race_season', state.season); setTab('standings'); });
 
 /* ---------- which sheet ---------- */
 function useSheetLink(text, msgEl) {
@@ -1062,7 +1645,7 @@ function useSheetLink(text, msgEl) {
   const changed = id !== SHEET_ID;
   SHEET_ID = id; LS.set(SETTINGS_KEY, JSON.stringify({ ...LS.json(SETTINGS_KEY), sheetId: id }));
   msgEl.textContent = '';
-  if (changed) { state.live = false; state.races = []; state.results = []; state.cache = {}; state.drafts = {}; state.season = ''; }
+  if (changed) { state.live = false; state.races = []; state.results = []; state.cache = {}; state.drafts = {}; state.season = ''; state.folded = new Map(); state.open = new Set(); }
   boot();
   return true;
 }
@@ -1157,7 +1740,7 @@ function boot() {
   })();
 }
 SHEET_ID = str(LS.json(SETTINGS_KEY).sheetId);
-{ const t = LS.get('race_tab'); if (['races', 'standings', 'stats', 'history'].includes(t)) state.tab = t; }
+{ const t = LS.get('race_tab'); if (TABS.includes(t)) state.tab = t; }
 renderAll();
 boot();
 </script>

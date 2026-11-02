@@ -84,5 +84,5 @@ One session per sport or league works well, as long as sessions don't step on ea
 |---|---|---|
 | A-League Men 2026/27 | `apps/team-match` | Live: fixtures, ladder, results, stats, half-time scores, goal scorers, club logos from Drive. |
 | Rugby League World Cup 2026 | `apps/tournament` | Live: men's and women's, goal kicking, half-time. No scorer lists, by design. Finishes 15 Nov. |
-| Formula E | `apps/race` | Built (Stage 1): race cards with tap-in entry, standings grids, stats, history. Season starts 18 Dec 26. See `docs/handoff-formula-e.md`. |
+| Formula E | `apps/race` | Built (Stages 1–2): race cards with tap-in and paste entry, tags and penalties, standings grids, stats, compare, history. Season starts 18 Dec 26. See `docs/handoff-formula-e.md`. |
 | Cricket, AFL, NRL, F1, European football | | Planned, in that rough order. See the hub for dates. |
