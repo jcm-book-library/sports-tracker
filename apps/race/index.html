@@ -130,6 +130,14 @@ table.t{border-collapse:collapse;width:100%;font-size:13px}
 .tm{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:none;vertical-align:middle}
 .tm .dot{display:block;width:12px;height:12px;border-radius:50%}
 .tm img{width:20px;height:20px;object-fit:contain}
+.tml{display:inline-flex;align-items:center;justify-content:center;flex:none;vertical-align:middle;max-width:100%}
+.tml img{display:block;width:auto;height:var(--lh,26px);max-width:calc(var(--lh,26px) * 2);object-fit:contain}
+.pod .tml{margin-top:2px}
+.tn{display:none;color:var(--muted);font-size:11.5px}
+@media (min-width:700px){.tn{display:inline}}
+.phead{display:flex;justify-content:center;padding:2px 0 4px}
+.cmp .lgrow td{padding:6px 8px}
+.pchip .tml{margin-right:-2px}
 .dn{display:inline-flex;align-items:center;gap:6px}
 
 /* entry (tap in order) */
@@ -522,6 +530,7 @@ const quote = tab => /[^A-Za-z0-9_]/.test(tab) ? `'${tab.replace(/'/g, "''")}'` 
 const state = {
   mcp: null, live: false, busy: false, google: false,
   settings: { competition: 'Formula E', season: '', pointsSystem: 'FE', poleBonus: '', fastestLapBonus: '', fastestLapTop10Only: '', teamPoints: 'sum', manufacturerRule: 'best2', manufacturersFrom: '', logoFolder: '' },
+  logos: {},
   seasonRows: {}, points: {}, races: [], results: [], drivers: {}, teams: [], lineups: [], circuits: [], lineage: new Map(), lineageRows: [], powertrains: new Map(),
   season: '', tab: 'races', stTab: 'drivers', stView: 'pos', sWho: 'drivers', sScope: 'cur', sGroup: 'lineage',
   sSort: { drivers: { key: 'PTS', dir: -1 }, teams: { key: 'PTS', dir: -1 } },
@@ -543,10 +552,17 @@ function teamColour(name) {
   let t = teamRow(name) || teamRow(lineageOf(name));
   return (t && safeColour(t.colour1)) || hashColour(name || '?');
 }
-const logoFor = team => null;               // logos arrive later (Drive folder `formula-e`); the slot is ready
-function teamMark(team) {
+/* team logos: file name comes from Team Lineage `logo`; the picture is read from the Drive folder (App Settings logoFolder) after the sheet renders */
+const logoFor = team => {
+  const row = state.lineageRows.find(l => str(l.team) === team), f = row && str(row.logo);
+  return (f && state.logos[f]) || null;
+};
+function logoImg(team, h) {                  // the logo alone, or '' when there is none
   const l = logoFor(team);
-  return `<span class="tm" title="${esc(team)}">${l ? `<img src="${esc(l)}" alt="">` : `<i class="dot" style="background:${esc(teamColour(team))}"></i>`}</span>`;
+  return l ? `<span class="tml" style="--lh:${+h}px"><img src="${esc(l)}" alt="" title="${esc(team)}"></span>` : '';
+}
+function teamMark(team, h) {                 // h = logo height in px; without it (driver rows) the colour dot is always used
+  return (h && logoImg(team, h)) || `<span class="tm" title="${esc(team)}"><i class="dot" style="background:${esc(teamColour(team))}"></i></span>`;
 }
 const PARTICLES = new Set(['da', 'de', 'di', 'del', 'della', 'van', 'von', 'der', 'den', 'le', 'la', 'du', 'dos', 'al', 'el', 'ten', 'ter']);
 function surname(code) { return surnameOf(dName(code), code); }
@@ -721,6 +737,7 @@ async function refresh() {
     notice('');
     setStatus('live', 'Live from your sheet · ' + new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }));
     renderAll();
+    loadLogos().catch(() => {});
   } catch (err) {
     setStatus('error', state.live ? 'Showing the last data loaded' : 'Not connected');
     notice(explain(err), 'error');
@@ -854,7 +871,7 @@ function renderStrip(sd) {
 function podiumHTML(rows) {
   const by = n => rows.find(r => r.finish === n && r.status !== 'DSQ');
   const pod = n => { const r = by(n); return r
-    ? `<div class="pod p${n}"><span class="medal">P${n}</span><span class="fl" aria-hidden="true">${esc(dFlag(r.driver))}</span><span class="nm">${esc(dName(r.driver))}</span>${teamMark(r.team)}</div>`
+    ? `<div class="pod p${n}"><span class="medal">P${n}</span><span class="fl" aria-hidden="true">${esc(dFlag(r.driver))}</span><span class="nm">${esc(dName(r.driver))}</span>${teamMark(r.team, 40)}</div>`
     : `<div class="pod p${n} none"><span class="medal">P${n}</span><span class="nm">–</span></div>`; };
   return `<div class="podium">${pod(2)}${pod(1)}${pod(3)}</div>`;
 }
@@ -874,6 +891,11 @@ function tagsHTML(o) {
   if (o.investigation) t.push('<span class="tag inv">Under investigation</span>');
   return t.join(' ');
 }
+function classTeam(team) {                   // logo (plus the short name on wide screens), or dot and name when there is no logo
+  if (!logoFor(team)) return `<span class="dn">${teamMark(team)}${esc(team)}</span>`;
+  const t = teamRow(team);
+  return `<span class="dn">${teamMark(team, 26)}<span class="tn">${esc((t && t.short) || team)}</span></span>`;
+}
 function classificationHTML(rows) {
   if (!rows.length) return '<p class="muted" style="margin:0;text-align:center;font-size:13px">No results entered yet.</p>';
   const order = { DNF: 1, NC: 2, DSQ: 3, DNS: 4 };
@@ -882,7 +904,7 @@ function classificationHTML(rows) {
     const c = r.calc, out = !!r.status, bad = out && (r.finish == null || r.status === 'DSQ');
     const tip = `Race ${pf(c.race)}${c.pole ? ' · pole ' + pf(c.pole) : ''}${c.quali ? ' · quali ' + pf(c.quali) : ''}${c.fl ? ' · fastest lap ' + pf(c.fl) : ''}${c.grp ? ' · group ' + pf(c.grp) : ''}${c.adj ? ' · adjustment ' + pf(c.adj) : ''}`;
     const rc = raceById(r.raceId), tg = [rc ? standInTag(rc.season, rc.round, r.driver) : '', tagsHTML(r)].filter(Boolean).join(' ');
-    return `<tr${bad ? ' class="x"' : ''}><td class="pos">${classified(r) ? r.finish : (r.status || '–')}</td><td class="l">${driverTag(r.driver)}${r.pole ? '<span class="badge p" title="Pole">P</span>' : ''}${r.fastestLap ? '<span class="badge f" title="Fastest lap">FL</span>' : ''}${tg ? `<span class="tg">${tg}</span>` : ''}</td><td class="l"><span class="dn">${teamMark(r.team)}${esc(r.team)}</span></td><td>${r.qualiPos ?? ''}</td><td>${r.pitStops ?? ''}</td><td title="${esc(tip)}"><b>${pf(c.total)}</b></td></tr>`;
+    return `<tr${bad ? ' class="x"' : ''}><td class="pos">${classified(r) ? r.finish : (r.status || '–')}</td><td class="l">${driverTag(r.driver)}${r.pole ? '<span class="badge p" title="Pole">P</span>' : ''}${r.fastestLap ? '<span class="badge f" title="Fastest lap">FL</span>' : ''}${tg ? `<span class="tg">${tg}</span>` : ''}</td><td class="l">${classTeam(r.team)}</td><td>${r.qualiPos ?? ''}</td><td>${r.pitStops ?? ''}</td><td title="${esc(tip)}"><b>${pf(c.total)}</b></td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 const invNames = rows => rows.filter(r => r.investigation).map(r => surname(r.driver));
@@ -1407,7 +1429,7 @@ function renderStandings() {
   if (state.stTab === 'drivers') {
     body = sd.drivers.length ? sd.drivers.map(d => `<tr data-drv="${esc(d.code)}" style="cursor:pointer"><td class="sticky"><div class="who"><span class="ps">${d.pos}</span><span class="fl" aria-hidden="true">${esc(dFlag(d.code))}</span><span class="cd">${esc(d.code)}</span><span class="fn">${esc(dName(d.code))}</span>${teamMark(d.team)}<span class="tot">${pf(d.total)}</span></div></td>${races.map(rc => driverCell(d, rc, sd, state.stView)).join('')}</tr>`).join('') : '';
   } else {
-    const list = state.stTab === 'teams' ? sd.teams.map(t => ({ pos: t.pos, name: t.team, total: t.total, per: t.per, mark: teamMark(t.team) })) : sd.manus.map(m => ({ pos: m.pos, name: m.name, total: m.total, per: m.per, mark: '' }));
+    const list = state.stTab === 'teams' ? sd.teams.map(t => ({ pos: t.pos, name: t.team, total: t.total, per: t.per, mark: teamMark(t.team, 26) })) : sd.manus.map(m => ({ pos: m.pos, name: m.name, total: m.total, per: m.per, mark: '' }));
     body = list.map(t => `<tr><td class="sticky"><div class="who"><span class="ps">${t.pos}</span>${t.mark}<span class="nmt">${esc(t.name)}</span><span class="tot">${pf(t.total)}</span></div></td>${races.map(rc => `<td><div class="cell">${sd.ran[rc.id] && t.per[rc.id] != null ? pf(t.per[rc.id]) : ''}</div></td>`).join('')}</tr>`).join('');
   }
   $('stGrid').innerHTML = body ? `<table class="g"><thead><tr><th class="sticky">Pos · ${state.stTab === 'drivers' ? 'Driver' : state.stTab === 'teams' ? 'Team' : 'Maker'} · Pts</th>${headCols(races)}</tr></thead><tbody>${body}</tbody></table>` : '<div class="empty" style="border:0">No results entered yet.</div>';
@@ -1470,7 +1492,7 @@ function renderStats() {
   const rows = (w === 'drivers' ? aggDrivers(seasons) : aggTeams(seasons)).filter(r => w === 'teams' || r.S || r.PTS || r.PP || r.W || r.C);
   rows.sort((a, b) => (b[so.key] - a[so.key]) * -so.dir || name(a).localeCompare(name(b)));
   $('sTable').innerHTML = rows.length ? `<table class="st"><thead><tr><th class="sticky" style="text-align:left;padding:0 10px">${w === 'drivers' ? 'Driver' : 'Team'}</th>${cols.map(([k, t]) => `<th aria-sort="${so.key === k ? (so.dir < 0 ? 'descending' : 'ascending') : 'none'}"><button type="button" data-sort="${k}" title="${esc(t)}">${labels[k] || k}${so.key === k ? (so.dir < 0 ? ' ▼' : ' ▲') : ''}</button></th>`).join('')}</tr></thead><tbody>${rows.map(r =>
-    `<tr data-open="${esc(w === 'drivers' ? r.code : r.key)}"><td class="sticky">${w === 'drivers' ? driverTag(r.code) : `<span class="dn">${teamMark(r.key)}${esc(r.key)}</span>`}</td>${cols.map(([k]) => `<td class="${k === 'PTS' ? 'pk' : ''}${so.key === k ? ' sorted' : ''}">${pf(r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    `<tr data-open="${esc(w === 'drivers' ? r.code : r.key)}"><td class="sticky">${w === 'drivers' ? driverTag(r.code) : `<span class="dn">${teamMark(r.key, 26)}${esc(r.key)}</span>`}</td>${cols.map(([k]) => `<td class="${k === 'PTS' ? 'pk' : ''}${so.key === k ? ' sorted' : ''}">${pf(r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table>`
     : '<div class="empty" style="border:0">Nothing to show for this scope yet.</div>';
   $('sNote').textContent = `${w === 'drivers' ? 'S starts, W wins, P podiums, PP poles, FL fastest laps, DNF retirements, Top 10 points finishes, C championships (completed seasons only).' : 'Starts are race entries (one per car). Titles count completed seasons only.'} Tap a header to sort, tap a row for the profile.`;
 }
@@ -1522,9 +1544,9 @@ function showTeam(key) {
   const all = aggTeams(seasonList()).find(x => x.key === key) || {};
   const nameList = [...names].sort((a, b) => (span(seasonsOf.get(a) || []) || 'z').localeCompare(span(seasonsOf.get(b) || []) || 'z'));
   $('pTitle').textContent = key;
-  $('pBody').innerHTML = `<div class="kv"><span><b>Seasons</b> ${all.Se || 0}</span><span><b>Starts</b> ${all.S || 0}</span><span><b>Wins</b> ${all.W || 0}</span><span><b>Podiums</b> ${all.P || 0}</span><span><b>Poles</b> ${all.PP || 0}</span><span><b>Fastest laps</b> ${all.FL || 0}</span><span><b>Points</b> ${pf(all.PTS || 0)}</span><span><b>Titles</b> ${all.T || 0}</span></div>
+  $('pBody').innerHTML = `${logoFor(key) ? `<div class="phead">${teamMark(key, 48)}</div>` : ''}<div class="kv"><span><b>Seasons</b> ${all.Se || 0}</span><span><b>Starts</b> ${all.S || 0}</span><span><b>Wins</b> ${all.W || 0}</span><span><b>Podiums</b> ${all.P || 0}</span><span><b>Poles</b> ${all.PP || 0}</span><span><b>Fastest laps</b> ${all.FL || 0}</span><span><b>Points</b> ${pf(all.PTS || 0)}</span><span><b>Titles</b> ${all.T || 0}</span></div>
     ${extrasHTML(seasonList().flatMap(s => seasonData(s).rows.filter(r => r.team && groupKey(r.team) === key)))}
-    <div><h3>Previous names</h3><ul class="plist">${nameList.map(n => `<li><span class="dn">${teamMark(n)}<b>${esc(n)}</b></span> <span class="muted">${esc(span(seasonsOf.get(n) || []))}</span></li>`).join('') || '<li class="muted">None</li>'}
+    <div><h3>Previous names</h3><ul class="plist">${nameList.map(n => `<li><span class="dn">${teamMark(n, 24)}<b>${esc(n)}</b></span> <span class="muted">${esc(span(seasonsOf.get(n) || []))}</span></li>`).join('') || '<li class="muted">None</li>'}
       ${[...entrants].map(([e, s]) => `<li>${esc(e)} <span class="muted">entrant · ${esc(span(s))}</span></li>`).join('')}</ul></div>
     <div><h3>Drivers by season</h3><div class="tbox"><table class="t"><tbody>${[...drivers].sort((a, b) => b[0].localeCompare(a[0])).map(([s, set]) => `<tr><td class="l">${esc(s)}</td><td class="l">${[...set].map(c => esc(dFlag(c) + ' ' + dName(c) + partYear(s, c))).join(', ')}</td></tr>`).join('')}</tbody></table></div></div>`;
   $('pDlg').showModal();
@@ -1567,7 +1589,7 @@ function cmpList(cs) {
   if (who === 'teams') {
     const m = new Map();
     for (const s of cs.seasons) seasonData(s).teams.forEach(t => { const k = lineageOf(t.team); const o = m.get(k) || { key: k, label: cs.all ? k : t.team, pts: 0, team: t.team }; o.pts += t.total; o.team = t.team; m.set(k, o); });
-    return [...m.values()].sort((a, b) => b.pts - a.pts || a.key.localeCompare(b.key)).map(o => ({ key: o.key, label: o.label, short: o.label, flag: '', raw: teamColour(o.team) }));
+    return [...m.values()].sort((a, b) => b.pts - a.pts || a.key.localeCompare(b.key)).map(o => ({ key: o.key, label: o.label, short: o.label, flag: '', logoName: o.label, raw: teamColour(o.team) }));
   }
   if (who === 'manus') {
     const sd = seasonData(cs.season);
@@ -1642,7 +1664,7 @@ function bestCells(vals, dir) {
 function statTableHTML(ents, colours, data) {
   const defs = [['S', 'Starts', 1], ['W', 'Wins', 1], ['P', 'Podiums', 1], ['PP', 'Poles', 1], ['FL', 'Fastest laps', 1], ['DNF', 'DNFs', -1], ['T10', 'Top 10', 1], ['PTS', 'Points', 1], ['avgFin', 'Avg finish', -1], ['avgQ', 'Avg quali', -1], ['best', 'Best finish', -1]];
   const show = (k, v) => v == null ? '–' : k === 'avgFin' || k === 'avgQ' ? v.toFixed(1) : k === 'best' ? 'P' + v : pf(v);
-  return `<div class="tbox"><table class="t cmp" data-cmp="stats"><thead><tr><th class="lab"></th>${ents.map((e, i) => `<th><span class="sw" style="background:${colours[i]}"></span>${esc(e.short)}</th>`).join('')}</tr></thead><tbody>${defs.map(([k, label, dir]) => {
+  return `<div class="tbox"><table class="t cmp" data-cmp="stats"><thead><tr><th class="lab"></th>${ents.map((e, i) => `<th><span class="sw" style="background:${colours[i]}"></span>${esc(e.short)}</th>`).join('')}</tr></thead><tbody>${ents.some(e => e.logoName && logoFor(e.logoName)) ? `<tr class="lgrow" data-row="logo"><td class="lab"></td>${ents.map(e => `<td>${e.logoName ? logoImg(e.logoName, 30) : ''}</td>`).join('')}</tr>` : ''}${defs.map(([k, label, dir]) => {
     const vals = data.map(d => d[k]), hi = bestCells(vals, dir);
     return `<tr data-row="${k}"><td class="lab">${label}</td>${vals.map((v, i) => `<td class="${hi[i] ? 'best' : ''}">${show(k, v)}</td>`).join('')}</tr>`;
   }).join('')}</tbody></table></div>`;
@@ -1750,7 +1772,7 @@ function renderCompare() {
   }
   $('cPick').innerHTML = list.length ? list.map(e => {
     const i = picks.indexOf(e.key), on = i >= 0, dot = on ? colours[i] : toHex(visibleColour(e.raw || '#9aa0a6'));
-    return `<button type="button" class="pchip" data-pick="${esc(e.key)}" aria-pressed="${on}"${!on && full ? ' disabled' : ''} title="${esc(e.label)}">${who === 'races' ? '' : `<i style="background:${dot}"></i>`}${who === 'drivers' ? esc(e.flag) + ' ' + esc(e.short) : esc(who === 'races' ? e.label : e.short)}</button>`;
+    return `<button type="button" class="pchip" data-pick="${esc(e.key)}" aria-pressed="${on}"${!on && full ? ' disabled' : ''} title="${esc(e.label)}">${who === 'races' ? '' : `<i style="background:${dot}"></i>`}${who === 'teams' ? logoImg(e.logoName, 22) : ''}${who === 'drivers' ? esc(e.flag) + ' ' + esc(e.short) : esc(who === 'races' ? e.label : e.short)}</button>`;
   }).join('') + add : `<div class="empty" style="width:100%">${who === 'manus' ? "No manufacturers' championship in this season." : 'Nothing to compare yet. Results need to be entered first.'}</div>`;
   let body = '';
   c.chart = null;
@@ -1793,7 +1815,7 @@ function renderHistory() {
     const sd = seasonData(s), d = sd.drivers, t = sd.teams[0], m = sd.manus && sd.manus[0];
     return `<button type="button" class="hc" data-season="${esc(s)}"><span class="eyebrow">${esc(s)}</span><span class="big">${sd.races.filter(r => r.status !== 'Cancelled').length} races</span>
       <span class="ln"><b>Drivers</b> ${d[0] ? driverTag(d[0].code) + ' · ' + pf(d[0].total) + ' pts' : '–'}</span>
-      <span class="ln"><b>Teams</b> ${t ? `<span class="dn">${teamMark(t.team)}${esc(t.team)}</span> · ${pf(t.total)} pts` : '–'}</span>
+      <span class="ln"><b>Teams</b> ${t ? `<span class="dn">${teamMark(t.team, 24)}${esc(t.team)}</span> · ${pf(t.total)} pts` : '–'}</span>
       ${m ? `<span class="ln"><b>Manufacturers</b> ${esc(m.name)} · ${pf(m.total)} pts</span>` : ''}
       <ol>${d.slice(0, 3).map(x => `<li>${esc(dFlag(x.code))} ${esc(dName(x.code))} · ${pf(x.total)}</li>`).join('')}</ol></button>`;
   }).join('') : '<div class="empty">No season is complete yet. A season appears here once every race has results.</div>';
@@ -1908,6 +1930,89 @@ $('settingsBtn').addEventListener('click', () => {
 $('sForm').addEventListener('submit', e => { e.preventDefault(); if (useSheetLink($('sLink').value, $('sMsg'))) $('sDlg').close(); });
 $('sClose').addEventListener('click', () => $('sDlg').close());
 
+/* ---------- team logos ----------
+   Kept privately in Google Drive (App Settings: logoFolder; Team Lineage: logo = file name). Read with your own access,
+   background removed, cached in this browser. Any failure quietly keeps the colour dots. */
+const DRIVE = 'Google Drive', LOGO_KEY = 'race_logos';
+function logoCache() { try { return JSON.parse(localStorage.getItem(LOGO_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function saveLogoCache(c) { try { localStorage.setItem(LOGO_KEY, JSON.stringify(c)); } catch (e) {} }
+async function listLogoFiles(folder) {
+  const out = new Map();
+  let token = '';
+  for (let n = 0; n < 40; n++) {
+    let page, next;
+    if (state.google) {
+      const r = await google_.drive(`files?q=${encodeURIComponent(`'${folder}' in parents and trashed = false`)}&fields=nextPageToken,files(id,name,modifiedTime)&pageSize=100${token ? '&pageToken=' + encodeURIComponent(token) : ''}`);
+      page = (r.files || []).map(f => ({ id: f.id, title: f.name, modifiedTime: f.modifiedTime })); next = r.nextPageToken;
+    } else {
+      const input = { query: `parentId = '${folder}'`, excludeContentSnippets: true, pageSize: 100 };
+      if (token) input.pageToken = token;
+      const p = (await state.mcp.callTool(DRIVE, 'search_files', input, { cache: false })).payload || {};
+      page = p.files || []; next = p.nextPageToken;
+    }
+    page.forEach(f => { if (f && f.id) out.set(f.id, f); });
+    if (!next || next === token) break;
+    token = next;
+  }
+  return [...out.values()];
+}
+async function downloadLogo(id) {
+  if (state.google) return URL.createObjectURL(await google_.drive(`files/${id}?alt=media`, true));
+  const p = (await state.mcp.callTool(DRIVE, 'download_file_content', { fileId: id }, { cache: false })).payload || {};
+  return `data:${p.mimeType || 'image/png'};base64,${p.content}`;
+}
+/* flat background -> transparent. Works in place on ImageData-like {data,width,height}; returns it. */
+function keyOutBackground(img) {
+  const d = img.data, w = img.width, h = img.height;
+  const px = (x, y) => { const i = (y * w + x) * 4; return [d[i], d[i + 1], d[i + 2], d[i + 3]]; };
+  const cs = [px(0, 0), px(w - 1, 0), px(0, h - 1), px(w - 1, h - 1)];
+  if (cs.some(c => c[3] < 230)) return img;                 // real logo files can have corners at 254, not 255
+  for (let k = 0; k < 3; k++) if (Math.max(...cs.map(c => c[k])) - Math.min(...cs.map(c => c[k])) > 12) return img;
+  const bg = cs[0], cl = v => v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
+  for (let i = 0; i < d.length; i += 4) {
+    const dd = Math.max(Math.abs(d[i] - bg[0]), Math.abs(d[i + 1] - bg[1]), Math.abs(d[i + 2] - bg[2]));
+    const t = Math.min(1, Math.max(0, (dd - 18) / 90));
+    if (t === 0) { d[i] = d[i + 1] = d[i + 2] = d[i + 3] = 0; continue; }
+    for (let k = 0; k < 3; k++) d[i + k] = cl(bg[k] + (d[i + k] - bg[k]) / t);
+    d[i + 3] = Math.round(255 * t * (d[i + 3] / 255));
+  }
+  return img;
+}
+const prepareLogo = src => new Promise((ok, fail) => {
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const m = Math.max(img.naturalWidth, img.naturalHeight), k = Math.min(256, Math.max(88, m)) / m, c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+      g.putImageData(keyOutBackground(g.getImageData(0, 0, c.width, c.height)), 0, 0);
+      ok(c.toDataURL('image/png'));
+    } catch (e) { fail(e); }
+  };
+  img.onerror = () => fail(new Error('not an image')); img.src = src;
+});
+async function loadLogos() {
+  const folder = String(state.settings.logoFolder || '').trim(), names = [...new Set(state.lineageRows.map(l => str(l.logo)).filter(Boolean))];
+  if (!folder || !names.length || !state.mcp) return;
+  const cache = logoCache(), key = n => folder + '/' + n;
+  let first = false;
+  names.forEach(n => { if (cache[key(n)] && state.logos[n] !== cache[key(n)].src) { state.logos[n] = cache[key(n)].src; first = true; } });
+  if (first) renderAll();
+  let files;
+  try { files = await listLogoFiles(folder); } catch (e) { return; }   // no Drive access: colour dots stay
+  let changed = false;
+  for (const n of names) {
+    const lo = n.toLowerCase(), f = files.find(x => String(x.title).toLowerCase() === lo) || files.find(x => String(x.title).replace(/\.[^.]+$/, '').toLowerCase() === lo);
+    if (!f || (cache[key(n)] && cache[key(n)].mod === f.modifiedTime)) continue;
+    try {
+      const raw = await downloadLogo(f.id);
+      let src; try { src = await prepareLogo(raw); } finally { if (raw.startsWith('blob:')) URL.revokeObjectURL(raw); }
+      cache[key(n)] = { src, mod: f.modifiedTime }; state.logos[n] = src; changed = true;
+    } catch (e) {}
+  }
+  if (changed) { saveLogoCache(cache); renderAll(); }
+}
+
 /* ---------- Google Sheets direct (GitHub Pages and other hosts outside claude.ai) ---------- */
 const google_ = {
   cfgKey: 'race_config', tokKey: 'race_google_token', client: null,
@@ -1917,6 +2022,12 @@ const google_ = {
   saveCfg(c) { LS.set(this.cfgKey, JSON.stringify({ ...this.own(), ...c })); },
   tok() { try { return JSON.parse(localStorage.getItem(this.tokKey) || 'null'); } catch (e) { return null; } },
   valid() { const t = this.tok(); return !!(t && t.exp > Date.now()); },
+  async drive(path, asBlob) {                 // Drive, read-only, with the same sign-in
+    if (!this.valid()) throw { code: 'google_signin' };
+    const res = await fetch('https://www.googleapis.com/drive/v3/' + path, { headers: { Authorization: 'Bearer ' + this.tok().t } });
+    if (!res.ok) throw { code: 'tool_error', message: 'Drive HTTP ' + res.status };
+    return asBlob ? res.blob() : res.json();
+  },
   async callTool(server, tool, input) {
     if (!this.valid()) { googleSignedOut(); throw { code: 'google_signin' }; }
     const root = `https://sheets.googleapis.com/v4/spreadsheets/${input.spreadsheetId}`;
