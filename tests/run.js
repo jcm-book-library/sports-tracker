@@ -219,9 +219,9 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   check('saved scorers come back as one per line, and Details stay open', (await page.inputValue(`#hs-${g0}`)) === "B. Borrello 43'\nL. Gillion 78'" && (await page.getAttribute(tog(g0), 'aria-expanded')) === 'true');
   const saveScorers = async (id, h, a) => { await openDetails(id); await page.fill(`#hs-${id}`, h); await page.fill(`#as-${id}`, a);
     await page.click(`.fx[data-id="${id}"] [data-act="save"]`); await page.waitForFunction(id => !document.querySelector(`.fx[data-id="${id}"]`).hasAttribute('data-dirty'), id); };
-  await saveScorers(ids[1], "J. Smith 10'", "K. Jones 60'");
+  await saveScorers(ids[1], "J. Smith 10'", "K. Jones 88'");
   await saveScorers(ids[2], "S. Hat 5'\nS. Hat 30'\nS. Hat 70' (pen)", '');
-  await saveScorers(ids[3], '', "Nikola Milanovic 20'\nB. Other 33'");
+  await saveScorers(ids[3], '', "Nikola Milanovic 20'\nB. Other 45+2'");
   await page.click('#tab-results'); await page.waitForTimeout(200);
   check('Results lists the scorers under each game', /Goals: .*B\. Borrello 43'.*L\. Gillion 78'/.test(await page.textContent('#results')));
   await page.click('#tab-stats'); await page.waitForTimeout(300);
@@ -239,6 +239,16 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   check('per-club first-goal record: SYD scored first and won; WSW conceded first and lost', fr.some(r => /^SYD 1 1-0-0 0-0-0$/.test(r)) && fr.some(r => /^WSW 1 0-0-0 0-0-1$/.test(r)), fr);
   const hints = await page.evaluate(() => [suggestName('n milanovik', 'NEW', 'x'), suggestName('milanovic', 'NEW', 'x'), suggestName('n milanovic', 'NEW', 'x'), suggestName('k milanovic', 'NEW', 'x')]);
   check('near-miss names are suggested; exact and different-initial names are not', hints[0] === 'Nikola Milanovic' && hints[1] === 'Nikola Milanovic' && hints[2] === null && hints[3] === null, hints);
+  // ---- goals by minute (15-minute bands, late goals) ----
+  const mt = await flat('#minTiles');
+  check("minute tiles: 10 goals with a minute, 60% first half, 1 late goal, 1 stoppage-time goal, latest 88'", /Goals with a minute 10 of 10 listed/i.test(mt) && /1st half 60% 6 goals/i.test(mt) && /2nd half 40% 4 goals/i.test(mt) && /Late goals \(80'\+\) 1 10% of goals/i.test(mt) && /Stoppage time 1/i.test(mt) && /Latest goal 88' MCY v MVC/i.test(mt), mt);
+  check('minute note counts goals with a minute', /from 10 goals with a minute$/.test(await flat('#minNote')), await flat('#minNote'));
+  const mc = await page.evaluate(() => { const c = Chart.getChart('minuteChart'); return { labels: c.data.labels, data: c.data.datasets[0].data, series: c.data.datasets.length, scales: Object.keys(c.options.scales), t1: c.options.plugins.tooltip.callbacks.label({ dataIndex: 0 }), t3: c.options.plugins.tooltip.callbacks.label({ dataIndex: 2 }) }; });
+  check('minute chart: six bands, counts 2-2-2-1-1-2, one series on one y-axis', J(mc.labels) === J(['1–15', '16–30', '31–45', '46–60', '61–75', '76–90']) && J(mc.data) === J([2, 2, 2, 1, 1, 2]) && mc.series === 1 && J(mc.scales) === J(['x', 'y']), mc);
+  check('minute chart tooltips split home and away', mc.t1 === '1–15: 2 goals (2 home, 0 away)' && mc.t3 === '31–45: 2 goals (1 home, 1 away)', [mc.t1, mc.t3]);
+  const mrows = await page.$$eval('#minuteClub tbody tr', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ').trim()));
+  check('per-club bands and late goals: SYD, MCY (conceded a late goal), MVC (scored it)', mrows.some(r => /^SYD – – 1 – – 1 0–0$/.test(r)) && mrows.some(r => /^MCY 1 – – – – – 0–1$/.test(r)) && mrows.some(r => /^MVC – – – – – 1 1–0$/.test(r)), mrows);
+  check('club table has the six bands plus Late', J(await page.$$eval('#minuteClub thead th', ths => ths.map(t => t.textContent.trim()))) === J(['Club', '1–15', '16–30', '31–45', '46–60', '61–75', '76–90', 'Late']));
   await page.click('#tab-matchday'); await page.waitForTimeout(150);
 
   // edit a fixture: change venue of first
@@ -299,7 +309,7 @@ fs.writeFileSync(path.join(__dirname, 'page.html'), doc);
   check('crowds by round table', st.cr >= 1 && st.crH.join() === 'Round,Games,Total,Average');
   check('crowds by club table', st.cc >= 1 && st.ccH.join() === 'Club,Games,Total,Average');
   check('home and away table', st.ha >= 1 && st.haH.join() === 'Club,Home,Away,P,Pts,GF–GA,P,Pts,GF–GA', st.haH);
-  check('two canvases', st.canv === 2);
+  check('three charts: goals by round, goals per game, goals by minute', st.canv === 3);
   check('club tags on stats', st.tags > 0);
   check('goals chart shows every round + finals (32 labels)', st.labels === 32, st.labels);
   const cfg = await page.evaluate(() => {
