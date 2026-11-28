@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#13221a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Big Bash">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<!-- Built from apps/cricket/index.html by tools/build_pages.py. Edit the source, not this file. -->
+<title>Big Bash Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Roboto:wght@400;500;700&display=swap">
+<style>
+/* Big Bash League tracker. Dark green-black page, gold accent, team colours as dots and stripes.
+   Data lives in Supabase (schema cricket); sign-in is shared with the owner's other apps. */
+:root{
+  --bg:#13221a; --surface:#1a3024; --raise:#223d2e; --line:#31553f;
+  --fg:#ffffff; --muted:#a9c4b5; --accent:#f2c230; --accent-ink:#13221a; --danger:#ff8f85; --ok:#6fd49a;
+  --body:"Roboto",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --score:"Nunito",ui-rounded,system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);margin:0;overflow-x:hidden}
+.wrap{max-width:900px;margin:0 auto;padding:18px 16px 48px}
+h1{font-size:clamp(24px,5vw,32px);font-weight:700;letter-spacing:-.01em;margin:0}
+h2{font-size:17px;font-weight:700;margin:0}
+h3{font-size:14px;font-weight:700;margin:0}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);font-weight:700}
+.muted{color:var(--muted)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 12px;margin-bottom:14px}
+.brand .comp{font-size:14px;color:var(--muted)}
+.status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.status[data-state="live"] .dot{background:var(--ok)}
+.status[data-state="error"] .dot{background:var(--danger)}
+.status[data-state="loading"] .dot{background:var(--accent);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.status[data-state="loading"] .dot{animation:none}}
+.btn{border:1px solid var(--line);background:var(--raise);color:var(--fg);border-radius:999px;padding:7px 14px;font-weight:500;font-size:13px}
+.btn:hover{border-color:var(--muted)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn:disabled{opacity:.45;cursor:default}
+.link{background:none;border:0;color:var(--accent);padding:4px 0;font-weight:500;font-size:13px}
+.link:disabled{color:var(--muted);cursor:default}
+.notice{background:var(--raise);border:1px solid var(--line);border-left:3px solid var(--accent);padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px}
+.notice[data-kind="error"]{border-left-color:var(--danger)}
+select,input,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;min-width:0}
+select{padding:6px 8px;font-size:14px;max-width:100%}
+.bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex:1 1 280px}
+.tab{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:8px 4px;font-weight:500;font-size:14px;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.seasonpick{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.panel + .panel{margin-top:14px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:10px;align-items:center}
+
+/* matchday cards */
+.dh{margin:18px 0 8px;font-size:13px;color:var(--accent);letter-spacing:.04em;font-weight:700;text-transform:uppercase}
+.dh:first-child{margin-top:0}
+.fixtures{display:flex;flex-direction:column;gap:12px}
+.fx{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--raise);padding:14px 12px 12px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.fx::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,var(--c1,#555) 0 50%,var(--c2,#555) 50% 100%)}
+.fx[data-dirty]{border-color:var(--accent)}
+.fx-meta{text-align:center;font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.07em}
+.fx-main{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:start}
+.vs{align-self:center;color:var(--muted);font-size:12px;font-weight:700;padding-top:18px}
+.inn{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
+.tm{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;line-height:1.2;min-width:0}
+.tm .nm{min-width:0;overflow-wrap:anywhere}
+.tm .tbc{font-weight:500;color:var(--muted)}
+.crest{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(255,255,255,.35)}
+.sc{font:800 24px/1.1 var(--score);font-variant-numeric:tabular-nums}
+.ovs{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sci{display:flex;align-items:center;justify-content:center;gap:3px}
+.sci input{height:42px;text-align:center;font:800 20px/1 var(--score);padding:0;font-variant-numeric:tabular-nums}
+.sci .w{width:38px}.sci .r{width:58px}
+.sci .sl{color:var(--muted);font-weight:700}
+.ovi{display:flex;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:13px}
+.ovi input{width:54px;height:30px;text-align:center;font:700 15px/1 var(--score);padding:0}
+.sci input:focus,.ovi input:focus,.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent);outline:none}
+.fx-res{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.fx-res .pick{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:100%}
+.rline{font-weight:700;font-size:15px;min-height:1.3em;overflow-wrap:anywhere}
+.rline small{font-weight:400;color:var(--muted);font-size:12.5px}
+.fx-info{text-align:center;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.fx-warn{display:flex;flex-direction:column;gap:2px;text-align:center;font-size:12.5px;color:var(--accent)}
+.fx-warn:empty{display:none}
+.fx-warn .bad{color:var(--danger)}
+.fx-toggle{align-self:center;display:inline-flex;align-items:center;gap:7px;padding:4px 12px;background:transparent}
+.fx-toggle .chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.fx-toggle[aria-expanded="true"] .chev{transform:translateY(2px) rotate(-135deg)}
+.fx-toggle .udot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.fx-toggle .udot[hidden]{display:none}
+.fx-toggle[aria-expanded="true"] .udot{display:none}
+@media (prefers-reduced-motion:reduce){.fx-toggle .chev{transition:none}}
+.fx-more{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;border-top:1px solid var(--line);padding-top:10px}
+.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);min-width:0;text-align:center}
+.f input,.f select,.f textarea{padding:6px 9px;font-size:14px;width:100%;text-align:center}
+.f textarea{min-height:64px;resize:vertical;text-align:left}
+.f.full{grid-column:1 / -1}
+.ro{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;font-size:13px}
+.ro div{text-align:center;min-width:0;overflow-wrap:anywhere}
+.ro b{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
+.ro .full{grid-column:1 / -1}
+.fx-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr);align-items:center;gap:8px}
+.fx-foot > :first-child{justify-self:start}
+.fx-foot > :last-child{justify-self:end}
+.fx-msg{font-size:12.5px;color:var(--muted);text-align:center;overflow-wrap:anywhere}
+.fx-msg.bad{color:var(--danger)}
+.fx-foot .btn{white-space:nowrap;padding:7px 11px}
+@media (max-width:420px){.fx-foot .btn{font-size:12px;padding:7px 9px}.fx-msg{font-size:11.5px}.sci .r{width:52px}.sci .w{width:34px}}
+
+/* tables */
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+.t th{text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;padding:7px 5px;border-bottom:1px solid var(--line)}
+.t td{padding:8px 5px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.t th.l,.t td.l{text-align:left}
+.t tbody tr:first-child td{border-top:0}
+.t td.pts{font-weight:700}
+.t .tn{display:flex;align-items:center;gap:6px;font-weight:500;min-width:0}
+.t .tn small{display:block;font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;font-weight:500}
+.t tr.q td{background:rgba(242,194,48,.08)}
+.t tr.q td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.t tr.cut td{border-bottom:2px dashed var(--accent)}
+@media (max-width:420px){.t{font-size:13px}.t th,.t td{padding-inline:3px}.t th{font-size:10px;letter-spacing:0}}
+.finals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:420px){.finals{grid-template-columns:minmax(0,1fr)}}
+.tie{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:5px;font-size:14px;min-width:0}
+.tie .tm{justify-content:flex-start;font-weight:500}
+.tie .st{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700}
+.tie .rs{font-size:12.5px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+@media (max-width:700px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.grid2 > .panel{margin-top:0}
+.sub{font-size:12.5px;color:var(--muted);margin:0 0 8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{background:transparent;color:var(--muted);border:0;padding:6px 14px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.list{list-style:none;margin:0;padding:0;font-size:14px}
+.list li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.list .v{font-weight:700;font-variant-numeric:tabular-nums;flex:none;text-align:right}
+.list .l{min-width:0;overflow-wrap:anywhere}
+.list small{display:block;color:var(--muted);font-size:12px}
+.hrow{display:block;width:100%;text-align:left;background:var(--raise);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--fg)}
+.hrow:hover{border-color:var(--accent)}
+.hrow b{font-size:16px}
+.hlist{display:flex;flex-direction:column;gap:8px}
+.hrow .hb{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:4px;font-size:13px;color:var(--muted)}
+.hrow .hb span b{font-size:13px;color:var(--fg);font-weight:500}
+footer{margin-top:22px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;font-size:12.5px;color:var(--muted);text-align:center}
+.fine{font-size:12.5px;color:var(--muted);margin:14px 0 0;text-align:center}
+
+dialog{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:0;width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+dialog::backdrop{background:rgba(5,12,8,.7)}
+.dlg-head,.dlg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px}
+.dlg-head{border-bottom:1px solid var(--line)}
+.dlg-foot{border-top:1px solid var(--line)}
+.dlg-body{padding:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dlg-body .f{text-align:left}
+.dlg-body .f input,.dlg-body .f select{text-align:left}
+.dlg-err{padding:0 14px 10px;color:var(--danger);font-size:13px;min-height:1px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:14px;padding:9px 16px;border-radius:999px;z-index:20;max-width:calc(100vw - 32px);text-align:center}
+#toast[data-kind="error"]{background:var(--danger)}
+
+/* sign-in card */
+body.signed-out .wrap{display:none}
+#signCard{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;background:var(--bg)}
+#signCard[hidden]{display:none}
+.sc-card{width:min(400px,100%);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px 22px 20px;display:grid;gap:14px;min-width:0}
+.sc-card h2{font-size:20px;text-align:center}
+.sc-brand{text-align:center}
+.sc-card form{display:grid;gap:10px;min-width:0}
+.sc-card form[hidden]{display:none}
+.sc-card label{font-size:12.5px;color:var(--muted)}
+.sc-card input{width:100%;font-size:16px;padding:10px 12px}
+.sc-card input:focus{border-color:var(--accent);outline:none}
+.sc-card .btn{min-height:42px;font-size:15px}
+#scCode{font-size:26px;letter-spacing:.4em;text-align:center;padding-left:calc(12px + .4em)}
+.sc-sub{margin:0;text-align:center;font-size:13.5px;color:var(--muted);overflow-wrap:anywhere}
+.sc-msg{margin:0;min-height:1.3em;text-align:center;font-size:13.5px;color:var(--muted)}
+.sc-msg[data-kind="err"]{color:var(--danger)}
+.sc-links{display:flex;justify-content:center;gap:6px 16px;flex-wrap:wrap}
+.linkish{background:none;border:0;padding:4px;font:inherit;font-size:13px;color:var(--accent);text-decoration:underline}
+.linkish[disabled]{color:var(--muted);cursor:default;text-decoration:none}
+</style>
+
+<div id="signCard" hidden>
+  <div class="sc-card" role="main">
+    <div class="sc-brand"><div class="eyebrow">Big Bash Tracker</div></div>
+    <h2 id="scTitle">Sign in with your email</h2>
+    <form id="scEmailForm" novalidate>
+      <label for="scEmail">Email</label>
+      <input id="scEmail" type="email" inputmode="email" autocomplete="username email" autocapitalize="off" spellcheck="false" placeholder="you@example.com">
+      <button class="btn btn-primary" type="submit" id="scSend">Send code</button>
+    </form>
+    <form id="scCodeForm" novalidate hidden>
+      <p class="sc-sub">We sent a code to <b id="scSentTo"></b>. It can take a minute to arrive.</p>
+      <label for="scCode">6-digit code</label>
+      <input id="scCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="one-time-code" placeholder="000000">
+      <button class="btn btn-primary" type="submit" id="scGo">Sign in</button>
+      <div class="sc-links"><button class="linkish" type="button" id="scResend" disabled>Resend code</button><button class="linkish" type="button" id="scBack">Use a different email</button></div>
+    </form>
+    <form id="scPwForm" novalidate hidden>
+      <label for="scPwEmail">Email</label>
+      <input id="scPwEmail" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false">
+      <label for="scPw">Password</label>
+      <input id="scPw" type="password" autocomplete="current-password">
+      <button class="btn btn-primary" type="submit" id="scPwGo">Sign in</button>
+    </form>
+    <p class="sc-msg" id="scMsg" role="alert"></p>
+    <div class="sc-links"><button class="linkish" type="button" id="scAlt">Use password instead</button></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="eyebrow">Cricket</div>
+      <h1>Big Bash League</h1>
+      <div class="comp" id="compLine">&nbsp;</div>
+    </div>
+    <div class="status" id="status" data-state="loading" role="status">
+      <span class="dot"></span><span id="statusText">Connecting…</span>
+      <button class="btn" id="refreshBtn" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <div class="panel" id="setupPanel" hidden>
+    <div class="empty">
+      <div><b>No matches in the database yet.</b><br>Load the Big Bash history (2011/12 to now) and the 2026/27 fixtures. It is safe to do twice: rows already there are left alone.</div>
+      <button class="btn btn-primary" type="button" id="setupBtn">Load history</button>
+      <div id="setupMsg" class="muted" role="status"></div>
+    </div>
+  </div>
+
+  <div id="views" hidden>
+    <div class="bar">
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button class="tab" role="tab" data-tab="matches" aria-selected="true">Matches</button>
+        <button class="tab" role="tab" data-tab="ladder" aria-selected="false">Ladder</button>
+        <button class="tab" role="tab" data-tab="stats" aria-selected="false">Stats</button>
+        <button class="tab" role="tab" data-tab="history" aria-selected="false">History</button>
+      </nav>
+      <label class="seasonpick">Season <select id="seasonSel" aria-label="Season"></select></label>
+    </div>
+    <section id="view-matches" role="tabpanel"><div class="fixtures" id="matchList"></div></section>
+    <section id="view-ladder" role="tabpanel" hidden></section>
+    <section id="view-stats" role="tabpanel" hidden></section>
+    <section id="view-history" role="tabpanel" hidden></section>
+  </div>
+
+  <footer id="foot" hidden>
+    <span id="whoLine"></span>
+    <button class="link" type="button" id="setupFoot">Load history</button>
+    <button class="link" type="button" id="signOutBtn">Sign out</button>
+  </footer>
+</div>
+
+<dialog id="fxDlg" aria-labelledby="fxTitle">
+  <div class="dlg-head"><h2 id="fxTitle">Edit fixture</h2></div>
+  <div class="dlg-body">
+    <label class="f">Date<input id="fxDate" type="date"></label>
+    <label class="f">Start time (Melbourne)<input id="fxTime" type="time"></label>
+    <label class="f" style="grid-column:1 / -1">Venue<input id="fxVenue" list="venueList" autocomplete="off"></label>
+    <label class="f">Home<select id="fxHome"></select></label>
+    <label class="f">Away<select id="fxAway"></select></label>
+  </div>
+  <datalist id="venueList"></datalist>
+  <div class="dlg-err" id="fxErr" role="alert"></div>
+  <div class="dlg-foot"><button class="btn" type="button" id="fxCancel">Cancel</button><button class="btn btn-primary" type="button" id="fxSave">Save fixture</button></div>
+</dialog>
+<div id="toast" role="status" hidden></div>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const fmtDate = s => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); if (!m) return ''; const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); return `${DOW[d.getUTCDay()]} ${+m[3]} ${MON[+m[2] - 1]} ${m[1].slice(2)}`; };
+const fmtTime = t => { const m = /^(\d\d):(\d\d)/.exec(t || ''); if (!m) return ''; const h = +m[1]; return `${h % 12 || 12}:${m[2]}${h < 12 ? 'am' : 'pm'}`; };
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const fmtOvers = b => b == null || b === '' ? '' : Math.floor(b / 6) + (b % 6 ? '.' + (b % 6) : '');
+const fmtNrr = x => x == null || x === '' ? '' : (x > 0 ? '+' : '') + Number(x).toFixed(3);
+const pInt = s => { s = String(s ?? '').trim(); if (s === '') return null; return /^\d+$/.test(s) ? +s : undefined; };
+const pOvers = s => { s = String(s ?? '').trim(); if (s === '') return null; const m = /^(\d+)(?:\.([0-5]))?$/.exec(s); return m ? +m[1] * 6 + +(m[2] || 0) : undefined; };
+
+/* ---------- Supabase sign-in (shared by every jcm-book-library app) ----------
+   The publishable key is meant to be public: Row Level Security only lets the signed-in owner see their own rows.
+   All the apps live on jcm-book-library.github.io, so they share browser storage: one session under one key
+   (jcm-sb-session) signs in every app on this device. Supabase replaces the refresh token on each refresh, so
+   two apps refreshing at once could sign each other out: refreshes are serialised across tabs and apps with a
+   Web Lock, and the stored session is re-read inside the lock (another app may already have refreshed it).
+   Signing out here signs out every app on this device. */
+const SB = { url: 'https://apeflgdzclpxiktaxyfk.supabase.co', key: 'sb_publishable_AHVRXW-Zi3lLaHilBab1Sg_fPzPvWcg', schema: 'cricket', sesKey: 'jcm-sb-session', lock: 'jcm-sb-refresh' };
+const jwtClaims = t => { try { return JSON.parse(atob(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return {}; } };
+const withLock = fn => (typeof navigator !== 'undefined' && navigator.locks && navigator.locks.request) ? navigator.locks.request(SB.lock, fn) : fn();
+const sb = {
+  ses() { try { return JSON.parse(localStorage.getItem(SB.sesKey) || 'null'); } catch (e) { return null; } },
+  keep(b) { const s = { at: b.access_token, rt: b.refresh_token, exp: Date.now() + (Number(b.expires_in || 3600) - 60) * 1000, email: jwtClaims(b.access_token).email || '' };
+    try { localStorage.setItem(SB.sesKey, JSON.stringify(s)); } catch (e) {} return s; },
+  forget() { try { localStorage.removeItem(SB.sesKey); } catch (e) {} },
+  signedIn() { const s = this.ses(); return !!(s && s.rt); },
+  email() { const s = this.ses(); return (s && s.email) || ''; },
+  async post(path, body, token) {
+    const h = { apikey: SB.key, 'Content-Type': 'application/json' }; if (token) h.Authorization = 'Bearer ' + token;
+    const r = await fetch(`${SB.url}/auth/v1/${path}`, { method: 'POST', headers: h, body: JSON.stringify(body) });
+    return { r, b: await r.json().catch(() => ({})) };
+  },
+  /* Email code (the usual way in): Supabase emails a 6-digit code. Invite-only: create_user false. */
+  async sendCode(email) {
+    let res; try { res = await this.post('otp', { email, create_user: false }); } catch (e) { throw { message: 'Couldn\'t reach the sign-in service. Check your connection and try again.' }; }
+    const { r, b } = res; if (r.ok) return;
+    const c = String(b.error_code || b.code || '');
+    if (r.status === 429 || /rate_limit/.test(c)) throw { message: 'Too many codes requested. Wait a minute, then try again.' };
+    if (r.status === 422 || r.status === 400 || /otp_disabled|signup_disabled|user_not_found/.test(c) || /signups? not allowed/i.test(b.msg || b.message || '')) throw { message: 'This email isn\'t set up for these apps.' };
+    throw { message: r.status >= 500 ? 'The sign-in service had a problem (HTTP ' + r.status + '). Try again shortly.' : (b.msg || b.message || b.error_description || 'HTTP ' + r.status) };
+  },
+  async verifyCode(email, token) {
+    let res; try { res = await this.post('verify', { type: 'email', email, token }); } catch (e) { throw { message: 'Couldn\'t reach the sign-in service. Check your connection and try again.' }; }
+    const { r, b } = res;
+    if (r.ok && b.access_token) return this.keep(b);
+    throw { message: r.status === 429 ? 'Too many tries. Wait a minute, then ask for a new code.' : r.status >= 500 ? 'The sign-in service had a problem (HTTP ' + r.status + '). Try again shortly.' : 'That code isn\'t right, or it has expired. Check the latest email, or send a new code.' };
+  },
+  async signInPassword(email, password) {
+    const { r, b } = await this.post('token?grant_type=password', { email, password });
+    if (!r.ok || !b.access_token) throw { message: r.status === 429 ? 'too many tries. Wait a few minutes and try again.' : r.status >= 500 ? 'Supabase had a problem (HTTP ' + r.status + '). Try again shortly.' : 'that email and password didn\'t match. If you haven\'t set a password yet, sign in with the email link on your laptop and set one first.' };
+    return this.keep(b);
+  },
+  async setPassword(password) {
+    const t = await this.token();
+    const r = await fetch(`${SB.url}/auth/v1/user`, { method: 'PUT', headers: { apikey: SB.key, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
+    const b = await r.json().catch(() => ({}));
+    if (!r.ok) throw { message: b.msg || b.message || b.error_description || 'HTTP ' + r.status };
+  },
+  async signOut() { const s = this.ses(); this.forget();
+    if (s) try { await fetch(`${SB.url}/auth/v1/logout?scope=local`, { method: 'POST', headers: { apikey: SB.key, Authorization: 'Bearer ' + s.at } }); } catch (e) {} },
+  /* Back from an emailed link: Supabase puts the session (or an error) in the address after #. */
+  fromRedirect() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (!h.has('access_token') && !h.has('error_description')) return null;
+    history.replaceState(null, '', location.pathname + location.search);
+    if (h.get('access_token')) { const s = this.keep(Object.fromEntries(h)); return { ok: true, email: s.email }; }
+    return { ok: false, message: (h.get('error_description') || '').replace(/\+/g, ' ') };
+  },
+  /* Access tokens last an hour; the refresh token keeps you signed in. One refresh at a time, across every app. */
+  async token(force) {
+    const s0 = this.ses();
+    if (!s0 || !s0.rt) throw { code: 'sb_signin' };
+    if (!force && s0.exp > Date.now()) return s0.at;
+    if (!this._ref) this._ref = withLock(async () => {
+      const s = this.ses();                                  // re-read: another app may have refreshed while we waited
+      if (!s || !s.rt) throw { code: 'sb_signin' };
+      if (s.at !== s0.at && s.exp > Date.now()) return s.at;
+      const { r, b } = await this.post('token?grant_type=refresh_token', { refresh_token: s.rt });
+      if (r.ok && b.access_token) return this.keep(b).at;
+      if (r.status === 400 || r.status === 401 || r.status === 403) {
+        const now = this.ses();                              // refreshed elsewhere in the meantime: keep that one
+        if (now && now.rt && now.rt !== s.rt && now.exp > Date.now()) return now.at;
+        this.forget(); throw { code: 'sb_signin' };
+      }
+      throw { code: 'api', message: b.msg || b.error_description || 'Supabase sign-in HTTP ' + r.status };
+    }).finally(() => { this._ref = null; });
+    return this._ref;
+  },
+  /* PostgREST call in the cricket schema. opts: method, body, prefer, schema. */
+  async api(path, opts = {}, retried) {
+    const t = await this.token(), sc = opts.schema || SB.schema;
+    const o = { method: opts.method || 'GET', headers: { apikey: SB.key, Authorization: 'Bearer ' + t, 'Accept-Profile': sc, 'Content-Profile': sc } };
+    if (opts.prefer) o.headers.Prefer = opts.prefer;
+    if (opts.body) { o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(opts.body); }
+    const res = await fetch(`${SB.url}/rest/v1/${path}`, o);
+    if (res.status === 401 && !retried) { await this.token(true); return this.api(path, opts, true); }
+    const txt = await res.text(), body = txt ? (() => { try { return JSON.parse(txt); } catch (e) { return txt; } })() : null;
+    if (!res.ok) throw { code: 'api', status: res.status, pg: body && body.code, message: (body && (body.message || body.msg)) || 'Supabase HTTP ' + res.status };
+    return body;
+  }
+};
+
+/* ---------- data layer: the screens never call fetch themselves ---------- */
+const TABLES = {
+  teams:    { order: 'code', conflict: 'user_id,comp,code', defaults: { comp: 'BBL', active: true }, cols: ['comp', 'code', 'name', 'short', 'colour1', 'colour2', 'home_city', 'logo', 'active', 'notes'] },
+  venues:   { order: 'name', conflict: 'user_id,name', defaults: {}, cols: ['name', 'city', 'country', 'notes'] },
+  settings: { order: 'key', conflict: 'user_id,key', defaults: {}, cols: ['key', 'value', 'note'] },
+  ladders:  { order: 'season.asc,pos.asc', conflict: 'user_id,comp,season,team', defaults: { comp: 'BBL' }, cols: ['comp', 'season', 'pos', 'team', 'pld', 'w', 'l', 't', 'nr', 'bp', 'pts', 'nrr', 'notes'] },
+  matches:  { order: 'date.asc.nullslast,id.asc', conflict: 'user_id,id', defaults: { comp: 'BBL', stage: 'League', super_over: false },
+    cols: ['id', 'comp', 'season', 'match_no', 'stage', 'date', 'start_time', 'home', 'away', 'home_slot', 'away_slot', 'venue', 'toss_winner', 'toss_decision', 'bat_first',
+      'home_runs', 'home_wkts', 'home_balls', 'away_runs', 'away_wkts', 'away_balls', 'max_overs', 'result', 'super_over', 'method', 'player_of_match', 'attendance', 'status', 'notes', 'source', 'cricsheet_id'] }
+};
+const SEED_ORDER = ['teams', 'venues', 'settings', 'ladders', 'matches'];
+const idq = id => encodeURIComponent(String(id));
+const db = {
+  async load() {
+    const out = {};
+    for (const t of SEED_ORDER) {
+      const rows = [];
+      for (let off = 0; ; off += 1000) {
+        const part = await sb.api(`${t}?select=*&order=${TABLES[t].order}&limit=1000&offset=${off}`);
+        const arr = Array.isArray(part) ? part : [];
+        rows.push(...arr);
+        if (arr.length < 1000) break;
+      }
+      out[t] = rows;
+    }
+    return out;
+  },
+  /* Change one match. Only the columns in `fields` are sent. Nothing is ever deleted. */
+  async saveMatch(id, fields, loadedUpdatedAt) {
+    const cur = await sb.api(`matches?id=eq.${idq(id)}&select=*`);
+    if (!Array.isArray(cur) || cur.length !== 1) throw { code: 'missing', message: 'Couldn\'t find that match in the database. Press Refresh.' };
+    if ((cur[0].updated_at || null) !== (loadedUpdatedAt || null)) throw { code: 'conflict', message: 'This match changed somewhere else. Press Refresh.' };
+    const rows = await sb.api(`matches?id=eq.${idq(id)}`, { method: 'PATCH', body: fields, prefer: 'return=representation' });
+    if (!Array.isArray(rows) || rows.length !== 1) throw { code: 'api', message: 'The save didn\'t go through (nothing was changed). Press Refresh and try again.' };
+    return rows[0];
+  },
+  /* Load the seed file next to this page into empty (or part-filled) tables. Rows already there are left alone. */
+  async setup(seed, progress) {
+    for (const t of SEED_ORDER) {
+      const def = TABLES[t], rows = (seed[t] || []).map(r => { const o = {};
+        for (const c of def.cols) o[c] = r[c] !== undefined ? r[c] : (c in def.defaults ? def.defaults[c] : null);
+        for (const c of Object.keys(def.defaults)) if (o[c] == null) o[c] = def.defaults[c];
+        return o; });
+      for (let i = 0; i < rows.length; i += 200) {
+        if (progress) progress(`Loading ${t} ${Math.min(i + 200, rows.length)} of ${rows.length}…`);
+        await sb.api(`${t}?on_conflict=${def.conflict}`, { method: 'POST', body: rows.slice(i, i + 200), prefer: 'resolution=ignore-duplicates,return=minimal' });
+      }
+    }
+  }
+};
+
+/* ---------- state ---------- */
+const state = { tab: 'matches', season: '', teams: [], venues: [], matches: [], ladders: [], settings: {}, open: new Set(), drafts: {}, msgs: {}, saving: new Set(), statsAll: false, loaded: false, scrollKey: '', memo: {} };
+const byId = id => state.matches.find(m => m.id === id);
+const teamOf = c => state.teams.find(t => t.code === c);
+const tn = c => { const t = teamOf(c); return t ? (t.short || t.name) : (c || ''); };
+const tfull = c => { const t = teamOf(c); return t ? t.name : (c || ''); };
+const setting = (k, d) => (state.settings[k] != null && state.settings[k] !== '' ? state.settings[k] : d);
+const curSeason = () => setting('season', '') || (seasons()[0] || '');
+const seasons = () => [...new Set(state.matches.map(m => m.season))].sort().reverse();
+const isPast = s => s < curSeason();
+const dot = c => { const t = teamOf(c); return `<span class="crest" style="background:${esc(t && t.colour1 || '#667')}"></span>`; };
+const sortMatches = () => state.matches.sort((a, b) => String(a.date || '9999').localeCompare(String(b.date || '9999')) || String(a.start_time || '').localeCompare(String(b.start_time || '')) || String(a.id).localeCompare(String(b.id)));
+const dataChanged = () => { state.memo = {}; };
+const SLOT = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th', LQ: 'Loser of Qualifier', WK: 'Winner of Knockout', WQ: 'Winner of Qualifier', WC: 'Winner of Challenger' };
+
+/* ---------- ladder worked out from matches ---------- */
+function computeLadder(season) {
+  const P = { win: +setting('pointsWin', 2), nr: +setting('pointsNR', 1), tie: +setting('pointsTie', 1), loss: +setting('pointsLoss', 0) }, rows = {};
+  const get = c => rows[c] || (rows[c] = { code: c, p: 0, w: 0, l: 0, t: 0, nr: 0, pts: 0, rf: 0, bf: 0, ra: 0, bb: 0 });
+  for (const m of state.matches) {
+    if (m.season !== season || m.stage !== 'League' || !m.home || !m.away) continue;
+    const H = get(m.home), A = get(m.away);
+    if (!m.result) continue;
+    H.p++; A.p++;
+    if (m.result === 'home') { H.w++; A.l++; H.pts += P.win; A.pts += P.loss; }
+    else if (m.result === 'away') { A.w++; H.l++; A.pts += P.win; H.pts += P.loss; }
+    else if (m.result === 'tie') { H.t++; A.t++; H.pts += P.tie; A.pts += P.tie; }
+    else { H.nr++; A.nr++; H.pts += P.nr; A.pts += P.nr; }
+    if (!['home', 'away', 'tie'].includes(m.result)) continue;
+    if ([m.home_runs, m.home_balls, m.away_runs, m.away_balls].some(x => x == null)) continue;
+    const q = Math.round((Number(m.max_overs) > 0 ? Number(m.max_overs) : +setting('overs', 20)) * 6);
+    const hb = m.home_wkts === 10 ? q : m.home_balls, ab = m.away_wkts === 10 ? q : m.away_balls;
+    H.rf += m.home_runs; H.bf += hb; H.ra += m.away_runs; H.bb += ab;
+    A.rf += m.away_runs; A.bf += ab; A.ra += m.home_runs; A.bb += hb;
+  }
+  const out = Object.values(rows);
+  for (const r of out) r.nrr = r.bf && r.bb ? r.rf / (r.bf / 6) - r.ra / (r.bb / 6) : 0;
+  out.sort((a, b) => b.pts - a.pts || b.w - a.w || b.nrr - a.nrr || tn(a.code).localeCompare(tn(b.code)));
+  out.forEach((r, i) => r.pos = i + 1);
+  return out;
+}
+const ladderOf = season => state.memo['L' + season] || (state.memo['L' + season] = computeLadder(season));
+
+/* Finals: who plays whom, from the ladder (slots 1-4) and the finals' own results (LQ, WQ, WK, WC). */
+function finalsMap(season) {
+  if (state.memo['F' + season]) return state.memo['F' + season];
+  const ms = state.matches.filter(m => m.season === season), league = ms.filter(m => m.stage === 'League'), finals = ms.filter(m => m.stage !== 'League');
+  const slot = {}, out = {};
+  if (league.length && league.every(m => m.result)) ladderOf(season).slice(0, 4).forEach((r, i) => slot[String(i + 1)] = r.code);
+  for (const [st, win, lose] of [['Qualifier', 'WQ', 'LQ'], ['Knockout', 'WK', null], ['Challenger', 'WC', null], ['Final', null, null]]) {
+    const m = finals.find(x => x.stage === st); if (!m) continue;
+    const t = { home: m.home || slot[m.home_slot] || null, away: m.away || slot[m.away_slot] || null };
+    out[m.id] = t;
+    if (t.home && t.away && (m.result === 'home' || m.result === 'away')) {
+      const w = m.result === 'home' ? t.home : t.away, l = m.result === 'home' ? t.away : t.home;
+      if (win) slot[win] = w; if (lose) slot[lose] = l;
+    }
+  }
+  return state.memo['F' + season] = out;
+}
+const teamsOf = m => (m.stage !== 'League' && finalsMap(m.season)[m.id]) || { home: m.home, away: m.away };
+
+/* ---------- a match's form values, and what they mean ---------- */
+const DETAIL = ['tossW', 'tossD', 'bat', 'maxo', 'so', 'method', 'pom', 'att', 'notes'];
+const s = v => v == null ? '' : String(v);
+function fv(m) {
+  const tie = m.home_runs != null && m.home_runs === m.away_runs;
+  let res = 'auto', sow = '';
+  if (m.result === 'nr' || m.result === 'abandoned') res = m.result;
+  else if (m.result === 'home' || m.result === 'away') {
+    if (tie && m.super_over) sow = m.result;
+    else if (m.home_runs == null || m.away_runs == null || (m.result === 'home') !== (m.home_runs > m.away_runs) || tie) res = m.result;
+  }
+  return { hr: s(m.home_runs), hw: s(m.home_wkts), ho: fmtOvers(m.home_balls), ar: s(m.away_runs), aw: s(m.away_wkts), ao: fmtOvers(m.away_balls),
+    res, sow, tossW: s(m.toss_winner), tossD: s(m.toss_decision), bat: s(m.bat_first), maxo: s(m.max_overs), so: m.super_over ? 'yes' : 'no',
+    method: s(m.method), pom: s(m.player_of_match), att: s(m.attendance), notes: s(m.notes) };
+}
+const vals = m => state.drafts[m.id] || fv(m);
+const draft = m => state.drafts[m.id] || (state.drafts[m.id] = fv(m));
+const isDirty = m => { const d = state.drafts[m.id]; if (!d) return false; const b = fv(m); return Object.keys(b).some(k => d[k] !== b[k]); };
+const detailDirty = m => { const d = state.drafts[m.id]; if (!d) return false; const b = fv(m); return DETAIL.some(k => d[k] !== b[k]); };
+const isDls = x => /^(dls|d\/?l)$/i.test(String(x || '').trim());
+
+function calc(m, v) {
+  const t = teamsOf(m), o = { err: '', warns: [], fields: {}, text: '', sowShow: false };
+  const q = Math.round((Number(v.maxo) > 0 ? Number(v.maxo) : +setting('overs', 20)) * 6);
+  const errs = [];
+  const inn = (r, w, ov, side) => {
+    const R = pInt(r), W = pInt(w), B = pOvers(ov);
+    if (R === undefined || W === undefined) errs.push(`${side}: runs and wickets must be whole numbers.`);
+    else if (W != null && W > 10) errs.push(`${side}: wickets must be 0 to 10.`);
+    if (B === undefined) errs.push(`${side}: overs must look like 18.4 (the part after the dot is balls, 0 to 5).`);
+    else if (B != null && B > q) o.warns.push(`${side}: more than ${fmtOvers(q)} overs.`);
+    return { R: R === undefined ? null : R, W: W === undefined ? null : W, B: B === undefined ? null : B, any: [R, W, B].some(x => x != null), full: [R, W, B].every(x => x != null && x !== undefined) };
+  };
+  const H = inn(v.hr, v.hw, v.ho, 'Home'), A = inn(v.ar, v.aw, v.ao, 'Away');
+  if (v.maxo !== '' && !(Number(v.maxo) > 0)) errs.push('Overs per side must be a number like 10.');
+  if (pInt(v.att) === undefined) errs.push('Attendance must be a whole number.');
+  const f = o.fields;
+  f.home_runs = H.R; f.home_wkts = H.W; f.home_balls = H.B; f.away_runs = A.R; f.away_wkts = A.W; f.away_balls = A.B;
+  f.toss_winner = v.tossW || null; f.toss_decision = v.tossD || null; f.bat_first = v.bat || null;
+  f.max_overs = v.maxo !== '' && Number(v.maxo) > 0 ? Number(v.maxo) : null;
+  f.method = v.method || null; f.player_of_match = v.pom.trim() || null; f.attendance = pInt(v.att) ?? null; f.notes = v.notes.trim() || null;
+  let result = null, superOver = v.so === 'yes';
+  const both = H.full && A.full;
+  if (v.res === 'nr' || v.res === 'abandoned') result = v.res;
+  else if (H.any || A.any) {
+    if (!both) errs.push('A result needs both innings: runs, wickets and overs for each side.');
+    else if (v.res === 'home' || v.res === 'away') result = v.res;
+    else if (H.R > A.R) result = 'home';
+    else if (H.R < A.R) result = 'away';
+    else { if (v.sow === 'home' || v.sow === 'away') { result = v.sow; superOver = true; } else { result = 'tie'; if (superOver) o.warns.push('Super Over: pick who won it.'); } }
+  } else if (v.res === 'home' || v.res === 'away') errs.push('Enter both innings to save a result.');
+  o.sowShow = v.res === 'auto' && both && H.R === A.R;
+  f.result = result; f.super_over = superOver;
+  if (!t.home || !t.away) { if (result || H.any || A.any) errs.push('The teams for this game aren\'t known yet.'); }
+  o.err = errs[0] || ''; o.errs = errs; o.result = result;
+  // result line
+  const nm = c => tn(c) || (c === t.home ? 'Home' : 'Away');
+  const wc = result === 'home' ? t.home : result === 'away' ? t.away : null;
+  const dls = isDls(v.method) ? ' (DLS)' : '';
+  if (result === 'nr') o.text = 'No result';
+  else if (result === 'abandoned') o.text = 'Abandoned';
+  else if (result === 'tie') o.text = 'Match tied';
+  else if (wc && superOver && H.R === A.R) o.text = `${nm(wc)} won the Super Over`;
+  else if (wc) {
+    let bf = v.bat; if (!bf && v.tossW && v.tossD) bf = v.tossD === 'bat' ? v.tossW : (v.tossW === t.home ? t.away : t.home);
+    const W = result === 'home' ? H : A, L = result === 'home' ? A : H;
+    o.text = nm(wc) + ' won';
+    if (both && (bf === t.home || bf === t.away)) {
+      if (bf === wc) { const n = W.R - L.R; if (n > 0) o.text += ` by ${plural(n, 'run')}`; }
+      else { o.text += ` by ${plural(10 - W.W, 'wicket')}`; const left = q - W.B; if (left > 0 && W.W < 10) o.sub = `${plural(left, 'ball')} remaining`; }
+    } else if (both) o.warns.push('Set who batted first (under Details) to show the margin.');
+    o.text += dls;
+  }
+  return o;
+}
+/* Margin of a saved result, for the Stats page. */
+function marginOf(m) {
+  if (!['home', 'away'].includes(m.result) || m.home_runs == null || m.away_runs == null || !m.bat_first) return null;
+  const wc = m.result === 'home' ? m.home : m.away, lc = m.result === 'home' ? m.away : m.home;
+  const W = m.result === 'home' ? [m.home_runs, m.home_wkts, m.home_balls] : [m.away_runs, m.away_wkts, m.away_balls], L = m.result === 'home' ? m.away_runs : m.home_runs;
+  const q = Math.round((Number(m.max_overs) > 0 ? Number(m.max_overs) : +setting('overs', 20)) * 6);
+  if (m.super_over && m.home_runs === m.away_runs) return null;
+  if (m.bat_first === wc) return { type: 'runs', n: W[0] - L, w: wc, l: lc, m };
+  return { type: 'wkts', n: 10 - (W[1] ?? 10), left: W[2] == null ? 0 : q - W[2], w: wc, l: lc, m };
+}
+const resultText = m => calc(m, fv(m)).text;
+
+/* ---------- Matches ---------- */
+const editable = m => !isPast(m.season);
+function sideHtml(m, v, c, side) {
+  const t = teamsOf(m), code = side === 'home' ? t.home : t.away, slot = side === 'home' ? m.home_slot : m.away_slot, ed = editable(m);
+  const name = code ? `${dot(code)}<span class="nm">${esc(tn(code))}</span>` : `<span class="nm tbc">${esc(SLOT[slot] || 'To be decided')}</span>`;
+  const k = side === 'home' ? 'h' : 'a', R = side === 'home' ? m.home_runs : m.away_runs, W = side === 'home' ? m.home_wkts : m.away_wkts, B = side === 'home' ? m.home_balls : m.away_balls;
+  let body;
+  if (ed) body = `<div class="sci"><input class="w" data-f="${k}w" inputmode="numeric" aria-label="${side} wickets" placeholder="W" value="${esc(v[k + 'w'])}"><span class="sl">/</span><input class="r" data-f="${k}r" inputmode="numeric" aria-label="${side} runs" placeholder="R" value="${esc(v[k + 'r'])}"></div>
+      <div class="ovi">(<input data-f="${k}o" inputmode="decimal" aria-label="${side} overs" placeholder="ov" value="${esc(v[k + 'o'])}">)</div>`;
+  else body = R == null ? `<div class="sc">-</div>` : `<div class="sc">${W == null ? '' : W + '/'}${R}</div>${B == null ? '' : `<div class="ovs">(${fmtOvers(B)})</div>`}`;
+  return `<div class="inn ${side}"><div class="tm">${name}</div>${body}</div>`;
+}
+function detailsHtml(m, v, c) {
+  const t = teamsOf(m), codes = [t.home, t.away].filter(Boolean);
+  const opt = (val, label, cur) => `<option value="${esc(val)}"${val === cur ? ' selected' : ''}>${esc(label)}</option>`;
+  const teamOpts = cur => opt('', '-', cur) + codes.map(x => opt(x, tn(x), cur)).join('');
+  if (!editable(m)) {
+    const bits = [['Toss', m.toss_winner ? `${tn(m.toss_winner)}${m.toss_decision ? ' chose to ' + m.toss_decision : ''}` : ''], ['Batted first', m.bat_first ? tn(m.bat_first) : ''],
+      ['Overs per side', m.max_overs ? s(m.max_overs) : ''], ['Super Over', m.super_over ? 'Yes' : ''], ['Method', m.method], ['Player of the match', m.player_of_match], ['Attendance', m.attendance != null ? Number(m.attendance).toLocaleString('en-AU') : ''], ['Notes', m.notes]].filter(x => x[1]);
+    return bits.length ? `<div class="ro">${bits.map(([k, x], i) => `<div${k === 'Notes' ? ' class="full"' : ''}><b>${k}</b>${esc(x)}</div>`).join('')}</div>` : `<div class="muted" style="text-align:center">No extra details.</div>`;
+  }
+  const methods = ['', 'DLS']; if (v.method && !methods.includes(v.method)) methods.push(v.method);
+  return `<label class="f">Toss won by<select data-f="tossW">${teamOpts(v.tossW)}</select></label>
+    <label class="f">Toss decision<select data-f="tossD">${opt('', '-', v.tossD)}${opt('bat', 'Chose to bat', v.tossD)}${opt('field', 'Chose to field', v.tossD)}</select></label>
+    <label class="f">Batted first<select data-f="bat">${teamOpts(v.bat)}</select></label>
+    <label class="f">Overs per side if reduced<input data-f="maxo" inputmode="decimal" placeholder="20" value="${esc(v.maxo)}"></label>
+    <label class="f">Super Over<select data-f="so">${opt('no', 'No', v.so)}${opt('yes', 'Yes', v.so)}</select></label>
+    <label class="f">Method<select data-f="method">${methods.map(x => opt(x, x || '-', v.method)).join('')}</select></label>
+    <label class="f">Player of the match<input data-f="pom" value="${esc(v.pom)}"></label>
+    <label class="f">Attendance<input data-f="att" inputmode="numeric" value="${esc(v.att)}"></label>
+    <label class="f full">Notes<textarea data-f="notes">${esc(v.notes)}</textarea></label>`;
+}
+const stageLabel = m => m.stage === 'League' ? (m.match_no ? 'Match ' + m.match_no : 'League') : m.stage;
+function resPick(m, v, c) {
+  const t = teamsOf(m);
+  const o = (val, label) => `<option value="${val}"${v.res === val ? ' selected' : ''}>${esc(label)}</option>`;
+  const so = (val, label) => `<option value="${val}"${v.sow === val ? ' selected' : ''}>${esc(label)}</option>`;
+  return `<select data-f="res" aria-label="Result">${o('auto', 'Result: auto from runs')}${o('home', (tn(t.home) || 'Home') + ' won')}${o('away', (tn(t.away) || 'Away') + ' won')}${o('nr', 'No result')}${o('abandoned', 'Abandoned')}</select>
+    <select data-f="sow" aria-label="Super Over winner" ${c.sowShow ? '' : 'hidden'}>${so('', 'Tied, no Super Over')}${so('home', (tn(t.home) || 'Home') + ' won the Super Over')}${so('away', (tn(t.away) || 'Away') + ' won the Super Over')}</select>`;
+}
+function footStatus(m, c) {
+  if (state.msgs[m.id]) return { t: state.msgs[m.id].t, bad: state.msgs[m.id].bad };
+  if (c.err && isDirty(m)) return { t: c.err, bad: true };
+  if (isDirty(m)) return { t: 'Unsaved changes', bad: false };
+  if (m.result) return { t: 'Result saved', bad: false };
+  return { t: 'Not played yet', bad: false };
+}
+function cardHtml(m) {
+  const v = vals(m), c = calc(m, v), t = teamsOf(m), ed = editable(m), open = state.open.has(m.id), dirty = isDirty(m);
+  const t1 = teamOf(t.home), t2 = teamOf(t.away), fs = footStatus(m, c);
+  const when = [fmtDate(m.date), fmtTime(m.start_time), m.venue].filter(Boolean).join(' · ');
+  const hint = m.stage !== 'League' && ((!m.home && t.home) || (!m.away && t.away)) && ed ? 'Teams are written to the match when you save.' : '';
+  return `<article class="fx" id="fx-${esc(m.id)}" data-id="${esc(m.id)}" data-season="${esc(m.season)}"${dirty ? ' data-dirty' : ''} style="--c1:${esc(t1 && t1.colour1 || '#555')};--c2:${esc(t2 && t2.colour1 || '#555')}">
+    <div class="fx-meta">${esc(stageLabel(m))}</div>
+    <div class="fx-main">${sideHtml(m, v, c, 'home')}<div class="vs">v</div>${sideHtml(m, v, c, 'away')}</div>
+    <div class="fx-res">${ed ? `<div class="pick">${resPick(m, v, c)}</div>` : ''}<div class="rline" data-role="rline">${resultLine(c)}</div></div>
+    <div class="fx-info">${esc(when) || '&nbsp;'}</div>
+    <div class="fx-warn" data-role="warn">${warnHtml(c, hint)}</div>
+    <button class="btn fx-toggle" type="button" data-act="toggle" aria-expanded="${open}" aria-controls="more-${esc(m.id)}"><span>Details</span><span class="chev"></span><span class="udot" data-role="udot" ${detailDirty(m) ? '' : 'hidden'}></span></button>
+    <div class="${ed ? 'fx-more' : ''}" id="more-${esc(m.id)}" ${open ? '' : 'hidden'}>${detailsHtml(m, v, c)}</div>
+    ${ed ? `<div class="fx-foot"><button class="link" type="button" data-act="edit">Edit fixture</button><div class="fx-msg${fs.bad ? ' bad' : ''}" data-role="msg">${esc(fs.t)}</div><button class="btn btn-primary" type="button" data-act="save" ${dirty && !c.err && !state.saving.has(m.id) ? '' : 'disabled'}>Save result</button></div>` : ''}
+  </article>`;
+}
+const resultLine = c => esc(c.text) + (c.sub ? ` <small>(${esc(c.sub)})</small>` : '');
+const warnHtml = (c, hint) => c.warns.map(w => `<div>${esc(w)}</div>`).join('') + (c.errs || []).slice(1).map(w => `<div class="bad">${esc(w)}</div>`).join('') + (hint ? `<div>${esc(hint)}</div>` : '');
+function repaintCard(id) {
+  const m = byId(id), el = $('fx-' + id); if (!m || !el) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = cardHtml(m); el.replaceWith(tmp.firstElementChild);
+}
+function repaintFinals(season) { state.matches.filter(m => m.season === season && m.stage !== 'League').forEach(m => repaintCard(m.id)); }
+function updateCard(id) {
+  const m = byId(id), el = $('fx-' + id); if (!m || !el) return;
+  const v = vals(m), c = calc(m, v), dirty = isDirty(m), fs = footStatus(m, c);
+  el.toggleAttribute('data-dirty', dirty);
+  el.querySelector('[data-role=rline]').innerHTML = resultLine(c);
+  el.querySelector('[data-role=warn]').innerHTML = warnHtml(c, '');
+  const sow = el.querySelector('[data-f=sow]'); if (sow) sow.hidden = !c.sowShow;
+  const msg = el.querySelector('[data-role=msg]'); msg.textContent = fs.t; msg.classList.toggle('bad', !!fs.bad);
+  el.querySelector('[data-role=udot]').hidden = !detailDirty(m);
+  el.querySelector('[data-act=save]').disabled = !(dirty && !c.err && !state.saving.has(id));
+  // team names in the result pickers can change when a final's teams resolve; the labels only change on repaint
+}
+function renderMatches() {
+  const ms = state.matches.filter(m => m.season === state.season);
+  if (!ms.length) { $('matchList').innerHTML = '<div class="empty">No matches for this season.</div>'; return; }
+  let html = '', last = '#';
+  for (const m of ms) {
+    const d = m.date || '';
+    if (d !== last) { html += `<h3 class="dh">${esc(d ? fmtDate(d) : 'Date to be set')}</h3>`; last = d; }
+    html += cardHtml(m);
+  }
+  $('matchList').innerHTML = html;
+  const key = state.season;
+  if (state.scrollKey !== key) {
+    state.scrollKey = key;
+    const target = ms.find(m => !m.result) || ms[ms.length - 1];
+    if (target && target !== ms[0]) requestAnimationFrame(() => { const el = $('fx-' + target.id); if (el) window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - 70)); });
+  }
+}
+async function saveCard(id) {
+  const m = byId(id); if (!m || state.saving.has(id)) return;
+  const v = vals(m), c = calc(m, v); if (c.err) return;
+  const fields = { ...c.fields };
+  if (m.stage !== 'League') { const t = finalsMap(m.season)[m.id]; if (t) { if (t.home && !m.home) fields.home = t.home; if (t.away && !m.away) fields.away = t.away; } }
+  const changed = diffFields(m, fields);
+  if (!Object.keys(changed).length) { state.msgs[id] = { t: 'Nothing to save' }; delete state.drafts[id]; repaintCard(id); return; }
+  state.saving.add(id); updateCard(id);
+  try {
+    const row = await db.saveMatch(id, changed, m.updated_at);
+    Object.assign(m, row); delete state.drafts[id]; dataChanged(); state.msgs[id] = { t: 'Saved' };
+    state.saving.delete(id); repaintCard(id); repaintFinals(m.season); toast('Saved'); setTimeout(() => { if (state.msgs[id] && state.msgs[id].t === 'Saved') { delete state.msgs[id]; updateCard(id); } }, 2500);
+  } catch (e) { state.saving.delete(id); fail(e, id); }
+}
+function diffFields(m, fields) {
+  const out = {};
+  for (const [k, nv] of Object.entries(fields)) {
+    let ov = m[k]; if (ov === '' || ov === undefined) ov = null;
+    const a = nv === '' ? null : nv;
+    if (a === null && ov === null) continue;
+    if (typeof a === 'number' || typeof ov === 'number') { if (Number(a) === Number(ov) && a !== null && ov !== null) continue; }
+    else if (a === ov) continue;
+    out[k] = a;
+  }
+  return out;
+}
+function fail(e, id) {
+  if (e && e.code === 'sb_signin') { showSignCard('Please sign in again.'); return; }
+  let msg = (e && e.message) || 'Something went wrong.';
+  if (/failed to fetch|networkerror|load failed/i.test(msg)) msg = 'Couldn\'t reach the database. Check your connection and try again.';
+  else if (e && (e.status === 401 || e.status === 403)) msg = 'The database refused that (HTTP ' + e.status + '). Try signing out and in again.';
+  if (id) { state.msgs[id] = { t: msg, bad: true }; if ($('fx-' + id)) updateCard(id); }
+  toast(msg, 'error');
+}
+let toastT = 0;
+function toast(t, kind) { const el = $('toast'); el.textContent = t; el.dataset.kind = kind || ''; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, kind === 'error' ? 6000 : 2200); }
+
+/* events on the list of cards */
+$('matchList').addEventListener('input', e => {
+  const el = e.target.closest('[data-f]'); if (!el) return;
+  const card = el.closest('.fx'), m = byId(card.dataset.id); if (!m) return;
+  draft(m)[el.dataset.f] = el.value; delete state.msgs[m.id]; updateCard(m.id);
+});
+$('matchList').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const card = b.closest('.fx'), id = card.dataset.id, m = byId(id), act = b.dataset.act;
+  if (act === 'toggle') {
+    const open = !state.open.has(id); open ? state.open.add(id) : state.open.delete(id);
+    b.setAttribute('aria-expanded', open); $('more-' + id).hidden = !open;
+  } else if (act === 'save') saveCard(id);
+  else if (act === 'edit') openFixture(m);
+});
+
+/* Edit fixture */
+let fxId = '';
+function openFixture(m) {
+  fxId = m.id; $('fxErr').textContent = '';
+  $('fxDate').value = m.date || ''; $('fxTime').value = m.start_time || ''; $('fxVenue').value = m.venue || '';
+  const opts = cur => '<option value="">-</option>' + state.teams.map(t => `<option value="${esc(t.code)}"${t.code === cur ? ' selected' : ''}>${esc(t.name)}</option>`).join('');
+  const t = teamsOf(m); $('fxHome').innerHTML = opts(m.home || ''); $('fxAway').innerHTML = opts(m.away || '');
+  $('fxTitle').textContent = `Edit fixture · ${stageLabel(m)}` + (t.home && !m.home ? '' : '');
+  $('fxDlg').showModal();
+}
+$('fxCancel').addEventListener('click', () => $('fxDlg').close());
+$('fxSave').addEventListener('click', async () => {
+  const m = byId(fxId); if (!m) return;
+  const date = $('fxDate').value, time = $('fxTime').value, venue = $('fxVenue').value.trim(), home = $('fxHome').value, away = $('fxAway').value;
+  if (date && !/^\d{4}-\d\d-\d\d$/.test(date)) { $('fxErr').textContent = 'The date should look like 2026-12-12.'; return; }
+  if (time && !/^\d\d:\d\d$/.test(time)) { $('fxErr').textContent = 'The time should look like 19:15.'; return; }
+  if (home && home === away) { $('fxErr').textContent = 'Home and away can\'t be the same team.'; return; }
+  const changed = diffFields(m, { date: date || null, start_time: time || null, venue: venue || null, home: home || null, away: away || null });
+  if (!Object.keys(changed).length) { $('fxDlg').close(); return; }
+  $('fxSave').disabled = true;
+  try {
+    const row = await db.saveMatch(m.id, changed, m.updated_at);
+    Object.assign(m, row); dataChanged(); sortMatches(); $('fxDlg').close(); renderMatches(); toast('Fixture saved');
+  } catch (e) { $('fxErr').textContent = (e && e.message) || 'Couldn\'t save.'; if (e && e.code === 'sb_signin') { $('fxDlg').close(); showSignCard('Please sign in again.'); } }
+  $('fxSave').disabled = false;
+});
+
+/* ---------- Ladder ---------- */
+function finalsHtml(season) {
+  const fm = state.matches.filter(x => x.season === season && x.stage !== 'League');
+  if (!fm.length) return '';
+  const map = finalsMap(season);
+  const side = (m, k) => { const code = (map[m.id] || {})[k] || m[k]; return code ? `<div class="tm">${dot(code)}<span class="nm">${esc(tn(code))}</span></div>` : `<div class="tm"><span class="nm tbc">${esc(SLOT[m[k + '_slot']] || 'To be decided')}</span></div>`; };
+  return `<div class="panel"><div class="panel-head"><h2>Finals</h2></div><div class="finals">${fm.map(m => `<div class="tie" data-id="${esc(m.id)}"><div class="st">${esc(m.stage)}</div>${side(m, 'home')}${side(m, 'away')}<div class="rs">${esc(m.result ? resultText(m) : (fmtDate(m.date) || ''))}</div></div>`).join('')}</div></div>`;
+}
+function renderLadder() {
+  const season = state.season, past = isPast(season), off = state.ladders.filter(l => l.season === season).sort((a, b) => a.pos - b.pos);
+  let rows, official = past && off.length, note;
+  if (official) {
+    rows = off.map(l => ({ code: l.team, pos: l.pos, p: l.pld, w: l.w, l: l.l, t: l.t, nr: l.nr, bp: l.bp, pts: l.pts, nrr: l.nrr }));
+    note = 'Official final ladder';
+  } else {
+    rows = ladderOf(season);
+    const lg = state.matches.filter(m => m.season === season && m.stage === 'League');
+    note = `Worked out from ${lg.filter(m => m.result).length} of ${lg.length} league games`;
+  }
+  const hasT = rows.some(r => r.t), hasBp = rows.some(r => r.bp);
+  const th = `<tr><th class="l">#</th><th class="l">Team</th><th>P</th><th>W</th><th>L</th>${hasT ? '<th>T</th>' : ''}<th>NR</th>${hasBp ? '<th>BP</th>' : ''}<th>Pts</th><th>NRR</th></tr>`;
+  const body = rows.map((r, i) => {
+    const q = !official && i < 4, tag = q ? (i < 2 ? 'Qualifier' : 'Knockout') : '';
+    return `<tr data-code="${esc(r.code)}" class="${q ? 'q' : ''}${!official && i === 3 ? ' cut' : ''}"><td class="l">${r.pos}</td><td class="l"><div class="tn">${dot(r.code)}<span>${esc(tn(r.code))}${tag ? `<small>${tag}</small>` : ''}</span></div></td>
+      <td>${s(r.p)}</td><td>${s(r.w)}</td><td>${s(r.l)}</td>${hasT ? `<td>${s(r.t)}</td>` : ''}<td>${s(r.nr)}</td>${hasBp ? `<td>${s(r.bp)}</td>` : ''}<td class="pts">${s(r.pts)}</td><td>${fmtNrr(r.nrr)}</td></tr>`;
+  }).join('');
+  $('view-ladder').innerHTML = `<div class="panel"><div class="panel-head"><h2>Ladder ${esc(season)}</h2><span class="muted" style="font-size:12.5px" id="ladderNote">${esc(note)}</span></div>
+    ${rows.length ? `<table class="t" id="ladder"><thead>${th}</thead><tbody>${body}</tbody></table>` : '<div class="empty">No ladder for this season yet.</div>'}</div>${finalsHtml(season)}`;
+}
+
+/* ---------- Stats ---------- */
+function renderStats() {
+  const all = state.statsAll, ms = state.matches.filter(m => (all || m.season === state.season) && m.stage !== 'Test');
+  const done = ms.filter(m => ['home', 'away', 'tie'].includes(m.result));
+  const rec = {};
+  const get = c => rec[c] || (rec[c] = { code: c, p: 0, w: 0, l: 0, t: 0, nr: 0 });
+  for (const m of ms) {
+    if (!m.result || !m.home || !m.away) continue;
+    const H = get(m.home), A = get(m.away); H.p++; A.p++;
+    if (m.result === 'home') { H.w++; A.l++; } else if (m.result === 'away') { A.w++; H.l++; }
+    else if (m.result === 'tie') { H.t++; A.t++; } else { H.nr++; A.nr++; }
+  }
+  const recRows = Object.values(rec).map(r => ({ ...r, pct: r.w + r.l + r.t ? r.w / (r.w + r.l + r.t) * 100 : 0 })).sort((a, b) => b.pct - a.pct || b.w - a.w);
+  const q = m => Math.round((Number(m.max_overs) > 0 ? Number(m.max_overs) : +setting('overs', 20)) * 6);
+  const innings = [];
+  for (const m of done) for (const k of ['home', 'away']) {
+    const r = m[k + '_runs']; if (r == null || !m[k]) continue;
+    innings.push({ code: m[k], opp: m[k === 'home' ? 'away' : 'home'], runs: r, wk: m[k + '_wkts'], balls: m[k + '_balls'], m, done: m[k + '_wkts'] === 10 || (m[k + '_balls'] != null && m[k + '_balls'] >= q(m)) });
+  }
+  const hi = [...innings].sort((a, b) => b.runs - a.runs).slice(0, 5), lo = innings.filter(i => i.done).sort((a, b) => a.runs - b.runs).slice(0, 5);
+  const margins = done.map(marginOf).filter(Boolean);
+  const byRuns = margins.filter(x => x.type === 'runs' && x.n > 0).sort((a, b) => b.n - a.n).slice(0, 5);
+  const byWk = margins.filter(x => x.type === 'wkts').sort((a, b) => b.n - a.n || b.left - a.left).slice(0, 5);
+  const dec = done.filter(m => m.result !== 'tie');
+  const bfk = dec.filter(m => m.bat_first && (m.bat_first === m.home || m.bat_first === m.away));
+  const bfWin = bfk.filter(m => (m.result === 'home' ? m.home : m.away) === m.bat_first).length;
+  const tk = dec.filter(m => m.toss_winner && (m.toss_winner === m.home || m.toss_winner === m.away));
+  const tWin = tk.filter(m => (m.result === 'home' ? m.home : m.away) === m.toss_winner).length;
+  const pc = (a, b) => b ? Math.round(a / b * 1000) / 10 + '%' : '-';
+  const crowds = ms.filter(m => m.attendance).sort((a, b) => b.attendance - a.attendance).slice(0, 5);
+  const inn = i => `<li><span class="l">${esc(tn(i.code))} ${i.wk == null ? '' : i.wk + '/'}${i.runs}<small>v ${esc(tn(i.opp))} · ${esc(fmtDate(i.m.date))}</small></span><span class="v">${i.runs}</span></li>`;
+  const mg = x => `<li><span class="l">${esc(tn(x.w))} beat ${esc(tn(x.l))}<small>${esc(fmtDate(x.m.date))} · ${esc(x.m.venue || '')}</small></span><span class="v">${x.type === 'runs' ? plural(x.n, 'run') : plural(x.n, 'wkt')}</span></li>`;
+  const list = (rows, fn) => rows.length ? `<ul class="list">${rows.map(fn).join('')}</ul>` : '<div class="muted">Nothing yet.</div>';
+  $('view-stats').innerHTML = `<div class="panel-head"><div class="seg" role="group" aria-label="Stats range"><button type="button" data-all="0" aria-pressed="${!all}">${esc(state.season)}</button><button type="button" data-all="1" aria-pressed="${all}">All seasons</button></div><span class="muted" style="font-size:12.5px">${done.length} finished games</span></div>
+    <div class="panel"><h2 style="margin-bottom:8px">Team records</h2>${recRows.length ? `<table class="t" id="recTable"><thead><tr><th class="l">Team</th><th>P</th><th>W</th><th>L</th><th>Win %</th></tr></thead><tbody>${recRows.map(r => `<tr><td class="l"><div class="tn">${dot(r.code)}<span>${esc(tn(r.code))}</span></div></td><td>${r.p}</td><td>${r.w}</td><td>${r.l}</td><td>${r.pct.toFixed(1)}%</td></tr>`).join('')}</tbody></table>` : '<div class="muted">No finished games yet.</div>'}</div>
+    <div class="panel"><h2 style="margin-bottom:8px">Batting first, chasing and the toss</h2>
+      <table class="t"><tbody><tr><td class="l">Batting first won</td><td>${bfWin} of ${bfk.length}</td><td>${pc(bfWin, bfk.length)}</td></tr><tr><td class="l">Chasing won</td><td>${bfk.length - bfWin} of ${bfk.length}</td><td>${pc(bfk.length - bfWin, bfk.length)}</td></tr><tr><td class="l">Toss winner won</td><td>${tWin} of ${tk.length}</td><td>${pc(tWin, tk.length)}</td></tr></tbody></table></div>
+    <div class="grid2" style="margin-top:14px"><div class="panel"><h2 style="margin-bottom:6px">Highest totals</h2>${list(hi, inn)}</div><div class="panel"><h2 style="margin-bottom:6px">Lowest totals</h2>${list(lo, inn)}</div>
+      <div class="panel"><h2 style="margin-bottom:6px">Biggest wins by runs</h2>${list(byRuns, mg)}</div><div class="panel"><h2 style="margin-bottom:6px">Biggest wins by wickets</h2>${list(byWk, mg)}</div></div>
+    ${crowds.length ? `<div class="panel"><h2 style="margin-bottom:6px">Best crowds</h2>${list(crowds, m => `<li><span class="l">${esc(tn(m.home))} v ${esc(tn(m.away))}<small>${esc(fmtDate(m.date))} · ${esc(m.venue || '')}</small></span><span class="v">${Number(m.attendance).toLocaleString('en-AU')}</span></li>`)}</div>` : ''}`;
+}
+$('view-stats').addEventListener('click', e => { const b = e.target.closest('[data-all]'); if (!b) return; state.statsAll = b.dataset.all === '1'; renderStats(); });
+
+/* ---------- History ---------- */
+function renderHistory() {
+  const rows = seasons().map(se => {
+    const fin = state.matches.find(m => m.season === se && m.stage === 'Final' && (m.result === 'home' || m.result === 'away'));
+    const t = fin ? (finalsMap(se)[fin.id] || { home: fin.home, away: fin.away }) : null;
+    const champ = fin && t ? (fin.result === 'home' ? t.home : t.away) : '', ru = fin && t ? (fin.result === 'home' ? t.away : t.home) : '';
+    const off = state.ladders.filter(l => l.season === se && l.pos === 1)[0];
+    let prem = off ? off.team : '';
+    if (!prem && !isPast(se)) { const lad = ladderOf(se); if (lad.length && lad[0].p) prem = lad[0].code; }
+    const nm = c => c ? esc(tfull(c)) : '-';
+    return `<button type="button" class="hrow" data-season="${esc(se)}"><b>${esc(se)}</b><div class="hb"><span>Champion <b data-k="champ">${champ ? nm(champ) : (isPast(se) ? '-' : 'In progress')}</b></span><span>Runner-up <b data-k="ru">${nm(ru)}</b></span><span>Minor premier <b data-k="prem">${nm(prem)}</b></span></div></button>`;
+  });
+  $('view-history').innerHTML = `<div class="hlist">${rows.join('')}</div><p class="fine">History from Cricsheet (cricsheet.org) and Wikipedia. Some 2011/12–2015/16 games are missing, so all-time stats for those seasons are a little short; the ladders are the official ones.</p>`;
+}
+$('view-history').addEventListener('click', e => { const b = e.target.closest('[data-season]'); if (!b) return; state.season = b.dataset.season; state.tab = 'ladder'; paint(); });
+
+/* ---------- screen ---------- */
+function setStatus(kind, text) { $('status').dataset.state = kind; $('statusText').textContent = text; }
+function notice(t, kind) { const n = $('notice'); n.hidden = !t; n.textContent = t || ''; n.dataset.kind = kind || ''; }
+function paint() {
+  const empty = state.loaded && !state.matches.length;
+  $('setupPanel').hidden = !empty; $('views').hidden = empty || !state.loaded; $('foot').hidden = !state.loaded;
+  $('whoLine').textContent = sb.email() ? 'Signed in as ' + sb.email() : '';
+  if (!state.loaded || empty) return;
+  const ss = seasons(); if (!state.season || !ss.includes(state.season)) state.season = ss.includes(curSeason()) ? curSeason() : ss[0];
+  $('seasonSel').innerHTML = ss.map(x => `<option${x === state.season ? ' selected' : ''}>${esc(x)}</option>`).join('');
+  $('compLine').textContent = `Big Bash League · ${state.season}${isPast(state.season) ? ' (past season, read-only)' : ''}`;
+  $('venueList').innerHTML = state.venues.map(v => `<option value="${esc(v.name)}"></option>`).join('');
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === state.tab));
+  for (const t of ['matches', 'ladder', 'stats', 'history']) $('view-' + t).hidden = t !== state.tab;
+  if (state.tab === 'matches') renderMatches(); else if (state.tab === 'ladder') renderLadder(); else if (state.tab === 'stats') renderStats(); else renderHistory();
+}
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { state.tab = b.dataset.tab; paint(); }));
+$('seasonSel').addEventListener('change', e => { state.season = e.target.value; state.scrollKey = ''; paint(); });
+async function refresh() {
+  setStatus('loading', 'Loading…'); notice('');
+  try {
+    const d = await db.load();
+    state.teams = d.teams; state.venues = d.venues; state.ladders = d.ladders; state.matches = d.matches;
+    state.settings = Object.fromEntries(d.settings.map(r => [r.key, r.value]));
+    sortMatches(); dataChanged(); state.loaded = true;
+    setStatus('live', `Live · ${state.matches.length} matches`);
+    paint();
+  } catch (e) {
+    if (e && e.code === 'sb_signin') { showSignCard('Please sign in again.'); return; }
+    setStatus('error', 'Couldn\'t load'); notice((e && e.message) || 'Couldn\'t load the data.', 'error');
+  }
+}
+$('refreshBtn').addEventListener('click', refresh);
+
+/* Load history from the seed file next to this page, then check the counts. */
+let settingUp = false;
+async function runSetup() {
+  if (settingUp) return; settingUp = true;
+  const say = t => { $('setupMsg').textContent = t; if (t) setStatus('loading', t); };
+  $('setupBtn').disabled = $('setupFoot').disabled = true;
+  try {
+    say('Fetching the seed file…');
+    const r = await fetch('bbl-seed.json'); if (!r.ok) throw { message: 'Couldn\'t fetch bbl-seed.json (HTTP ' + r.status + ').' };
+    const seed = await r.json();
+    await db.setup(seed, say);
+    await refresh();
+    const have = { matches: state.matches.length, ladders: state.ladders.length, teams: state.teams.length, venues: state.venues.length, settings: Object.keys(state.settings).length };
+    const want = Object.fromEntries(SEED_ORDER.map(t => [t, (seed[t] || []).length]));
+    const diff = SEED_ORDER.filter(t => have[t] < want[t]);
+    const label = { matches: 'matches', ladders: 'ladder rows', teams: 'teams', venues: 'venues', settings: 'settings' };
+    const msg = diff.length ? 'Loaded, but some rows are missing: ' + diff.map(t => `${label[t]} ${have[t]} of ${want[t]}`).join(', ') + '.'
+      : `Loaded ${want.matches} matches, ${want.ladders} ladder rows, ${want.teams} teams, ${want.venues} venues, ${want.settings} settings.`;
+    notice(msg, diff.length ? 'error' : ''); toast(diff.length ? 'Loaded with differences' : 'History loaded', diff.length ? 'error' : '');
+    $('setupMsg').textContent = msg;
+  } catch (e) { fail(e); setStatus('error', 'Load failed'); notice((e && e.message) || 'Load failed.', 'error'); }
+  settingUp = false; $('setupBtn').disabled = $('setupFoot').disabled = false;
+}
+$('setupBtn').addEventListener('click', runSetup); $('setupFoot').addEventListener('click', runSetup);
+$('signOutBtn').addEventListener('click', async () => {
+  await sb.signOut(); Object.assign(state, { teams: [], venues: [], matches: [], ladders: [], settings: {}, drafts: {}, loaded: false, memo: {} });
+  $('views').hidden = true; $('foot').hidden = true; $('setupPanel').hidden = true; showSignCard('');
+});
+
+/* ---------- Email-code sign-in card ---------- */
+const okEmail = em => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+const sc = { email: '', step: 'email', until: 0, tm: 0, busy: false };
+function scMsg(t, ok) { const m = $('scMsg'); m.textContent = t || ''; m.dataset.kind = t && !ok ? 'err' : ''; }
+function scStep(st) {
+  sc.step = st;
+  $('scEmailForm').hidden = st !== 'email'; $('scCodeForm').hidden = st !== 'code'; $('scPwForm').hidden = st !== 'pw';
+  $('scTitle').textContent = st === 'pw' ? 'Sign in with your password' : st === 'code' ? 'Check your email' : 'Sign in with your email';
+  $('scAlt').hidden = st === 'code'; $('scAlt').textContent = st === 'pw' ? 'Use an email code instead' : 'Use password instead';
+  scMsg('');
+  if (st === 'pw') $('scPwEmail').value = sc.email || $('scEmail').value;
+}
+function scBusy(on) { sc.busy = on; for (const id of ['scSend', 'scGo', 'scPwGo']) $(id).disabled = on; }
+function scTick() {
+  const left = Math.ceil((sc.until - Date.now()) / 1000), b = $('scResend');
+  if (left <= 0) { clearInterval(sc.tm); sc.tm = 0; b.disabled = false; b.textContent = 'Resend code'; }
+  else { b.disabled = true; b.textContent = 'Resend code in ' + left + 's'; }
+}
+function scCountdown() { clearInterval(sc.tm); sc.until = Date.now() + 60000; scTick(); sc.tm = setInterval(scTick, 1000); }
+function showSignCard(msg) {
+  document.body.classList.add('signed-out'); $('signCard').hidden = false;
+  scStep('email'); if (msg) scMsg(msg, false);
+}
+function hideSignCard() {
+  clearInterval(sc.tm); sc.tm = 0;
+  document.body.classList.remove('signed-out'); $('signCard').hidden = true;
+  for (const id of ['scCode', 'scPw']) $(id).value = '';
+}
+async function scSend(resend) {
+  if (sc.busy) return;
+  const em = (resend ? sc.email : $('scEmail').value.trim());
+  if (!okEmail(em)) { scMsg('Type your email address first.'); return; }
+  scBusy(true); scMsg(resend ? 'Sending a new code…' : 'Sending…', true);
+  try {
+    await sb.sendCode(em); sc.email = em;
+    $('scSentTo').textContent = em; $('scCode').value = '';
+    scStep('code'); scCountdown(); if (resend) scMsg('A new code is on its way.', true);
+    $('scCode').focus();
+  } catch (err) { scMsg(err.message || 'Couldn\'t send the code.'); }
+  scBusy(false);
+}
+async function scFinish(promise, msgBusy) {
+  scBusy(true); scMsg(msgBusy, true);
+  try { await promise; } catch (err) { scMsg(err.message || 'Couldn\'t sign in.'); scBusy(false); return; }
+  scBusy(false); hideSignCard(); notice(''); refresh();
+}
+$('scEmailForm').addEventListener('submit', e => { e.preventDefault(); scSend(false); });
+$('scResend').addEventListener('click', () => scSend(true));
+$('scBack').addEventListener('click', () => { clearInterval(sc.tm); scStep('email'); $('scEmail').focus(); });
+$('scCodeForm').addEventListener('submit', e => {
+  e.preventDefault(); if (sc.busy) return;
+  const code = $('scCode').value.replace(/\s+/g, '');
+  if (!/^\d{6,8}$/.test(code)) { scMsg('Type the 6-digit code from the email.'); return; }
+  scFinish(sb.verifyCode(sc.email, code), 'Signing in…');
+});
+$('scPwForm').addEventListener('submit', e => {
+  e.preventDefault(); if (sc.busy) return;
+  const em = $('scPwEmail').value.trim(), pw = $('scPw').value;
+  if (!okEmail(em)) { scMsg('Type your email address first.'); return; }
+  if (!pw) { scMsg('Type your password.'); return; }
+  sc.email = em;
+  scFinish(sb.signInPassword(em, pw).catch(err => { throw { message: /didn.t match/.test(err.message || '') ? 'That email and password didn\'t match. Try an email code instead.' : err.message }; }), 'Signing in…');
+});
+$('scAlt').addEventListener('click', () => { if (sc.step === 'pw') { scStep('email'); $('scEmail').focus(); } else { sc.email = sc.email || $('scEmail').value.trim(); scStep('pw'); $('scPw').focus(); } });
+$('scCode').addEventListener('input', () => { const c = $('scCode').value.replace(/\D/g, ''); if (c !== $('scCode').value) $('scCode').value = c; });
+
+/* ---------- start ---------- */
+(function boot() {
+  const back = sb.fromRedirect();
+  if (!sb.signedIn()) { showSignCard(back && !back.ok ? back.message : ''); return; }
+  refresh();
+})();
+</script>
+
+</body>
+</html>
