@@ -11,12 +11,8 @@ Last rewritten: 28 Nov 2026. **Rewrite this file at the end of each session; don
 - A-League is mid-season and feature-complete for now. Tests pass (A-League 76, World Cup all, Formula E 265) and the build leaves nothing changed.
 - Planned: NRL/NRLW, AFL, F1, European football (Aug 2027).
 
-## Done in the last stretch (PRs #1 to #10 and #16; Formula E was other sessions)
-- World Cup app (men's and women's), flags as inline images, RLWC colours; A-League recoloured to the A-Leagues look; official club names; club logos from a private Drive folder.
-- Feedback round: opens on the current round, rounded score font, symmetrical cards, sticky mini ladder, crowd and home/away tables.
-- Half-time scores in both apps; World Cup goal kicking (conversions, penalty goals, 1- and 2-point field goals) with stats; men's results backfilled from Wikipedia.
-- A-League goal scorers (paste, preview, checks), top scorers, who scores first, goals by minute.
-- Sheet changes, all additive with dated backups: A-League `Matches` gained `homeHT, awayHT, homeScorers, awayScorers`, `Teams.logo`, `App Settings.logoFolder`; World Cup `Matches` gained `comp`, half-time and 16 kicking columns, plus a `Competitions` tab.
+## Done before this session
+- A-League, World Cup and Formula E features are listed in `docs/START-HERE.md` and `docs/handoff-formula-e.md`. Sheet columns added are in `README.md`.
 
 ## Decisions the owner has made (and why)
 - **Women's A-League: shelved (3 Nov).** Not followed closely, too much admin. Don't propose it again.
