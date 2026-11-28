@@ -20,12 +20,12 @@ APPS = [
     ("a-league", "AL", "#2121b8", "#ff4f4f", "#ffffff"),
     ("world-cup", "WC", "#061633", "#00e1e6", "#ffffff"),
     ("formula-e", "FE", "#13171e", "#5b2ee6", "#c6f432"),
+    ("cricket", "BBL", "#13221a", "#f2c230", "#ffffff"),
 ]
 # Not built yet; drawn in the preview only, to check how three letters look.
 PREVIEW_ONLY = [
     ("NRL", "#0b2a1c", "#33d17a", "#ffffff"),
     ("AFL", "#0d1f3c", "#e8463a", "#ffffff"),
-    ("BBL", "#13221a", "#f2c230", "#ffffff"),
     ("F1", "#1a0f12", "#ff3b3b", "#ffffff"),
 ]
 FONTS = ["/usr/share/fonts/opentype/inter/InterDisplay-Bold.otf", "/usr/share/fonts/opentype/inter/Inter-Bold.otf",

@@ -78,3 +78,14 @@ The one sheet holds the men's and women's tournaments. Every `Matches` and `Team
 - `App Settings`: `key | value`. `tables` lists the tables as `A=Pool A;BC=Pools B & C`: the letters are the pools that share a table. Pools B and C are one table because their teams only play the other pool. Also `pointsWin`/`pointsDraw`/`pointsLoss`, `tiebreakers` (`pointsDiff`, `pointsFor`, `tries`, `wins`, `h2hPoints`, `h2hPointsDiff`), `qualifiers` (how many teams per table go through) and `poolRounds`.
 
 Test: `node tests/tournament.js` plays a whole made-up tournament through the page and prints the tables, bracket, sheet writes and phone overflow.
+
+## Cricket app (Big Bash League)
+
+`apps/cricket/index.html` is the source; `cricket/index.html` is the GitHub Pages copy. This is the first app whose data lives in **Supabase** (schema `cricket` in the shared project), not a Google Sheet. Sign-in is the shared Supabase sign-in used by the owner's other apps. There is no claude.ai artifact.
+
+- `supabase/cricket/01-schema.sql`: the tables, Row Level Security and owner-only lock. Paste into the Supabase SQL Editor once; safe to run again.
+- Tables: `teams` (`comp | code | name | short | colour1 | colour2 | home_city | logo | active`), `venues` (`name | city | country`), `matches` (`id | comp | season | match_no | stage | date | start_time | home | away | home_slot | away_slot | venue | toss_winner | toss_decision | bat_first | home_runs | home_wkts | home_balls | away_runs | away_wkts | away_balls | max_overs | result | super_over | method | player_of_match | attendance | status | notes | source | cricsheet_id`), `ladders` (official final ladders of past seasons) and `settings` (`key | value | note`).
+- `cricket/bbl-seed.json`: teams, venues, settings, ladders and every BBL match from 2011/12, plus the 2026/27 fixture. Built by `python3 -I tools/cricket_seed.py <cricsheet folder> <wiki folder>` from Cricsheet (ODC-BY) and Wikipedia. The app loads it once from its setup screen.
+- The app never deletes: the database gives it no delete permission. Saving finds the match by id, checks nobody else changed it, and writes only the changed columns.
+
+Test: `node tests/cricket.js` runs the app against a fake Supabase: setup, results, ladder and NRR, conflicts, read-only past seasons and phone layout.

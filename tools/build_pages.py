@@ -4,6 +4,7 @@ index.html            <- apps/hub/index.html (home page listing every competitio
 a-league/index.html   <- apps/team-match/index.html (A-League)
 world-cup/index.html  <- apps/tournament/index.html (Rugby League World Cup)
 formula-e/index.html  <- apps/race/index.html (Formula E; the sheet link is pasted in the app, never stored here)
+cricket/index.html    <- apps/cricket/index.html (Big Bash League; data in Supabase, seed data in cricket/bbl-seed.json)
 Each app folder has its own manifest.webmanifest and its own icons/ (made by tools/make_icons.py), so it can be saved to a phone
 home screen on its own and is easy to tell apart in tabs and sidebars. The hub uses the shared star icons in /icons.
 
@@ -36,7 +37,8 @@ HEAD = """<!doctype html>
 for src, out, title, up, theme in [("apps/hub/index.html", "index.html", "Sports", "", "#16141f"),
                                    ("apps/team-match/index.html", "a-league/index.html", "A-League", "../", "#2121b8"),
                                    ("apps/tournament/index.html", "world-cup/index.html", "World Cup", "../", "#061633"),
-                                   ("apps/race/index.html", "formula-e/index.html", "Formula E", "../", "#13171e")]:
+                                   ("apps/race/index.html", "formula-e/index.html", "Formula E", "../", "#13171e"),
+                                   ("apps/cricket/index.html", "cricket/index.html", "Big Bash", "../", "#13221a")]:
     app = (root / src).read_text(encoding="utf-8")
     fav = '<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">\n' if (root / out).parent.joinpath("icons", "favicon-32.png").exists() else ""
     head = HEAD.replace("@FAVICON@", fav).replace("@TITLE@", title).replace("@UP@", up).replace("@SRC@", src).replace("@THEME@", theme)

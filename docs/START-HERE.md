@@ -16,7 +16,7 @@ Live site (GitHub Pages, from `main`): https://jcm-book-library.github.io/sports
 | `apps/team-match/index.html` | Team-v-team competitions. Live: A-League Men. Next: NRL, AFL, European football. |
 | `apps/tournament/index.html` | Pool-and-knockout tournaments. Live: Rugby League World Cup (men and women). |
 | `apps/race/index.html` | Motorsport. Live: Formula E. Next: F1 (same app, its own sheet). See `docs/handoff-formula-e.md`. |
-| `apps/cricket/` (planned) | Tests, BBL, World Test Championship. |
+| `apps/cricket/index.html` | Cricket. Live: Big Bash League (first app on Supabase, schema `cricket`; see `docs/handoff-cricket.md`). Tests could join later. |
 | `tools/build_pages.py` | Builds the GitHub Pages copy of every app. Run it after any app change. |
 | `index.html`, `a-league/`, `world-cup/`, `formula-e/` | Built output. Never edit by hand. Each folder has its own `manifest.webmanifest` so it can be saved to a phone home screen. |
 | `tests/run.js`, `tests/tournament.js`, `tests/race.js` | Headless Playwright tests with a stubbed `window.claude` and an in-memory sheet. |
@@ -34,6 +34,18 @@ Each app is one file with no `<head>`: the same file is published as a private c
 5. **Test before every publish** at 360px, 390px and 1280px: no sideways scrolling, no page errors. Run `python3 tools/build_pages.py` and the test file for your app.
 6. **Logos:** private, in the owner's Google Drive, never in the repo. Remind the owner at the end of each new build (the checklist is in `CLAUDE.md`).
 7. **Before ending a session:** update your competition's handoff file (and `CLAUDE.md` if a rule changed), so the next session starts where you stopped.
+
+## How much to track: three categories
+
+The owner sizes each competition by how closely they follow it (set 27 Nov 2026, reconfirmed as each app is released). Place a competition in a category before planning it, and don't propose more detail than its category.
+
+| Category | What gets recorded | Competitions |
+|---|---|---|
+| 1 | Heavy data and stats, granular, entered by the owner | NRL, F1 (NRLW Cat 1 or 2, same app as NRL) |
+| 2 | Results plus scorers, attendances and similar, lighter stats | A-League, Rugby League World Cup, Formula E, AFL, Premier League |
+| 3 | Results and little else, like the old spreadsheets | Big Bash, Championship, League One, IndyCar, Supercars |
+
+New apps start on Supabase, not a Google Sheet (control-room STANDARDS A7). Big Bash was the first.
 
 ## Adding a new competition (checklist)
 
@@ -85,4 +97,5 @@ One session per sport or league works well, as long as sessions don't step on ea
 | A-League Men 2026/27 | `apps/team-match` | Live: fixtures, ladder, results, stats, half-time scores, goal scorers (top scorers, who scores first, goals by minute), club logos from Drive. |
 | Rugby League World Cup 2026 | `apps/tournament` | Live: men's and women's, goal kicking, half-time. No scorer lists, by design. Finishes 15 Nov. |
 | Formula E | `apps/race` | Built (Stages 1–2): race cards with tap-in and paste entry, tags and penalties, standings grids, stats, compare, history. Season starts 18 Dec 26. See `docs/handoff-formula-e.md`. |
-| Cricket, AFL, NRL, F1, European football | | Planned, in that rough order. See the hub for dates. |
+| Big Bash League 2026/27 | `apps/cricket` | Built: fixtures, results, ladder with NRR, finals, stats, history from 2011/12. Data in Supabase. See `docs/handoff-cricket.md`. |
+| NRL (and NRLW), AFL, F1, European football | | Planned. NRL first (season starts 28 Feb 2027). See the hub for dates. |
